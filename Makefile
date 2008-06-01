@@ -3,7 +3,7 @@
 
 include config.mk
 
-SRC = st
+SRC = st.c std.c
 OBJ = ${SRC:.c=.o}
 
 all: options st
@@ -18,11 +18,7 @@ options:
 	@echo CC $<
 	@${CC} -c ${CFLAGS} $<
 
-${OBJ}: config.h config.mk
-
-config.h:
-	@echo creating $@ from config.def.h
-	@cp config.def.h $@
+${OBJ}: config.mk
 
 st: ${OBJ}
 	@echo CC -o $@
@@ -35,7 +31,7 @@ clean:
 dist: clean
 	@echo creating dist tarball
 	@mkdir -p st-${VERSION}
-	@cp -R LICENSE Makefile README config.def.h config.mk \
+	@cp -R LICENSE Makefile README config.mk \
 		st.1 ${SRC} st-${VERSION}
 	@tar -cf st-${VERSION}.tar st-${VERSION}
 	@gzip st-${VERSION}.tar
