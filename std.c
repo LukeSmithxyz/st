@@ -127,7 +127,6 @@ getpty(void) {
 		pts = open(ptsdev, O_RDWR);
 		if(pts == -1)
 			eprintn("error, cannot open slave pty");
-		puts(ptsdev);
 	}
 	else
 		eprintn("error, cannot open pty");
