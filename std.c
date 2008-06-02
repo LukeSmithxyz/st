@@ -109,11 +109,9 @@ getpty(void) {
 	ptm = posix_openpt(O_RDWR);
 #else
 	ptm = open("/dev/ptmx", O_RDWR);
-	if(ptm == -1) {
+	if(ptm == -1)
 		if(openpty(&ptm, &pts, NULL, NULL, NULL) == -1)
 			eprintn("error, cannot open pty");
-		return;
-	}
 #endif
 #if defined(_XOPEN_SOURCE)
 	if(ptm != -1) {
