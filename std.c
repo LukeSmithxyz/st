@@ -107,45 +107,31 @@ getpty(void) {
 	ptm = getpt();
 #elif _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600
 	ptm = posix_openpt(O_RDWR);
-#elif defined(__sgi)
-	ttydev = _getpty(&ptm, O_RDWR, 0622, 0);
-#elif defined(_AIX)
-	ptm = open("/dev/ptc", O_RDWR);
 #else
 	ptm = open("/dev/ptmx", O_RDWR);
-#if defined(__hpux)
-	if(ptm == -1)
-		ptm = open("/dev/ptym/clone", O_RDWR);
-#endif
 	if(ptm == -1) {
 		if(openpty(&ptm, &pts, NULL, NULL, NULL) == -1)
 			eprintn("error, cannot open pty");
 		return;
 	}
 #endif
+#if defined(_XOPEN_SOURCE)
 	if(ptm != -1) {
-#if defined(_XOPEN_SOURCE) || !defined(__sgi) || !defined(_AIX)
 		if(grantpt(ptm) == -1)
 			eprintn("error, cannot grant access to pty");
 		if(unlockpt(ptm) == -1)
 			eprintn("error, cannot unlock pty");
 		ptsdev = ptsname(ptm);
-#elif defined(_AIX)
-		ptsdev = ttyname(ptm);
-#endif
 		if(!ptsdev)
 			eprintn("error, slave pty name undefined");
 		pts = open(ptsdev, O_RDWR);
 		if(pts == -1)
 			eprintn("error, cannot open slave pty");
 		puts(ptsdev);
-#if defined(__hpux) || defined(sun) || defined(__sun)
-		ioctl(pts, I_PUSH, "ptem");
-		ioctl(pts, I_PUSH, "ldterm");
-#endif
 	}
 	else
 		eprintn("error, cannot open pty");
+#endif
 }
 
 void
