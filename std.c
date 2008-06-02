@@ -319,8 +319,5 @@ main(int argc, char *argv[]) {
 		eprint("usage: st [-v]\n");
 	getpty();
 	shell();
-	fdopen(fptm, "r+");
-	if(!fptm)
-		eprintn("cannot open slave pty");
 	return 0;
 }
