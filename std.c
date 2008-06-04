@@ -166,7 +166,7 @@ parseesc(void) {
 				s |= QuestionMark; 
 			else if(c == ';') {
 				if(!(s & Digit))
-					eprint("syntax error");
+					eprint("syntax error\n");
 				s &= ~Digit;
 				j++;
 			}
