@@ -306,7 +306,6 @@ unbuffer(void) {
 
 int
 main(int argc, char *argv[]) {
-	fd_set rd;
 	if(argc == 2 && !strcmp("-v", argv[1]))
 		eprint("std-"VERSION", © 2008 Matthias-Christian Ott\n");
 	else if(argc == 1)
