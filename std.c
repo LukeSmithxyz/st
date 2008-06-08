@@ -31,8 +31,6 @@ void shell(void);
 void sigchld(int n);
 char unbuffer(void);
 
-enum { QuestionMark = 1, Digit = 2 };
-
 typedef struct {
 	unsigned char data[BUFSIZ];
 	int s, e;
@@ -41,10 +39,10 @@ typedef struct {
 
 int cols = 80, lines = 25;
 int cx = 0, cy = 0;
-int c, s;
+int c;
 FILE *fptm = NULL;
 int ptm, pts;
-_Bool bold;
+_Bool bold, digit, qmark;
 pid_t pid;
 RingBuffer buf;
 
@@ -151,28 +149,27 @@ parseesc(void) {
 	int arg[16];
 
 	memset(arg, 0, LENGTH(arg));
-	s = 0;
 	c = getc(fptm);
 	switch(c) {
 	case '[':
 		c = getc(fptm);
 		for(j = 0; j < LENGTH(arg);) {
 			if(isdigit(c)) {
-				s |= Digit;
+				digit = 1;
 				arg[j] *= 10;
 				arg[j] += c - '0';
 			}
 			else if(c == '?')
-				s |= QuestionMark; 
+				qmark = 1;
 			else if(c == ';') {
-				if(!(s & Digit))
+				if(!digit)
 					eprint("syntax error\n");
-				s &= ~Digit;
+				digit = 0;
 				j++;
 			}
 			else {
-				if(s & Digit) {
-					s &= ~Digit;
+				if(digit) {
+					digit = 0;
 					j++;
 				}
 				break;
