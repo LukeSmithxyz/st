@@ -6,6 +6,9 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#if !(_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600)
+#include <pty.h>
+#endif
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
