@@ -312,5 +312,18 @@ main(int argc, char *argv[]) {
 		eprint("usage: st [-v]\n");
 	getpty();
 	shell();
+	fptm = fdopen(ptm, "r+");
+	if(!fptm)
+		eprintn("cannot open slave pty");
+	for(;;) {
+		c = getc(fptm);
+		switch(c) {
+		case '\033':
+			parseesc();
+			break;
+		default:
+			putchar(c);
+		}
+	}
 	return 0;
 }
