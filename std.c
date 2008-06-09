@@ -28,7 +28,7 @@ void eprintn(const char *errstr, ...);
 void getpty(void);
 void movea(int x, int y);
 void mover(int x, int y);
-void parse(void);
+void parseesc(void);
 void scroll(int l);
 void shell(void);
 void sigchld(int n);
