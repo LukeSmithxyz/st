@@ -1,12 +1,8 @@
 /* See LICENSE file for copyright and license details. */
-#include <sys/ioctl.h>
-#include <sys/select.h>
-#include <sys/stat.h>
+#include "util.h"
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -20,9 +16,6 @@
 
 void buffer(char c);
 void cmd(const char *cmdstr, ...);
-void *emallocz(unsigned int size);
-void eprint(const char *errstr, ...);
-void eprintn(const char *errstr, ...);
 void getpty(void);
 void movea(int x, int y);
 void mover(int x, int y);
@@ -66,36 +59,6 @@ cmd(const char *cmdstr, ...) {
 	va_start(ap, cmdstr);
 	vfprintf(stdout, cmdstr, ap);
 	va_end(ap);
-}
-
-void *
-emallocz(unsigned int size) {
-	void *res = calloc(1, size);
-
-	if(!res)
-		eprint("fatal: could not malloc() %u bytes\n", size);
-	return res;
-}
-
-void
-eprint(const char *errstr, ...) {
-	va_list ap;
-
-	va_start(ap, errstr);
-	vfprintf(stderr, errstr, ap);
-	va_end(ap);
-	exit(EXIT_FAILURE);
-}
-
-void
-eprintn(const char *errstr, ...) {
-	va_list ap;
-
-	va_start(ap, errstr);
-	vfprintf(stderr, errstr, ap);
-	va_end(ap);
-	fprintf(stderr, ": %s\n", strerror(errno));
-	exit(EXIT_FAILURE);
 }
 
 void

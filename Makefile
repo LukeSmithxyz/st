@@ -3,7 +3,7 @@
 
 include config.mk
 
-SRC = st.c std.c
+SRC = st.c std.c util.c pty.c
 OBJ = ${SRC:.c=.o}
 
 all: options st
