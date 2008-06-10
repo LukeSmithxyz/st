@@ -1,3 +1,4 @@
+/* See LICENSE file for copyright and license details. */
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/stat.h>
