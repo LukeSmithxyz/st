@@ -1,6 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 #include "util.h"
 #include <stdio.h>
+#include <string.h>
 
 int
 Xmain(int argc, char *argv[]) {
