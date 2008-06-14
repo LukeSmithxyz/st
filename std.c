@@ -263,20 +263,32 @@ ungetch(int c) {
 
 int
 main(int argc, char *argv[]) {
+	fd_set rfds;
+	int r;
+
 	if(argc == 2 && !strcmp("-v", argv[1]))
 		eprint("std-"VERSION", © 2008 Matthias-Christian Ott\n");
 	else if(argc == 1)
 		eprint("usage: st [-v]\n");
 	getpty();
 	shell();
+	FD_ZERO(&rfds);
+	FD_SET(STDIN_FILENO, &rfds);
+	FD_SET(ptm, &rfds);
 	for(;;) {
-		c = getch();
-		switch(c) {
-		case '\033':
-			parseesc();
-			break;
-		default:
-			putchar(c);
+		r = select(ptm + 1, &rfds, NULL, NULL, NULL);
+		if(r == -1)
+			eprintn("error, cannot select");
+		if(FD_ISSET(ptm, &rfds)) {
+			c = getch();
+			switch(c) {
+			case '\033':
+				parseesc();
+				break;
+			default:
+				putchar(c);
+			}
+			fflush(stdout);
 		}
 	}
 	return 0;
