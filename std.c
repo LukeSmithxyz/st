@@ -16,6 +16,7 @@
 
 void buffer(char c);
 void cmd(const char *cmdstr, ...);
+int getch();
 void getpty(void);
 void movea(int x, int y);
 void mover(int x, int y);
@@ -24,6 +25,7 @@ void scroll(int l);
 void shell(void);
 void sigchld(int n);
 char unbuffer(void);
+void ungetch(int c);
 
 typedef struct {
 	unsigned char data[BUFSIZ];
@@ -31,14 +33,19 @@ typedef struct {
 	int n;
 } RingBuffer;
 
+typedef struct {
+	unsigned char data[BUFSIZ];
+	int i, n;
+} ReadBuffer;
+
 int cols = 80, lines = 25;
 int cx = 0, cy = 0;
 int c;
-FILE *fptm = NULL;
 int ptm, pts;
 _Bool bold, digit, qmark;
 pid_t pid;
 RingBuffer buf;
+ReadBuffer rbuf;
 
 void
 buffer(char c) {
@@ -61,6 +68,17 @@ cmd(const char *cmdstr, ...) {
 	va_end(ap);
 }
 
+int
+getch() {
+	if(rbuf.i++ >= rbuf.n) {
+		rbuf.n = read(ptm, rbuf.data, LENGTH(rbuf.data));
+		if(rbuf.n == -1)
+			eprintn("error, cannot read from slave pty");
+		rbuf.i = 0;
+	}
+	return rbuf.data[rbuf.i];
+}
+
 void
 movea(int x, int y) {
 	x = MAX(x, cols);
@@ -81,10 +99,10 @@ parseesc(void) {
 	int arg[16];
 
 	memset(arg, 0, LENGTH(arg));
-	c = getc(fptm);
+	c = getch();
 	switch(c) {
 	case '[':
-		c = getc(fptm);
+		c = getch();
 		for(j = 0; j < LENGTH(arg);) {
 			if(isdigit(c)) {
 				digit = 1;
@@ -106,7 +124,7 @@ parseesc(void) {
 				}
 				break;
 			}
-			c = getc(fptm);
+			c = getch();
 		}
 		switch(c) {
 		case '@':
@@ -180,7 +198,7 @@ parseesc(void) {
 		break;
 	default:
 		putchar('\033');
-		ungetc(c, fptm);
+		ungetch(c);
 	}
 }
 
@@ -236,6 +254,13 @@ unbuffer(void) {
 	return c;
 }
 
+void
+ungetch(int c) {
+	if(rbuf.i + 1 >= rbuf.n)
+		eprint("error, read buffer full\n");
+	rbuf.data[rbuf.i++] = c;
+}
+
 int
 main(int argc, char *argv[]) {
 	if(argc == 2 && !strcmp("-v", argv[1]))
@@ -244,11 +269,8 @@ main(int argc, char *argv[]) {
 		eprint("usage: st [-v]\n");
 	getpty();
 	shell();
-	fptm = fdopen(ptm, "r+");
-	if(!fptm)
-		eprintn("cannot open slave pty");
 	for(;;) {
-		c = getc(fptm);
+		c = getch();
 		switch(c) {
 		case '\033':
 			parseesc();
