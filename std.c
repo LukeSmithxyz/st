@@ -14,18 +14,18 @@
 #define MAX(a,b)	(((a) > (b)) ? (a) : (b))
 #define MIN(a,b)	(((a) < (b)) ? (a) : (b))
 
-void buffer(char c);
-void cmd(const char *cmdstr, ...);
-int getch();
+static void buffer(char c);
+static void cmd(const char *cmdstr, ...);
+static int getch();
 void getpty(void);
-void movea(int x, int y);
-void mover(int x, int y);
-void parseesc(void);
-void scroll(int l);
-void shell(void);
-void sigchld(int n);
-char unbuffer(void);
-void ungetch(int c);
+static void movea(int x, int y);
+static void mover(int x, int y);
+static void parseesc(void);
+static void scroll(int l);
+static void shell(void);
+static void sigchld(int n);
+static char unbuffer(void);
+static void ungetch(int c);
 
 typedef struct {
 	unsigned char data[BUFSIZ];
@@ -38,14 +38,14 @@ typedef struct {
 	int i, n;
 } ReadBuffer;
 
-int cols = 80, lines = 25;
-int cx = 0, cy = 0;
-int c;
+static int cols = 80, lines = 25;
+static int cx = 0, cy = 0;
+static int c;
 int ptm, pts;
-_Bool bold, digit, qmark;
-pid_t pid;
-RingBuffer buf;
-ReadBuffer rbuf;
+static _Bool bold, digit, qmark;
+static pid_t pid;
+static RingBuffer buf;
+static ReadBuffer rbuf;
 
 void
 buffer(char c) {
