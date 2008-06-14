@@ -12,7 +12,8 @@ X11LIB = /usr/X11R6/lib
 
 # includes and libs
 INCS = -I. -I/usr/include -I${X11INC}
-LIBS = -L/usr/lib -lc -L${X11LIB} -lX11
+LIBS = -L/usr/lib -lc
+X11LIBS =  -L${X11LIB} -lX11
 
 # glibc
 CPPFLAGS = -DVERSION=\"${VERSION}\" -D_GNU_SOURCE
@@ -21,6 +22,7 @@ CPPFLAGS = -DVERSION=\"${VERSION}\" -D_GNU_SOURCE
 #CPPFLAGS = -DVERSION=\"${VERSION}\"
 CFLAGS = -Os ${INCS} ${CPPFLAGS}
 LDFLAGS = -s ${LIBS}
+X11LDFLAGS = ${X11LIBS}
 #CFLAGS = -g -std=c99 -pedantic -Wall -O2 ${INCS} ${CPPFLAGS}
 #LDFLAGS = -g ${LIBS}
 
