@@ -85,7 +85,7 @@ movea(int x, int y) {
 	y = MAX(y, lines);
 	cx = x;
 	cy = y;
-	cmd("s %d,%d", x, y);
+	cmd("seek(%d,%d)", x, y);
 }
 
 void
@@ -186,10 +186,10 @@ parseesc(void) {
 				case 0:
 				case 22:
 					if(bold)
-						cmd("b");
+						cmd("bold");
 				case 1:
 					if(!bold)
-						cmd("b");
+						cmd("bold");
 					break;
 				}
 			}
@@ -204,7 +204,7 @@ parseesc(void) {
 
 void
 scroll(int l) {
-	cmd("s %d, %d", cx, cy + l);
+	cmd("seek(%d,%d)", cx, cy + l);
 }
 
 void
@@ -279,17 +279,18 @@ main(int argc, char *argv[]) {
 		r = select(ptm + 1, &rfds, NULL, NULL, NULL);
 		if(r == -1)
 			eprintn("error, cannot select");
-		if(FD_ISSET(ptm, &rfds)) {
-			c = getch();
-			switch(c) {
-			case '\033':
-				parseesc();
-				break;
-			default:
-				putchar(c);
-			}
-			fflush(stdout);
-		}
+		if(FD_ISSET(ptm, &rfds))
+			do {
+				c = getch();
+				switch(c) {
+				case '\033':
+					parseesc();
+					break;
+				default:
+					putchar(c);
+				}
+				fflush(stdout);
+			} while(rbuf.i < rbuf.n);
 	}
 	return 0;
 }
