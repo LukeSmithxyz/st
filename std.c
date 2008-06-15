@@ -279,7 +279,7 @@ main(int argc, char *argv[]) {
 		r = select(ptm + 1, &rfds, NULL, NULL, NULL);
 		if(r == -1)
 			eprintn("error, cannot select");
-		if(FD_ISSET(ptm, &rfds))
+		if(FD_ISSET(ptm, &rfds)) {
 			do {
 				c = getch();
 				switch(c) {
@@ -289,8 +289,9 @@ main(int argc, char *argv[]) {
 				default:
 					putchar(c);
 				}
-				fflush(stdout);
 			} while(rbuf.i < rbuf.n);
+			fflush(stdout);
+		}
 	}
 	return 0;
 }
