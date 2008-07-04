@@ -1,13 +1,17 @@
 /* See LICENSE file for copyright and license details. */
-#include "util.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int
 main(int argc, char *argv[]) {
-	if(argc == 2 && !strcmp("-v", argv[1]))
-		eprint("st-"VERSION", © 2007-2008 st engineers, see LICENSE for details\n");
-	else if(argc != 1)
-		eprint("usage: st [-v]\n");
+	if(argc == 2 && !strcmp("-v", argv[1])) {
+		fprintf(stderr, "st-"VERSION", © 2007-2008 st engineers, see LICENSE for details\n");
+		exit(EXIT_SUCCESS);
+	}
+	else if(argc != 1) {
+		fprintf(stderr, "usage: st [-v]\n");
+		exit(EXIT_FAILURE);
+	}
 	return 0;
 }

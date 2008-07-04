@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <ctype.h>
+#include <err.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -73,7 +74,7 @@ getch() {
 	if(rbuf.i++ >= rbuf.n) {
 		rbuf.n = read(ptm, rbuf.data, LENGTH(rbuf.data));
 		if(rbuf.n == -1)
-			eprintn("error, cannot read from slave pty");
+			err(EXIT_FAILURE, "cannot read from slave pty");
 		rbuf.i = 0;
 	}
 	return rbuf.data[rbuf.i];
@@ -113,7 +114,7 @@ parseesc(void) {
 				qmark = 1;
 			else if(c == ';') {
 				if(!digit)
-					eprint("syntax error\n");
+					errx(EXIT_FAILURE, "syntax error");
 				digit = 0;
 				j++;
 			}
@@ -216,7 +217,7 @@ shell(void) {
 	pid = fork();
 	switch(pid) {
 	case -1:
-		eprint("error, cannot fork\n");
+		err(EXIT_FAILURE, "cannot fork");
 	case 0:
 		setsid();
 		dup2(pts, STDIN_FILENO);
@@ -237,7 +238,7 @@ sigchld(int n) {
 	int ret;
 
 	if(waitpid(pid, &ret, 0) == -1)
-		eprintn("error, waiting for child failed");
+		err(EXIT_FAILURE, "waiting for child failed");
 	if(WIFEXITED(ret))
 		exit(WEXITSTATUS(ret));
 	else
@@ -257,7 +258,7 @@ unbuffer(void) {
 void
 ungetch(int c) {
 	if(rbuf.i + 1 >= rbuf.n)
-		eprint("error, read buffer full\n");
+		errx(EXIT_FAILURE, "read buffer full");
 	rbuf.data[rbuf.i++] = c;
 }
 
@@ -266,10 +267,14 @@ main(int argc, char *argv[]) {
 	fd_set rfds;
 	int r;
 
-	if(argc == 2 && !strcmp("-v", argv[1]))
-		eprint("std-"VERSION", © 2008 Matthias-Christian Ott\n");
-	else if(argc == 1)
-		eprint("usage: st [-v]\n");
+	if(argc == 2 && !strcmp("-v", argv[1])) {
+		fprintf(stderr, "std-"VERSION", © 2008 Matthias-Christian Ott\n");
+		exit(EXIT_SUCCESS);
+	}
+	else if(argc == 1) {
+		fprintf(stderr, "usage: st [-v]\n");
+		exit(EXIT_FAILURE);
+	}
 	getpty();
 	shell();
 	FD_ZERO(&rfds);
@@ -278,7 +283,7 @@ main(int argc, char *argv[]) {
 	for(;;) {
 		r = select(ptm + 1, &rfds, NULL, NULL, NULL);
 		if(r == -1)
-			eprintn("error, cannot select");
+			err(EXIT_FAILURE, "cannot select");
 		if(FD_ISSET(ptm, &rfds)) {
 			do {
 				c = getch();

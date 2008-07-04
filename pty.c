@@ -22,22 +22,22 @@ getpty(void) {
 	ptm = open("/dev/ptmx", O_RDWR);
 	if(ptm == -1)
 		if(openpty(&ptm, &pts, NULL, NULL, NULL) == -1)
-			eprintn("error, cannot open pty");
+			err(EXIT_FAILURE, "cannot open pty");
 #endif
 #if defined(_XOPEN_SOURCE)
 	if(ptm != -1) {
 		if(grantpt(ptm) == -1)
-			eprintn("error, cannot grant access to pty");
+			err(EXIT_FAILURE, "cannot grant access to pty");
 		if(unlockpt(ptm) == -1)
-			eprintn("error, cannot unlock pty");
+			err(EXIT_FAILURE, "cannot unlock pty");
 		ptsdev = ptsname(ptm);
 		if(!ptsdev)
-			eprintn("error, slave pty name undefined");
+			err(EXIT_FAILURE, "slave pty name undefined");
 		pts = open(ptsdev, O_RDWR);
 		if(pts == -1)
-			eprintn("error, cannot open slave pty");
+			err(EXIT_FAILURE, "cannot open slave pty");
 	}
 	else
-		eprintn("error, cannot open pty");
+		err(EXIT_FAILURE, "cannot open pty");
 #endif
 }
