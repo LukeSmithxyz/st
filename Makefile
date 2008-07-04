@@ -3,7 +3,7 @@
 
 include config.mk
 
-SRC = st.c std.c util.c pty.c
+SRC = st.c std.c pty.c
 OBJ = ${SRC:.c=.o}
 
 all: options st std
@@ -21,11 +21,11 @@ options:
 
 ${OBJ}: config.mk
 
-st: st.o util.o
+st: st.o
 	@echo CC -o $@
 	@${CC} -o $@ $^ ${LDFLAGS} ${X11LDFLAGS}
 
-std: std.o pty.o util.o
+std: std.o pty.o
 	@echo CC -o $@
 	@${CC} -o $@ $^ ${LDFLAGS}
 

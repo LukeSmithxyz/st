@@ -1,5 +1,4 @@
 /* See LICENSE file for copyright and license details. */
-#include "util.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
