@@ -264,7 +264,6 @@ ungetch(int c) {
 int
 main(int argc, char *argv[]) {
 	fd_set rfds;
-	int r;
 
 	if(argc == 2 && !strcmp("-v", argv[1])) {
 		fprintf(stderr, "std-"VERSION", © 2008 Matthias-Christian Ott\n");
@@ -280,8 +279,7 @@ main(int argc, char *argv[]) {
 	FD_SET(STDIN_FILENO, &rfds);
 	FD_SET(ptm, &rfds);
 	for(;;) {
-		r = select(ptm + 1, &rfds, NULL, NULL, NULL);
-		if(r == -1)
+		if(select(ptm + 1, &rfds, NULL, NULL, NULL) == -1)
 			err(EXIT_FAILURE, "cannot select");
 		if(FD_ISSET(ptm, &rfds)) {
 			do {
