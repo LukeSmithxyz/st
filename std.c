@@ -41,7 +41,7 @@ typedef struct {
 static int cols = 80, lines = 25;
 static int cx = 0, cy = 0;
 static int c;
-static int ptm, pts;
+int ptm, pts;
 static _Bool bold, digit, qmark;
 static pid_t pid;
 static RingBuffer buf;
