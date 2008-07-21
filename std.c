@@ -265,14 +265,10 @@ int
 main(int argc, char *argv[]) {
 	fd_set rfds;
 
-	if(argc == 2 && !strcmp("-v", argv[1])) {
-		fprintf(stderr, "std-"VERSION", © 2008 Matthias-Christian Ott\n");
-		exit(EXIT_SUCCESS);
-	}
-	else if(argc == 1) {
-		fprintf(stderr, "usage: st [-v]\n");
-		exit(EXIT_FAILURE);
-	}
+	if(argc == 2 && !strcmp("-v", argv[1]))
+		errx(EXIT_SUCCESS, "std-"VERSION", © 2008 Matthias-Christian Ott");
+	else if(argc == 1)
+		errx(EXIT_FAILURE, "usage: st [-v]");
 	getpty();
 	shell();
 	FD_ZERO(&rfds);
