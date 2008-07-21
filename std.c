@@ -268,7 +268,7 @@ main(int argc, char *argv[]) {
 	if(argc == 2 && !strcmp("-v", argv[1]))
 		errx(EXIT_SUCCESS, "std-"VERSION", © 2008 Matthias-Christian Ott");
 	else if(argc == 1)
-		errx(EXIT_FAILURE, "usage: st [-v]");
+		errx(EXIT_FAILURE, "usage: std [-v]");
 	getpty();
 	shell();
 	FD_ZERO(&rfds);
