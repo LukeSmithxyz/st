@@ -18,19 +18,6 @@
 #define MAX(a,b)	(((a) > (b)) ? (a) : (b))
 #define MIN(a,b)	(((a) < (b)) ? (a) : (b))
 
-static void buffer(char c);
-static void cmd(const char *cmdstr, ...);
-static int getch();
-static void getpty(void);
-static void movea(int x, int y);
-static void mover(int x, int y);
-static void parseesc(void);
-static void scroll(int l);
-static void shell(void);
-static void sigchld(int n);
-static char unbuffer(void);
-static void ungetch(int c);
-
 typedef struct {
 	unsigned char data[BUFSIZ];
 	int s, e;
@@ -40,7 +27,22 @@ typedef struct {
 typedef struct {
 	unsigned char data[BUFSIZ];
 	int i, n;
+	int fd;
 } ReadBuffer;
+
+static void buffer(char c);
+static void cmd(const char *cmdstr, ...);
+static int getch(ReadBuffer *buf);
+static void getpty(void);
+static void movea(int x, int y);
+static void mover(int x, int y);
+static void parsecmd(void);
+static void parseesc(void);
+static void scroll(int l);
+static void shell(void);
+static void sigchld(int n);
+static char unbuffer(void);
+static void ungetch(ReadBuffer *buf, int c);
 
 static int cols = 80, lines = 25;
 static int cx = 0, cy = 0;
@@ -49,7 +51,7 @@ static int ptm, pts;
 static _Bool bold, digit, qmark;
 static pid_t pid;
 static RingBuffer buf;
-static ReadBuffer rbuf;
+static ReadBuffer cmdbuf, ptmbuf;
 
 void
 buffer(char c) {
@@ -73,14 +75,14 @@ cmd(const char *cmdstr, ...) {
 }
 
 int
-getch() {
-	if(rbuf.i++ >= rbuf.n) {
-		rbuf.n = read(ptm, rbuf.data, LENGTH(rbuf.data));
-		if(rbuf.n == -1)
-			err(EXIT_FAILURE, "cannot read from slave pty");
-		rbuf.i = 0;
+getch(ReadBuffer *buf) {
+	if(buf->i++ >= buf->n) {
+		buf->n = read(buf->fd, buf->data, BUFSIZ);
+		if(buf->n == -1)
+			err(EXIT_FAILURE, "cannot read");
+		buf->i = 0;
 	}
-	return rbuf.data[rbuf.i];
+	return buf->data[buf->i];
 }
 
 void
@@ -98,15 +100,19 @@ mover(int x, int y) {
 }
 
 void
+parsecmd(void) {
+}
+
+void
 parseesc(void) {
 	int i, j;
 	int arg[16];
 
 	memset(arg, 0, LENGTH(arg));
-	c = getch();
+	c = getch(&ptmbuf);
 	switch(c) {
 	case '[':
-		c = getch();
+		c = getch(&ptmbuf);
 		for(j = 0; j < LENGTH(arg);) {
 			if(isdigit(c)) {
 				digit = 1;
@@ -128,7 +134,7 @@ parseesc(void) {
 				}
 				break;
 			}
-			c = getch();
+			c = getch(&ptmbuf);
 		}
 		switch(c) {
 		case '@':
@@ -202,7 +208,7 @@ parseesc(void) {
 		break;
 	default:
 		putchar('\033');
-		ungetch(c);
+		ungetch(&ptmbuf, c);
 	}
 }
 
@@ -291,10 +297,10 @@ unbuffer(void) {
 }
 
 void
-ungetch(int c) {
-	if(rbuf.i + 1 >= rbuf.n)
-		errx(EXIT_FAILURE, "read buffer full");
-	rbuf.data[rbuf.i++] = c;
+ungetch(ReadBuffer *buf, int c) {
+	if(buf->i + 1 >= buf->n)
+		errx(EXIT_FAILURE, "buffer full");
+	buf->data[buf->i++] = c;
 }
 
 int
@@ -307,15 +313,28 @@ main(int argc, char *argv[]) {
 		errx(EXIT_FAILURE, "usage: std [-v]");
 	getpty();
 	shell();
+	cmdbuf.fd = STDIN_FILENO;
+	ptmbuf.fd = ptm;
 	FD_ZERO(&rfds);
 	FD_SET(STDIN_FILENO, &rfds);
 	FD_SET(ptm, &rfds);
 	for(;;) {
 		if(select(ptm + 1, &rfds, NULL, NULL, NULL) == -1)
 			err(EXIT_FAILURE, "cannot select");
+		if(FD_ISSET(STDIN_FILENO, &rfds))
+			do {
+				c = getch(&cmdbuf);
+				switch(c) {
+				case ':':
+					parsecmd();
+					break;
+				default:
+					break;
+				}
+			} while(cmdbuf.i < cmdbuf.n);
 		if(FD_ISSET(ptm, &rfds)) {
 			do {
-				c = getch();
+				c = getch(&ptmbuf);
 				switch(c) {
 				case '\033':
 					parseesc();
@@ -323,7 +342,7 @@ main(int argc, char *argv[]) {
 				default:
 					putchar(c);
 				}
-			} while(rbuf.i < rbuf.n);
+			} while(ptmbuf.i < ptmbuf.n);
 			fflush(stdout);
 		}
 	}
