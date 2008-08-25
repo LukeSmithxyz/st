@@ -1,4 +1,16 @@
-/* See LICENSE file for copyright and license details. */
+/* See LICENSE file for copyright and license details.
+ *
+ * Simple terminal daemon is a terminal emulator. It can be used in
+ * combination with simple terminal to emulate a mostly VT100-compatible
+ * terminal.
+ * 
+ * In this process std works like a filter. It reads data from a
+ * pseudo-terminal and parses the escape sequences and transforms
+ * them into an ed(1)-like. The resulting data is buffered and written
+ * to stdout.
+ * Parallely it reads data from stdin and parses and executes the
+ * commands. The resulting data is written to the pseudo-terminal.
+ */
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <ctype.h>
