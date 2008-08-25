@@ -15,6 +15,7 @@
 #include <sys/wait.h>
 #include <ctype.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #if !(_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600)
 #include <pty.h>
@@ -36,15 +37,8 @@ typedef struct {
 	int n;
 } RingBuffer;
 
-typedef struct {
-	unsigned char data[BUFSIZ];
-	int i, n;
-	int fd;
-} ReadBuffer;
-
 static void buffer(char c);
 static void cmd(const char *cmdstr, ...);
-static int getch(ReadBuffer *buf);
 static void getpty(void);
 static void movea(int x, int y);
 static void mover(int x, int y);
@@ -54,7 +48,6 @@ static void scroll(int l);
 static void shell(void);
 static void sigchld(int n);
 static char unbuffer(void);
-static void ungetch(ReadBuffer *buf, int c);
 
 static int cols = 80, lines = 25;
 static int cx = 0, cy = 0;
@@ -63,7 +56,7 @@ static int ptm, pts;
 static _Bool bold, digit, qmark;
 static pid_t pid;
 static RingBuffer buf;
-static ReadBuffer cmdbuf, ptmbuf;
+static FILE *fptm;
 
 void
 buffer(char c) {
@@ -84,17 +77,6 @@ cmd(const char *cmdstr, ...) {
 	va_start(ap, cmdstr);
 	vfprintf(stdout, cmdstr, ap);
 	va_end(ap);
-}
-
-int
-getch(ReadBuffer *buf) {
-	if(buf->i++ >= buf->n) {
-		buf->n = read(buf->fd, buf->data, BUFSIZ);
-		if(buf->n == -1)
-			err(EXIT_FAILURE, "cannot read");
-		buf->i = 0;
-	}
-	return buf->data[buf->i];
 }
 
 void
@@ -121,10 +103,10 @@ parseesc(void) {
 	int arg[16];
 
 	memset(arg, 0, LENGTH(arg));
-	c = getch(&ptmbuf);
+	c = getc(fptm);
 	switch(c) {
 	case '[':
-		c = getch(&ptmbuf);
+		c = getc(fptm);
 		for(j = 0; j < LENGTH(arg);) {
 			if(isdigit(c)) {
 				digit = 1;
@@ -146,7 +128,7 @@ parseesc(void) {
 				}
 				break;
 			}
-			c = getch(&ptmbuf);
+			c = getc(fptm);
 		}
 		switch(c) {
 		case '@':
@@ -220,7 +202,7 @@ parseesc(void) {
 		break;
 	default:
 		putchar('\033');
-		ungetch(&ptmbuf, c);
+		ungetc(c, fptm);
 	}
 }
 
@@ -308,13 +290,6 @@ unbuffer(void) {
 	return c;
 }
 
-void
-ungetch(ReadBuffer *buf, int c) {
-	if(buf->i + 1 >= buf->n)
-		errx(EXIT_FAILURE, "buffer full");
-	buf->data[buf->i++] = c;
-}
-
 int
 main(int argc, char *argv[]) {
 	fd_set rfds;
@@ -325,28 +300,31 @@ main(int argc, char *argv[]) {
 		errx(EXIT_FAILURE, "usage: std [-v]");
 	getpty();
 	shell();
-	cmdbuf.fd = STDIN_FILENO;
-	ptmbuf.fd = ptm;
 	FD_ZERO(&rfds);
 	FD_SET(STDIN_FILENO, &rfds);
 	FD_SET(ptm, &rfds);
+	if(!(fptm = fdopen(ptm, "r+")))
+		err(EXIT_FAILURE, "cannot open pty");
+	if(fcntl(ptm, F_SETFL, O_NONBLOCK) == -1)
+		err(EXIT_FAILURE, "cannot set pty to non-blocking mode");
+	if(fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK) == -1)
+		err(EXIT_FAILURE, "cannot set stdin to non-blocking mode");
 	for(;;) {
-		if(select(ptm + 1, &rfds, NULL, NULL, NULL) == -1)
+		if(select(MAX(ptm, STDIN_FILENO) + 1, &rfds, NULL, NULL, NULL) == -1)
 			err(EXIT_FAILURE, "cannot select");
-		if(FD_ISSET(STDIN_FILENO, &rfds))
-			do {
-				c = getch(&cmdbuf);
-				switch(c) {
-				case ':':
-					parsecmd();
-					break;
-				default:
+		if(FD_ISSET(ptm, &rfds)) {
+			for(;;) {
+				if((c = getc(fptm)) == EOF) {
+					if(feof(fptm)) {
+						FD_CLR(ptm, &rfds);
+						fflush(fptm);
+						break;
+					}
+					if(errno != EAGAIN)
+						err(EXIT_FAILURE, "cannot read from pty");
+					fflush(stdout);
 					break;
 				}
-			} while(cmdbuf.i < cmdbuf.n);
-		if(FD_ISSET(ptm, &rfds)) {
-			do {
-				c = getch(&ptmbuf);
 				switch(c) {
 				case '\033':
 					parseesc();
@@ -354,8 +332,31 @@ main(int argc, char *argv[]) {
 				default:
 					putchar(c);
 				}
-			} while(ptmbuf.i < ptmbuf.n);
+			}
 			fflush(stdout);
+		}
+		if(FD_ISSET(STDIN_FILENO, &rfds)) {
+			for(;;) {
+				if((c = getchar()) == EOF) {
+					if(feof(stdin)) {
+						FD_CLR(STDIN_FILENO, &rfds);
+						fflush(fptm);
+						break;
+					}
+					if(errno != EAGAIN)
+						err(EXIT_FAILURE, "cannot read from stdin");
+					fflush(fptm);
+					break;
+				}
+				switch(c) {
+				case ':':
+					parsecmd();
+					break;
+				default:
+					putc(c, fptm);
+				}
+			}
+			fflush(fptm);
 		}
 	}
 	return 0;
