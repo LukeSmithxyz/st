@@ -5,9 +5,9 @@
  * terminal.
  * 
  * In this process std works like a filter. It reads data from a
- * pseudo-terminal and parses the escape sequences and transforms
- * them into an ed(1)-like. The resulting data is buffered and written
- * to stdout.
+ * pseudo-terminal and parses the escape sequences and transforms them
+ * into an ed(1)-like language. The resulting data is buffered and
+ * written to stdout.
  * Parallely it reads data from stdin and parses and executes the
  * commands. The resulting data is written to the pseudo-terminal.
  */
