@@ -217,7 +217,7 @@ escparse(void) {
 		}
 		break;
 	case '(':
-		/* humf charset stuff */
+		/* XXX: graphic character set */
 		break;
 	}
 }
@@ -230,8 +230,7 @@ tmoveto(int x, int y) {
 
 void
 tcursor(int dir) {
-	int xi = term.c.x, yi = term.c.y;
-	int xf = xi, yf = yi;
+	int xf = term.c.x, yf = term.c.y;
 
 	switch(dir) {
 	case CSup:
