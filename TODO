@@ -1,0 +1,9 @@
+  - write a clean terminfo entry
+  - write global "setup" func
+  - try to split more logic/gfx
+  - optimize drawing
+  - handle copy/paste
+  - fix fork/child exit problem
+  - fix resize (shrinking should move last line up)
+  - handle utf8 
+  - refactor/clean code
