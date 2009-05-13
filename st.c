@@ -703,18 +703,25 @@ xinit(void) {
 
 	xw.dis = XOpenDisplay(NULL);
 	xw.scr = XDefaultScreen(xw.dis);
+    if(!(xw.dis && xw.scr))
+        die("can not open display");
+    
 	/* font */
-	dc.font = XLoadQueryFont(xw.dis, FONT);
+	if(!(dc.font = XLoadQueryFont(xw.dis, FONT)))
+        die("can not find font " FONT);
+
 	xw.cw = dc.font->max_bounds.rbearing - dc.font->min_bounds.lbearing;
 	xw.ch = dc.font->ascent + dc.font->descent + LINESPACE;
+
 	/* colors */
 	for(i = 0; i < LEN(colorname); i++)
 		dc.col[i] = xgetcol(colorname[i]);
+
 	term.c.attr.fg = DefaultFG;
 	term.c.attr.bg = DefaultBG;
 	term.c.attr.mode = ATnone;
 	/* windows */
-	xw.h = term.row * xw.ch;
+    xw.h = term.row * xw.ch;
 	xw.w = term.col * xw.cw;
 	/* XXX: this BORDER is useless after the first resize, handle it in xdraws() */
 	xw.win = XCreateSimpleWindow(xw.dis, XRootWindow(xw.dis, xw.scr), 0, 0,
@@ -736,6 +743,7 @@ xinit(void) {
 	XSetWMProperties(xw.dis, xw.win, NULL, NULL, &args[0], 0, &shint, &wmhint, &chint);
 	XStoreName(xw.dis, xw.win, TNAME);
 	XSync(xw.dis, 0);
+    
 }
 
 void
@@ -908,13 +916,13 @@ run(void) {
 int
 main(int argc, char *argv[]) {
 	if(argc == 2 && !strncmp("-v", argv[1], 3))
-		die("st-"VERSION", © 2009 st engineers\n");
+		die("st-"", © 2009 st engineers\n");
 	else if(argc != 1)
 		die("usage: st [-v]\n");
 	setlocale(LC_CTYPE, "");
-	tnew(80, 24);
-	ttynew();
-	xinit();
-	run();
+    tnew(80, 24);
+    ttynew();
+    xinit();
+    run();
 	return 0;
 }
