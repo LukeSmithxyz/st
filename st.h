@@ -1,5 +1,4 @@
 /* See LICENSE for licence details. */
-
 #define _XOPEN_SOURCE
 #include <ctype.h>
 #include <fcntl.h>
@@ -8,11 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/select.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
@@ -28,7 +27,7 @@
 #define SHELL "/bin/bash"
 #define TAB    8
 
-#define FONT "-*-terminus-medium-r-normal-*-14-*-*-*-*-*-*-*"
+#define FONT "fixed"
 #define BORDER 3
 #define LINESPACE 1 /* additional pixel between each line */
 
@@ -49,7 +48,6 @@ static char* colorname[] = {
 	"white",
 };
 
-
 /* Arbitrary sizes */
 #define ESCSIZ 256
 #define ESCARG 16
@@ -67,14 +65,6 @@ enum { CSup, CSdown, CSright, CSleft, CShide, CSdraw, CSwrap, CSsave, CSload }; 
 enum { CRset=1 , CRupdate=2 }; /* Character state */
 enum { TMwrap=1 , TMinsert=2 }; /* Terminal mode */
 enum { SCupdate, SCredraw }; /* screen draw mode */
-
-#ifdef TRUECOLOR
-#error Truecolor not implemented yet
-typedef int Color;
-#else
-typedef char Color;
-#endif
-
 
 typedef struct {
 	char c;     /* character code  */
