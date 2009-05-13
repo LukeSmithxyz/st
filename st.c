@@ -559,6 +559,17 @@ escreset(void) {
 }
 
 void
+tputtab(void) {
+    int space = TAB - term.c.x % TAB;
+    
+    if(term.c.x + space >= term.col)
+        space--;
+    
+    for(; space > 0; space--)
+        tputc(' ');
+}
+
+void
 tputc(char c) {
 	static int inesc = 0;
 
@@ -574,6 +585,9 @@ tputc(char c) {
 			tsetchar(c);
 			tcursor(CSright);
 			break;
+        case '\t':
+            tputtab();
+            break;
 		case '\b':
 			tcursor(CSleft);
 			break;

@@ -66,6 +66,8 @@ enum { CRset=1 , CRupdate=2 }; /* Character state */
 enum { TMwrap=1 , TMinsert=2 }; /* Terminal mode */
 enum { SCupdate, SCredraw }; /* screen draw mode */
 
+typedef int Color;
+
 typedef struct {
 	char c;     /* character code  */
 	char mode;  /* attribute flags */
