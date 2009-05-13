@@ -364,21 +364,6 @@ void
 tsetattr(int *attr, int l) {
 	int i;
 
-#ifdef TRUECOLOR /* ESC [ ? <fg/bg> ; <r> ; <g> ; <b> m */
-	Color col;
-	if(escseq.priv && escseq.len == 4) { /* True color extension :) */
-		col = (escseq.arg[1]<<16) + (escseq.arg[2]<<8) + escseq.arg[3];
-		switch(escseq.arg[0]) {
-		case 3: /* foreground */
-			term.c.attr.fg = col;
-			break;
-		case 4: /* background */
-			term.c.attr.bg = col;
-			break;
-		}
-	}
-	else
-#endif
 		for(i = 0; i < l; i++) {
 			switch(attr[i]) {
 			case 0:
