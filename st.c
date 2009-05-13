@@ -703,7 +703,7 @@ xinit(void) {
 
 	xw.dis = XOpenDisplay(NULL);
 	xw.scr = XDefaultScreen(xw.dis);
-    if(!(xw.dis && xw.scr))
+    if(!xw.dis)
         die("can not open display");
     
 	/* font */
@@ -916,7 +916,7 @@ run(void) {
 int
 main(int argc, char *argv[]) {
 	if(argc == 2 && !strncmp("-v", argv[1], 3))
-		die("st-"", © 2009 st engineers\n");
+		die("st-" VERSION ", © 2009 st engineers\n");
 	else if(argc != 1)
 		die("usage: st [-v]\n");
 	setlocale(LC_CTYPE, "");
