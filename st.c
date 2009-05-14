@@ -566,7 +566,7 @@ tputtab(void) {
         space--;
     
     for(; space > 0; space--)
-        tputc(' ');
+        tcursor(CSright);
 }
 
 void
