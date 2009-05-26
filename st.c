@@ -573,7 +573,7 @@ void
 tputc(char c) {
 	static int inesc = 0;
 
-	dump(c);
+	//dump(c);
 	/* start of escseq */
 	if(c == '\033')
 		escreset(), inesc = 1;
@@ -636,20 +636,24 @@ tresize(int col, int row) {
 
 	if(col < 1 || row < 1)
 		return;
+    /* alloc */
 	line = calloc(row, sizeof(Line));
 	for(i = 0 ; i < row; i++)
 		line[i] = calloc(col, sizeof(Glyph));
-	for(i = 0 ; i < minrow; i++) {
-		memcpy(line[i], term.line[i], mincol * sizeof(Glyph));
-		free(term.line[i]);
-	}
+    /* copy */
+    for(i = 0 ; i < minrow; i++)
+        memcpy(line[i], term.line[i], mincol * sizeof(Glyph));
+    /* free */
+    for(i = 0; i < term.row; i++)
+        free(term.line[i]);
 	free(term.line);
+
 	LIMIT(term.c.x, 0, col-1);
 	LIMIT(term.c.y, 0, row-1);
 	LIMIT(term.top, 0, row-1);
 	LIMIT(term.bot, 0, row-1);
-	//    if(term.bot == term.row-1)
-	term.bot = row-1;
+
+    term.bot = row-1;
 	term.line = line;
 	term.col = col, term.row = row;
 }
@@ -775,7 +779,10 @@ xcursor(int mode) {
 	static int oldx = 0;
 	static int oldy = 0;
 	Glyph g = {' ', ATnone, DefaultBG, DefaultCS, 0};
-
+    
+    LIMIT(oldx, 0, term.col-1);
+	LIMIT(oldy, 0, term.row-1);
+    
 	if(term.line[term.c.y][term.c.x].state & CRset)
 		g.c = term.line[term.c.y][term.c.x].c;
 	/* remove the old cursor */
@@ -859,7 +866,7 @@ resize(XEvent *e) {
 	col = e->xconfigure.width / xw.cw;
 	row = e->xconfigure.height / xw.ch;
     
-	if(term.col != col && term.row != row) {
+	if(term.col != col || term.row != row) {
 		tresize(col, row);
 		ttyresize(col, row);
 		xw.w = e->xconfigure.width;
