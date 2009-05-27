@@ -1,4 +1,4 @@
-/* See LICENSE for licence details.  */
+/* See LICENSE for licence details.	 */
 #include "st.h"
 
 /* Globals */
@@ -27,11 +27,10 @@ execsh(void) {
 }
 
 void
-xbell(void) {   /* visual bell */
+xbell(void) {	/* visual bell */
 	XRectangle r = { 0, 0, xw.w, xw.h };
 	XSetForeground(xw.dis, dc.gc, dc.col[BellCol]);
 	XFillRectangles(xw.dis, xw.win, dc.gc, &r, 1);
-	XFlush(xw.dis);
 	usleep(30000);
 	draw(SCredraw);
 }
@@ -127,7 +126,7 @@ escfinal(char c) {
 		}
 	else if(BETWEEN(c, 0x40, 0x7E))
 		return 1;
-	return 0;     
+	return 0;	  
 }
 
 void
@@ -168,7 +167,7 @@ tscroll(void) {
 		term.line[i] = term.line[i+1];
 	memset(temp, 0, sizeof(Glyph) * term.col);
 	term.line[term.bot] = temp;
-	xscroll();    
+	xscroll();	  
 }
 
 void
@@ -372,13 +371,13 @@ tsetattr(int *attr, int l) {
 				term.c.attr.bg = DefaultBG;
 				break;
 			case 1:
-				term.c.attr.mode |= ATbold;  
+				term.c.attr.mode |= ATbold;	 
 				break;
 			case 4: 
 				term.c.attr.mode |= ATunderline;
 				break;
 			case 7: 
-				term.c.attr.mode |= ATreverse;  
+				term.c.attr.mode |= ATreverse;	
 				break;
 			case 8:
 				term.c.hidden = CShide;
@@ -390,7 +389,7 @@ tsetattr(int *attr, int l) {
 				term.c.attr.mode &= ~ATunderline;
 				break;
 			case 27: 
-				term.c.attr.mode &= ~ATreverse;  
+				term.c.attr.mode &= ~ATreverse;	 
 				break;
 			case 39:
 				term.c.attr.fg = DefaultFG;
@@ -420,7 +419,7 @@ tsetscroll(int t, int b) {
 		b = temp;
 	}
 	term.top = t;
-	term.bot = b;    
+	term.bot = b;	 
 }
 
 
@@ -481,7 +480,7 @@ eschandle(void) {
 				break;
 			case 2: /* all */
 				tclearregion(0, 0, term.col-1, term.row-1);
-				break;                
+				break;				  
 			}
 			break;
 		case 'K': /* Clear line */
@@ -501,6 +500,10 @@ eschandle(void) {
 			DEFAULT(escseq.arg[0], 1);
 			tinsertblankline(escseq.arg[0]);
 			break;
+		case 'l':
+			if(escseq.priv && escseq.arg[0] == 25)
+				term.c.hidden = 1;
+			break;
 		case 'M': /* Delete <n> lines */
 			DEFAULT(escseq.arg[0], 1);
 			tdeleteline(escseq.arg[0]);
@@ -514,6 +517,8 @@ eschandle(void) {
 			tmoveto(term.c.x, escseq.arg[0]-1);
 			break;
 		case 'h': /* Set terminal mode */
+			if(escseq.priv && escseq.arg[0] == 25)
+				term.c.hidden = 0;
 			break;
 		case 'm': /* Terminal attribute (color) */
 			tsetattr(escseq.arg, escseq.narg);
@@ -542,15 +547,15 @@ void
 escdump(void) { 
 	int i;
 	puts("------");
-	printf("rawbuf  : %s\n", escseq.buf);
+	printf("rawbuf	: %s\n", escseq.buf);
 	printf("prechar : %c\n", escseq.pre);
 	printf("private : %c\n", escseq.priv ? '?' : ' ');
-	printf("narg    : %d\n", escseq.narg);
+	printf("narg	: %d\n", escseq.narg);
 	if(escseq.narg) {
 		for(i = 0; i < escseq.narg; i++)
 			printf("\targ %d = %d\n", i, escseq.arg[i]);
 	}
-	printf("mode    : %c\n", escseq.mode);
+	printf("mode	: %c\n", escseq.mode);
 }
 
 void
@@ -560,20 +565,21 @@ escreset(void) {
 
 void
 tputtab(void) {
-    int space = TAB - term.c.x % TAB;
-    
-    if(term.c.x + space >= term.col)
-        space--;
-    
-    for(; space > 0; space--)
-        tcursor(CSright);
+	int space = TAB - term.c.x % TAB;
+	
+	if(term.c.x + space >= term.col)
+		space--;
+	
+	for(; space > 0; space--)
+		tcursor(CSright);
 }
 
 void
 tputc(char c) {
 	static int inesc = 0;
-
-	//dump(c);
+#if 0
+	dump(c);
+#endif	
 	/* start of escseq */
 	if(c == '\033')
 		escreset(), inesc = 1;
@@ -585,9 +591,9 @@ tputc(char c) {
 			tsetchar(c);
 			tcursor(CSright);
 			break;
-        case '\t':
-            tputtab();
-            break;
+		case '\t':
+			tputtab();
+			break;
 		case '\b':
 			tcursor(CSleft);
 			break;
@@ -636,24 +642,24 @@ tresize(int col, int row) {
 
 	if(col < 1 || row < 1)
 		return;
-    /* alloc */
+	/* alloc */
 	line = calloc(row, sizeof(Line));
 	for(i = 0 ; i < row; i++)
 		line[i] = calloc(col, sizeof(Glyph));
-    /* copy */
-    for(i = 0 ; i < minrow; i++)
-        memcpy(line[i], term.line[i], mincol * sizeof(Glyph));
-    /* free */
-    for(i = 0; i < term.row; i++)
-        free(term.line[i]);
+	/* copy */
+	for(i = 0 ; i < minrow; i++)
+		memcpy(line[i], term.line[i], mincol * sizeof(Glyph));
+	/* free */
+	for(i = 0; i < term.row; i++)
+		free(term.line[i]);
 	free(term.line);
-
+	
 	LIMIT(term.c.x, 0, col-1);
 	LIMIT(term.c.y, 0, row-1);
 	LIMIT(term.top, 0, row-1);
 	LIMIT(term.bot, 0, row-1);
-
-    term.bot = row-1;
+	
+	term.bot = row-1;
 	term.line = line;
 	term.col = col, term.row = row;
 }
@@ -706,12 +712,12 @@ xinit(void) {
 
 	xw.dis = XOpenDisplay(NULL);
 	xw.scr = XDefaultScreen(xw.dis);
-    if(!xw.dis)
-        die("can not open display");
-    
+	if(!xw.dis)
+		die("can not open display");
+	
 	/* font */
 	if(!(dc.font = XLoadQueryFont(xw.dis, FONT)))
-        die("can not find font " FONT);
+		die("can not find font " FONT);
 
 	xw.cw = dc.font->max_bounds.rbearing - dc.font->min_bounds.lbearing;
 	xw.ch = dc.font->ascent + dc.font->descent + LINESPACE;
@@ -724,7 +730,7 @@ xinit(void) {
 	term.c.attr.bg = DefaultBG;
 	term.c.attr.mode = ATnone;
 	/* windows */
-    xw.h = term.row * xw.ch;
+	xw.h = term.row * xw.ch;
 	xw.w = term.col * xw.cw;
 	/* XXX: this BORDER is useless after the first resize, handle it in xdraws() */
 	xw.win = XCreateSimpleWindow(xw.dis, XRootWindow(xw.dis, xw.scr), 0, 0,
@@ -746,7 +752,6 @@ xinit(void) {
 	XSetWMProperties(xw.dis, xw.win, NULL, NULL, &args[0], 0, &shint, &wmhint, &chint);
 	XStoreName(xw.dis, xw.win, TNAME);
 	XSync(xw.dis, 0);
-    
 }
 
 void
@@ -765,7 +770,7 @@ xdrawc(int x, int y, Glyph g) {
 	/* string */
 	XSetForeground(xw.dis, dc.gc, xfg);
 	XDrawString(xw.dis, xw.win, dc.gc, r.x, r.y+dc.font->ascent, &(g.c), 1);
-	if(g.mode & ATbold)  /* XXX: bold hack (draw again at x+1) */
+	if(g.mode & ATbold)	 /* XXX: bold hack (draw again at x+1) */
 		XDrawString(xw.dis, xw.win, dc.gc, r.x+1, r.y+dc.font->ascent, &(g.c), 1);
 	/* underline */
 	if(g.mode & ATunderline) {
@@ -779,10 +784,10 @@ xcursor(int mode) {
 	static int oldx = 0;
 	static int oldy = 0;
 	Glyph g = {' ', ATnone, DefaultBG, DefaultCS, 0};
-    
-    LIMIT(oldx, 0, term.col-1);
+	
+	LIMIT(oldx, 0, term.col-1);
 	LIMIT(oldy, 0, term.row-1);
-    
+	
 	if(term.line[term.c.y][term.c.x].state & CRset)
 		g.c = term.line[term.c.y][term.c.x].c;
 	/* remove the old cursor */
@@ -825,7 +830,7 @@ kpress(XKeyEvent *e) {
 	int meta;
 	int shift;
 
-	meta  = e->state & Mod4Mask;
+	meta  = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
 	len = XLookupString(e, buf, sizeof(buf), &ksym, NULL);
 	if(len > 0) {
@@ -836,11 +841,9 @@ kpress(XKeyEvent *e) {
 		return;
 	}
 	switch(ksym) {
-#ifdef DEBUG1
 	default:
-		printf("errkey: %d\n", (int)ksym);
+		fprintf(stderr, "errkey: %d\n", (int)ksym);
 		break;
-#endif
 	case XK_Up:
 	case XK_Down:
 	case XK_Left:
@@ -849,13 +852,14 @@ kpress(XKeyEvent *e) {
 		ttywrite(buf, 3);
 		break;
 	case XK_Delete: ttywrite(KEYDELETE, sizeof(KEYDELETE)-1); break;
-	case XK_Home:   ttywrite(  KEYHOME, sizeof(  KEYHOME)-1); break;
-	case XK_End:    ttywrite(   KEYEND, sizeof(   KEYEND)-1); break;
-	case XK_Prior:	ttywrite(  KEYPREV, sizeof(  KEYPREV)-1); break;
-	case XK_Next:	ttywrite(  KEYNEXT, sizeof(  KEYNEXT)-1); break;
+	case XK_Home:  ttywrite(KEYHOME, sizeof(KEYHOME)-1); break;
+	case XK_End:   ttywrite(KEYEND,  sizeof(KEYEND) -1); break;
+	case XK_Prior: ttywrite(KEYPREV, sizeof(KEYPREV)-1); break;
+	case XK_Next:  ttywrite(KEYNEXT, sizeof(KEYNEXT)-1); break;
 	case XK_Insert:
 		/* XXX: paste X clipboard */
-		if(shift);
+		if(shift)
+			;
 		break;
 	}
 }
@@ -865,7 +869,7 @@ resize(XEvent *e) {
 	int col, row;
 	col = e->xconfigure.width / xw.cw;
 	row = e->xconfigure.height / xw.ch;
-    
+	
 	if(term.col != col || term.row != row) {
 		tresize(col, row);
 		ttyresize(col, row);
@@ -881,37 +885,42 @@ run(void) {
 	int ret;
 	XEvent ev;
 	fd_set rfd;
-	struct timeval tv = {0, 10000};
+	int xfd = XConnectionNumber(xw.dis);
 
 	running = 1;
 	XSelectInput(xw.dis, xw.win, ExposureMask | KeyPressMask | StructureNotifyMask);
 	XResizeWindow(xw.dis, xw.win, xw.w , xw.h); /* seems to fix the resize bug in wmii */
+	
 	while(running) {
-		while(XPending(xw.dis)) {
-			XNextEvent(xw.dis, &ev);
-			switch (ev.type) {
-			default:
-				break;
-			case KeyPress:
-				kpress(&ev.xkey);
-				break;
-			case Expose:
-				draw(SCredraw);
-				break;
-			case ConfigureNotify:
-				resize(&ev);
-				break;
-			}
-		}
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
-		ret = select(cmdfd+1, &rfd, NULL, NULL, &tv);
+		FD_SET(xfd, &rfd);
+		XFlush(xw.dis);
+		ret = select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, NULL);
+
 		if(ret < 0) {
 			fprintf(stderr, "select: %m\n");
 			running = 0;
 		}
-		if(!ret)
-			continue;
+		
+		if(FD_ISSET(xfd, &rfd)) {
+			while(XPending(xw.dis)) {
+				XNextEvent(xw.dis, &ev);
+				switch (ev.type) {
+				default:
+					break;
+				case KeyPress:
+					kpress(&ev.xkey);
+					break;
+				case Expose:
+					draw(SCredraw);
+					break;
+				case ConfigureNotify:
+					resize(&ev);
+					break;
+				}
+			}
+		}
 		if(FD_ISSET(cmdfd, &rfd)) {
 			ttyread();
 			draw(SCupdate);
@@ -926,9 +935,9 @@ main(int argc, char *argv[]) {
 	else if(argc != 1)
 		die("usage: st [-v]\n");
 	setlocale(LC_CTYPE, "");
-    tnew(80, 24);
-    ttynew();
-    xinit();
-    run();
+	tnew(80, 24);
+	ttynew();
+	xinit();
+	run();
 	return 0;
 }
