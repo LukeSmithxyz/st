@@ -1,4 +1,4 @@
-/* See LICENSE for licence details.	 */
+/* See LICENSE for licence details. */
 #include "st.h"
 
 /* Globals */
@@ -7,6 +7,7 @@ XWindow xw;
 Term term;
 Escseq escseq;
 int cmdfd;
+pid_t pid;
 int running;
 
 void
@@ -27,34 +28,45 @@ execsh(void) {
 }
 
 void
-xbell(void) {	/* visual bell */
+xbell(void) { /* visual bell */
 	XRectangle r = { 0, 0, xw.w, xw.h };
 	XSetForeground(xw.dis, dc.gc, dc.col[BellCol]);
 	XFillRectangles(xw.dis, xw.win, dc.gc, &r, 1);
-	usleep(30000);
+	/* usleep(30000); */
 	draw(SCredraw);
 }
+
+void 
+sigchld(int a) {
+	int stat = 0;
+	if(waitpid(pid, &stat, 0) < 0)
+		die("Waiting for pid %hd failed: %s\n",	pid, SERRNO);
+	if(WIFEXITED(stat))
+		exit(WEXITSTATUS(stat));
+	else
+		exit(EXIT_FAILURE);
+}
+
 
 void
 ttynew(void) {
 	int m, s;
-	pid_t pid;
 	char *pts;
 
 	if((m = posix_openpt(O_RDWR | O_NOCTTY)) < 0)
-		die("openpt");
-	if(grantpt(m) == -1)
-		die("grandpt");
-	if(unlockpt(m) == -1)
-		die("unlockpt");
-	if((pts = ptsname(m)) == NULL)
-		die("ptsname");
+		die("openpt failed: %s\n", SERRNO);
+	if(grantpt(m) < 0)
+		die("grandpt failed: %s\n", SERRNO);
+	if(unlockpt(m) < 0)
+		die("unlockpt failed: %s\n", SERRNO);
+	if(!(pts = ptsname(m)))
+		die("ptsname failed: %s\n", SERRNO);
 	if((s = open(pts, O_RDWR | O_NOCTTY)) < 0)
-		die("slave open");
+		die("Couldn't open slave: %s\n", SERRNO);
 	fcntl(s, F_SETFL, O_NDELAY);
 	switch(pid = fork()) {
 	case -1:
-		die("fork");
+		die("fork failed\n");
 		break;
 	case 0:
 		setsid(); /* create a new process group */
@@ -62,12 +74,13 @@ ttynew(void) {
 		dup2(s, STDOUT_FILENO);
 		dup2(s, STDERR_FILENO);
 		if(ioctl(s, TIOCSCTTY, NULL) < 0)
-			die("slave TTIOCSTTY");
+			die("ioctl TTIOCSTTY failed: %s\n", SERRNO);
 		execsh();
 		break;
 	default:
 		close(s);
 		cmdfd = m;
+		signal(SIGCHLD, sigchld);
 	}
 }
 
@@ -85,9 +98,8 @@ ttyread(void) {
 	int ret;
 
 	switch(ret = read(cmdfd, buf, BUFSIZ)) {
-	case -1: /* error or exit */
-		/* XXX: be more precise */
-		running = 0;
+	case -1: 
+		die("Couldn't read from shell: %s\n", SERRNO);
 		break;
 	default:
 		tputs(buf, ret);
@@ -97,7 +109,7 @@ ttyread(void) {
 void
 ttywrite(char *s, size_t n) {
 	if(write(cmdfd, s, n) == -1)
-		die("write error on tty.");
+		die("write error on tty: %s\n", SERRNO);
 }
 
 void
@@ -108,7 +120,7 @@ ttyresize(int x, int y) {
 	w.ws_col = term.col;
 	w.ws_xpixel = w.ws_ypixel = 0;
 	if(ioctl(cmdfd, TIOCSWINSZ, &w) < 0)
-		fprintf(stderr, "Couldn't set window size: %m\n");
+		fprintf(stderr, "Couldn't set window size: %s\n", SERRNO);
 }
 
 int
@@ -889,7 +901,7 @@ run(void) {
 
 	running = 1;
 	XSelectInput(xw.dis, xw.win, ExposureMask | KeyPressMask | StructureNotifyMask);
-	XResizeWindow(xw.dis, xw.win, xw.w , xw.h); /* seems to fix the resize bug in wmii */
+	XResizeWindow(xw.dis, xw.win, xw.w , xw.h); /* fix resize bug in wmii (?) */
 	
 	while(running) {
 		FD_ZERO(&rfd);
@@ -898,11 +910,9 @@ run(void) {
 		XFlush(xw.dis);
 		ret = select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, NULL);
 
-		if(ret < 0) {
-			fprintf(stderr, "select: %m\n");
-			running = 0;
-		}
-		
+		if(ret < 0)
+			die("select failed: %s\n", SERRNO);
+				
 		if(FD_ISSET(xfd, &rfd)) {
 			while(XPending(xw.dis)) {
 				XNextEvent(xw.dis, &ev);

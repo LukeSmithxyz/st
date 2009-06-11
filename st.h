@@ -1,16 +1,19 @@
 /* See LICENSE for licence details. */
 #define _XOPEN_SOURCE
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -52,6 +55,7 @@ static char* colorname[] = {
 #define ESCSIZ 256
 #define ESCARG 16
 
+#define SERRNO strerror(errno)
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
 #define MAX(a, b)  ((a) < (b) ? (b) : (a))
 #define LEN(a)     (sizeof(a) / sizeof(a[0]))
@@ -63,7 +67,7 @@ static char* colorname[] = {
 enum { ATnone=0 , ATreverse=1 , ATunderline=2, ATbold=4 }; /* Attribute */
 enum { CSup, CSdown, CSright, CSleft, CShide, CSdraw, CSwrap, CSsave, CSload }; /* Cursor */
 enum { CRset=1 , CRupdate=2 }; /* Character state */
-enum { TMwrap=1 , TMinsert=2 }; /* Terminal mode */
+enum { TMwrap=1 , TMinsert=2, TMaltcharset }; /* Terminal mode */
 enum { SCupdate, SCredraw }; /* screen draw mode */
 
 typedef int Color;
@@ -130,6 +134,7 @@ typedef struct {
 void die(const char *errstr, ...);
 void draw(int);
 void execsh(void);
+void sigchld(int);
 void kpress(XKeyEvent *);
 void resize(XEvent *);
 void run(void);
