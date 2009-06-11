@@ -1,5 +1,3 @@
-  - fix resize (shrinking should move last line up)
   - total rewrite of X code (pixmap, mouse, copy-paste, ...)
   - write a clean terminfo entry
-  - fix fork/child exit problem
   - handle utf8 
