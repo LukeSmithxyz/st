@@ -591,10 +591,16 @@ tsetscroll(int t, int b) {
 
 void
 eschandle(void) { 
-	/* escdump(); */
 	switch(escseq.pre) {
+	default:
+		goto unknown_seq;
 	case '[':
 		switch(escseq.mode) {
+		default:
+		unknown_seq:
+			fprintf(stderr, "erresc: unknown sequence\n");
+			escdump();
+			break;
 		case '@': /* Insert <n> blank char */
 			DEFAULT(escseq.arg[0], 1);
 			tinsertblank(escseq.arg[0]);
@@ -712,15 +718,13 @@ eschandle(void) {
 void
 escdump(void) { 
 	int i;
-	puts("------");
 	printf("rawbuf	: %s\n", escseq.buf);
 	printf("prechar : %c\n", escseq.pre);
 	printf("private : %c\n", escseq.priv ? '?' : ' ');
 	printf("narg	: %d\n", escseq.narg);
-	if(escseq.narg) {
+	if(escseq.narg)
 		for(i = 0; i < escseq.narg; i++)
 			printf("\targ %d = %d\n", i, escseq.arg[i]);
-	}
 	printf("mode	: %c\n", escseq.mode);
 }
 
