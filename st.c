@@ -1,5 +1,160 @@
 /* See LICENSE for licence details. */
-#include "st.h"
+/* See LICENSE for licence details. */
+#define _XOPEN_SOURCE
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <locale.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
+#include <X11/Xutil.h>
+
+#define TNAME "st"
+
+/* Arbitrary sizes */
+#define ESCSIZ 256
+#define ESCARG 16
+
+#define SERRNO strerror(errno)
+#define MIN(a, b)  ((a) < (b) ? (a) : (b))
+#define MAX(a, b)  ((a) < (b) ? (b) : (a))
+#define LEN(a)     (sizeof(a) / sizeof(a[0]))
+#define DEFAULT(a, b)     (a) = (a) ? (a) : (b)    
+#define BETWEEN(x, a, b)  ((a) <= (x) && (x) <= (b))
+#define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
+
+/* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
+enum { ATnone=0 , ATreverse=1 , ATunderline=2, ATbold=4 };
+enum { CSup, CSdown, CSright, CSleft, CShide, CSdraw, CSwrap, CSsave, CSload };
+enum { CRset=1 , CRupdate=2 };
+enum { TMwrap=1 , TMinsert=2, TMaltcharset };
+enum { SCupdate, SCredraw };
+
+typedef int Color;
+
+typedef struct {
+	KeySym k;
+	char s[ESCSIZ];
+} Key;
+
+typedef struct {
+	char c;     /* character code  */
+	char mode;  /* attribute flags */
+	Color fg;   /* foreground      */
+	Color bg;   /* background      */
+	char state; /* state flag      */
+} Glyph;
+
+typedef Glyph* Line;
+
+typedef struct {
+	Glyph attr;  /* current char attributes */
+	char hidden;
+	int x;
+	int y;
+} TCursor;
+
+/* Escape sequence structs */
+/* ESC <pre> [[ [<priv>] <arg> [;]] <mode>] */
+typedef struct {
+	char buf[ESCSIZ+1]; /* raw string */
+	int len;            /* raw string length */
+	char pre;           
+	char priv;
+	int arg[ESCARG+1];
+	int narg;           /* nb of args */
+	char mode;
+} Escseq;
+
+/* Internal representation of the screen */
+typedef struct {
+	int row;    /* nb row */  
+	int col;    /* nb col */
+	Line* line; /* screen */
+	TCursor c;  /* cursor */
+	int top;    /* top    scroll limit */
+	int bot;    /* bottom scroll limit */
+	int mode;   /* terminal mode */
+} Term;
+
+/* Purely graphic info */
+typedef struct {
+	Display* dis;
+	Window win;
+	int scr;
+	int w;  /* window width  */
+	int h;  /* window height */
+	int ch; /* char height */
+	int cw; /* char width  */
+} XWindow; 
+
+#include "config.h"
+
+/* Drawing Context */
+typedef struct {
+	unsigned long col[LEN(colorname)];
+	XFontStruct* font;
+	GC gc;
+} DC;
+
+void die(const char *errstr, ...);
+void draw(int);
+void execsh(void);
+void sigchld(int);
+char* kmap(KeySym);
+void kpress(XKeyEvent *);
+void resize(XEvent *);
+void run(void);
+
+int escaddc(char);
+int escfinal(char);
+void escdump(void);
+void eschandle(void);
+void escparse(void);
+void escreset(void);
+
+void tclearregion(int, int, int, int);
+void tcpos(int);
+void tcursor(int);
+void tdeletechar(int);
+void tdeleteline(int);
+void tdump(void);
+void tinsertblank(int);
+void tinsertblankline(int);
+void tmoveto(int, int);
+void tnew(int, int);
+void tnewline(void);
+void tputc(char);
+void tputs(char*, int);
+void tresize(int, int);
+void tscroll(void);
+void tsetattr(int*, int);
+void tsetchar(char);
+void tsetscroll(int, int);
+
+void ttynew(void);
+void ttyread(void);
+void ttyresize(int, int);
+void ttywrite(char *, size_t);
+
+unsigned long xgetcol(const char *);
+void xclear(int, int, int, int);
+void xcursor(int);
+void xdrawc(int, int, Glyph);
+void xinit(void);
+void xscroll(void);
+
 
 /* Globals */
 DC dc;
@@ -725,11 +880,11 @@ xinit(void) {
 	xw.dis = XOpenDisplay(NULL);
 	xw.scr = XDefaultScreen(xw.dis);
 	if(!xw.dis)
-		die("can not open display");
+		die("Can't open display\n");
 	
 	/* font */
 	if(!(dc.font = XLoadQueryFont(xw.dis, FONT)))
-		die("can not find font " FONT);
+		die("Can't load font %s\n", FONT);
 
 	xw.cw = dc.font->max_bounds.rbearing - dc.font->min_bounds.lbearing;
 	xw.ch = dc.font->ascent + dc.font->descent + LINESPACE;
@@ -834,6 +989,15 @@ draw(int redraw_all) {
 	xcursor(CSdraw);
 }
 
+char*
+kmap(KeySym k) {
+	int i;
+	for(i = 0; i < LEN(key); i++)
+		if(key[i].k == k)
+			return (char*)key[i].s;
+	return NULL;
+}
+
 void
 kpress(XKeyEvent *e) {
 	KeySym ksym;
@@ -841,39 +1005,28 @@ kpress(XKeyEvent *e) {
 	int len;
 	int meta;
 	int shift;
+	char* skmap;
 
 	meta  = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
 	len = XLookupString(e, buf, sizeof(buf), &ksym, NULL);
-	if(len > 0) {
+	if(skmap = kmap(ksym))
+		ttywrite(skmap, strlen(skmap));
+	else if(len > 0) {
 		buf[sizeof(buf)-1] = '\0';
 		if(meta && len == 1)
 			ttywrite("\033", 1);
 		ttywrite(buf, len);
-		return;
-	}
-	switch(ksym) {
-	default:
-		fprintf(stderr, "errkey: %d\n", (int)ksym);
-		break;
-	case XK_Up:
-	case XK_Down:
-	case XK_Left:
-	case XK_Right:
-		sprintf(buf, "\033[%c", "DACB"[ksym - XK_Left]);
-		ttywrite(buf, 3);
-		break;
-	case XK_Delete: ttywrite(KEYDELETE, sizeof(KEYDELETE)-1); break;
-	case XK_Home:  ttywrite(KEYHOME, sizeof(KEYHOME)-1); break;
-	case XK_End:   ttywrite(KEYEND,  sizeof(KEYEND) -1); break;
-	case XK_Prior: ttywrite(KEYPREV, sizeof(KEYPREV)-1); break;
-	case XK_Next:  ttywrite(KEYNEXT, sizeof(KEYNEXT)-1); break;
-	case XK_Insert:
-		/* XXX: paste X clipboard */
-		if(shift)
-			;
-		break;
-	}
+	} else
+		switch(ksym) {
+		case XK_Insert:
+			if(shift)
+				/* XXX: paste X clipboard */;
+			break;
+		default:
+			fprintf(stderr, "errkey: %d\n", (int)ksym);
+			break;
+		}
 }
 
 void
@@ -890,7 +1043,6 @@ resize(XEvent *e) {
 		draw(SCredraw);
 	}
 }
-
 
 void
 run(void) {
