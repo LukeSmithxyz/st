@@ -1,5 +1,4 @@
 /* See LICENSE for licence details. */
-/* See LICENSE for licence details. */
 #define _XOPEN_SOURCE
 #include <ctype.h>
 #include <errno.h>
@@ -37,8 +36,8 @@
 /* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
 enum { ATnone=0 , ATreverse=1 , ATunderline=2, ATbold=4 };
 enum { CSup, CSdown, CSright, CSleft, CShide, CSdraw, CSwrap, CSsave, CSload };
-enum { CRset=1 , CRupdate=2 };
-enum { TMwrap=1 , TMinsert=2, TMaltcharset };
+enum { CRset=1, CRupdate=2 };
+enum { TMwrap=1, TMinsert=2, TMaltcharset };
 enum { SCupdate, SCredraw };
 
 typedef int Color;
