@@ -154,8 +154,6 @@ void xdrawc(int, int, Glyph);
 void xinit(void);
 void xscroll(void);
 
-void cursor(int);
-
 /* Globals */
 DC dc;
 XWindow xw;
