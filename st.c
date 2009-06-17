@@ -37,7 +37,7 @@
 enum { ATnone=0 , ATreverse=1 , ATunderline=2, ATbold=4 };
 enum { CSup, CSdown, CSright, CSleft, CShide, CSdraw, CSwrap, CSsave, CSload };
 enum { CRset=1, CRupdate=2 };
-enum { TMwrap=1, TMinsert=2, TMaltcharset };
+enum { TMwrap=1, TMinsert=2 };
 enum { SCupdate, SCredraw };
 
 typedef int Color;
@@ -154,6 +154,7 @@ void xdrawc(int, int, Glyph);
 void xinit(void);
 void xscroll(void);
 
+void cursor(int);
 
 /* Globals */
 DC dc;
@@ -200,7 +201,6 @@ sigchld(int a) {
 	else
 		exit(EXIT_FAILURE);
 }
-
 
 void
 ttynew(void) {
@@ -328,21 +328,19 @@ void
 tscroll(void) {
 	Line temp = term.line[term.top];
 	int i;
-
+	/* X stuff _before_ the line swapping (results in wrong line index) */
+	xscroll();
 	for(i = term.top; i < term.bot; i++)
 		term.line[i] = term.line[i+1];
 	memset(temp, 0, sizeof(Glyph) * term.col);
 	term.line[term.bot] = temp;
-	xscroll();	  
 }
 
 void
 tnewline(void) {
 	int y = term.c.y + 1;
-
-	if(y > term.bot) {
+	if(y > term.bot)
 		tscroll(), y = term.bot;
-	}
 	tmoveto(0, y);
 }
 
@@ -477,6 +475,13 @@ tinsertblank(int n) {
 }
 
 void
+tsetlinestate(int n, int state) {
+	int i;
+	for(i = 0; i < term.col; i++)
+		term.line[n][i].state |= state;
+}
+
+void
 tinsertblankline (int n) {
 	int i;
 	Line blank;
@@ -497,9 +502,10 @@ tinsertblankline (int n) {
 		term.line[i-n] = blank;
 		/* blank it */
 		memset(blank, 0, term.col * sizeof(Glyph));
+		tsetlinestate(i, CRupdate);
+		tsetlinestate(i-n, CRupdate);
 	}
 }
-
 
 void
 tdeleteline(int n) {
@@ -522,6 +528,8 @@ tdeleteline(int n) {
 		term.line[i+n] = blank;
 		/* blank it */
 		memset(blank, 0, term.col * sizeof(Glyph));
+		tsetlinestate(i, CRupdate);
+		tsetlinestate(i-n, CRupdate);
 	}
 }
 
@@ -529,48 +537,48 @@ void
 tsetattr(int *attr, int l) {
 	int i;
 
-		for(i = 0; i < l; i++) {
-			switch(attr[i]) {
-			case 0:
-				memset(&term.c.attr, 0, sizeof(term.c.attr));
-				term.c.attr.fg = DefaultFG;
-				term.c.attr.bg = DefaultBG;
-				break;
-			case 1:
-				term.c.attr.mode |= ATbold;	 
-				break;
-			case 4: 
-				term.c.attr.mode |= ATunderline;
-				break;
-			case 7: 
-				term.c.attr.mode |= ATreverse;	
-				break;
-			case 8:
-				term.c.hidden = CShide;
-				break;
-			case 22: 
-				term.c.attr.mode &= ~ATbold;  
-				break;
-			case 24: 
-				term.c.attr.mode &= ~ATunderline;
-				break;
-			case 27: 
-				term.c.attr.mode &= ~ATreverse;	 
-				break;
-			case 39:
-				term.c.attr.fg = DefaultFG;
-				break;
-			case 49:
-				term.c.attr.fg = DefaultBG;
-				break;
-			default:
-				if(BETWEEN(attr[i], 30, 37))
-					term.c.attr.fg = attr[i] - 30;
-				else if(BETWEEN(attr[i], 40, 47))
-					term.c.attr.bg = attr[i] - 40;
-				break;
-			}
+	for(i = 0; i < l; i++) {
+		switch(attr[i]) {
+		case 0:
+			memset(&term.c.attr, 0, sizeof(term.c.attr));
+			term.c.attr.fg = DefaultFG;
+			term.c.attr.bg = DefaultBG;
+			break;
+		case 1:
+			term.c.attr.mode |= ATbold;	 
+			break;
+		case 4: 
+			term.c.attr.mode |= ATunderline;
+			break;
+		case 7: 
+			term.c.attr.mode |= ATreverse;	
+			break;
+		case 8:
+			term.c.hidden = CShide;
+			break;
+		case 22: 
+			term.c.attr.mode &= ~ATbold;  
+			break;
+		case 24: 
+			term.c.attr.mode &= ~ATunderline;
+			break;
+		case 27: 
+			term.c.attr.mode &= ~ATreverse;	 
+			break;
+		case 39:
+			term.c.attr.fg = DefaultFG;
+			break;
+		case 49:
+			term.c.attr.fg = DefaultBG;
+			break;
+		default:
+			if(BETWEEN(attr[i], 30, 37))
+				term.c.attr.fg = attr[i] - 30;
+			else if(BETWEEN(attr[i], 40, 47))
+				term.c.attr.bg = attr[i] - 40;
+			break;
 		}
+	}
 }
 
 void
@@ -588,9 +596,8 @@ tsetscroll(int t, int b) {
 	term.bot = b;	 
 }
 
-
 void
-eschandle(void) { 
+eschandle(void) {
 	switch(escseq.pre) {
 	default:
 		goto unknown_seq;
@@ -846,7 +853,6 @@ xgetcol(const char *s) {
 	return color.pixel;
 }
 
-
 void
 xclear(int x1, int y1, int x2, int y2) {
 	XClearArea(xw.dis, xw.win, 
@@ -854,7 +860,6 @@ xclear(int x1, int y1, int x2, int y2) {
 			(x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch, 
 			False);
 }
-
 
 void
 xscroll(void) {
@@ -866,9 +871,6 @@ xscroll(void) {
 	XCopyArea(xw.dis, xw.win, xw.win, dc.gc, 0, srcy, xw.w, height, 0, dsty);
 	xclear(0, term.bot, term.col-1, term.bot);
 }
-
-
-
 
 void
 xinit(void) {
@@ -963,13 +965,14 @@ xcursor(int mode) {
 	/* remove the old cursor */
 	if(term.line[oldy][oldx].state & CRset)
 		xdrawc(oldx, oldy, term.line[oldy][oldx]);
-	else xclear(oldx, oldy, oldx, oldy); /* XXX: maybe a bug */
-	if(mode == CSdraw && !term.c.hidden) {
+	else 
+		xclear(oldx, oldy, oldx, oldy);
+	/* draw the new one */
+	if(mode == CSdraw) {
 		xdrawc(term.c.x, term.c.y, g);
 		oldx = term.c.x, oldy = term.c.y;
 	}
 }
-
 
 void
 draw(int redraw_all) {
@@ -978,14 +981,18 @@ draw(int redraw_all) {
 
 	if(redraw_all)
 		XClearWindow(xw.dis, xw.win);
+
 	/* XXX: drawing could be optimised */
 	for(y = 0; y < term.row; y++) {
 		for(x = 0; x < term.col; x++) {
 			changed = term.line[y][x].state & CRupdate;
 			set = term.line[y][x].state & CRset;
-			if((changed && set) || (redraw_all && set)) {
+			if(redraw_all || changed) {
 				term.line[y][x].state &= ~CRupdate;
-				xdrawc(x, y, term.line[y][x]);
+				if(set)
+					xdrawc(x, y, term.line[y][x]);
+				else
+					xclear(x, y, x, y);
 			}
 		}
 	}
