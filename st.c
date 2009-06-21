@@ -40,12 +40,9 @@ enum { CRset=1, CRupdate=2 };
 enum { TMwrap=1, TMinsert=2 };
 enum { SCupdate, SCredraw };
 
-typedef int Color;
+#include "config.h"
 
-typedef struct {
-	KeySym k;
-	char s[ESCSIZ];
-} Key;
+typedef int Color;
 
 typedef struct {
 	char c;     /* character code  */
@@ -97,8 +94,6 @@ typedef struct {
 	int ch; /* char height */
 	int cw; /* char width  */
 } XWindow; 
-
-#include "config.h"
 
 /* Drawing Context */
 typedef struct {
@@ -997,15 +992,6 @@ draw(int redraw_all) {
 	xcursor(CSdraw);
 }
 
-char*
-kmap(KeySym k) {
-	int i;
-	for(i = 0; i < LEN(key); i++)
-		if(key[i].k == k)
-			return (char*)key[i].s;
-	return NULL;
-}
-
 void
 kpress(XKeyEvent *e) {
 	KeySym ksym;
@@ -1018,7 +1004,7 @@ kpress(XKeyEvent *e) {
 	meta  = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
 	len = XLookupString(e, buf, sizeof(buf), &ksym, NULL);
-	if(skmap = kmap(ksym))
+	if(skmap = key[ksym])
 		ttywrite(skmap, strlen(skmap));
 	else if(len > 0) {
 		buf[sizeof(buf)-1] = '\0';
