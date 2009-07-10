@@ -1,5 +1,5 @@
 /* See LICENSE for licence details. */
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE 600
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -107,61 +107,68 @@ typedef struct {
 	GC gc;
 } DC;
 
-void die(const char *errstr, ...);
-void draw(int);
-void execsh(void);
-void sigchld(int);
-char* kmap(KeySym);
-void kpress(XKeyEvent *);
-void resize(XEvent *);
-void run(void);
+static void die(const char *errstr, ...);
+static void draw(int);
+static void execsh(void);
+static void sigchld(int);
+static void run(void);
 
-int escaddc(char);
-int escfinal(char);
-void escdump(void);
-void eschandle(void);
-void escparse(void);
-void escreset(void);
+static int escaddc(char);
+static int escfinal(char);
+static void escdump(void);
+static void eschandle(void);
+static void escparse(void);
+static void escreset(void);
 
-void tclearregion(int, int, int, int);
-void tcpos(int);
-void tcursor(int);
-void tdeletechar(int);
-void tdeleteline(int);
-void tdump(void);
-void tinsertblank(int);
-void tinsertblankline(int);
-void tmoveto(int, int);
-void tnew(int, int);
-void tnewline(void);
-void tputc(char);
-void tputs(char*, int);
-void tresize(int, int);
-void tscroll(void);
-void tsetattr(int*, int);
-void tsetchar(char);
-void tsetscroll(int, int);
+static void tclearregion(int, int, int, int);
+static void tcpos(int);
+static void tcursor(int);
+static void tdeletechar(int);
+static void tdeleteline(int);
+static void tdump(void);
+static void tinsertblank(int);
+static void tinsertblankline(int);
+static void tmoveto(int, int);
+static void tnew(int, int);
+static void tnewline(void);
+static void tputc(char);
+static void tputs(char*, int);
+static void tresize(int, int);
+static void tscroll(void);
+static void tsetattr(int*, int);
+static void tsetchar(char);
+static void tsetscroll(int, int);
 
-void ttynew(void);
-void ttyread(void);
-void ttyresize(int, int);
-void ttywrite(char *, size_t);
+static void ttynew(void);
+static void ttyread(void);
+static void ttyresize(int, int);
+static void ttywrite(const char *, size_t);
 
-unsigned long xgetcol(const char *);
-void xclear(int, int, int, int);
-void xcursor(int);
-void xdrawc(int, int, Glyph);
-void xinit(void);
-void xscroll(void);
+static unsigned long xgetcol(const char *);
+static void xclear(int, int, int, int);
+static void xcursor(int);
+static void xdrawc(int, int, Glyph);
+static void xinit(void);
+static void xscroll(void);
+
+static void expose(XEvent *);
+static void kpress(XEvent *);
+static void resize(XEvent *);
+
+static void (*handler[LASTEvent])(XEvent *) = {
+	[KeyPress] = kpress,
+	[Expose] = expose,
+	[ConfigureNotify] = resize
+};
 
 /* Globals */
-DC dc;
-XWindow xw;
-Term term;
-Escseq escseq;
-int cmdfd;
-pid_t pid;
-int running;
+static DC dc;
+static XWindow xw;
+static Term term;
+static Escseq escseq;
+static int cmdfd;
+static pid_t pid;
+static int running;
 
 void
 die(const char *errstr, ...) {
@@ -259,7 +266,7 @@ ttyread(void) {
 }
 
 void
-ttywrite(char *s, size_t n) {
+ttywrite(const char *s, size_t n) {
 	if(write(cmdfd, s, n) == -1)
 		die("write error on tty: %s\n", SERRNO);
 }
@@ -997,29 +1004,25 @@ draw(int redraw_all) {
 	xcursor(CSdraw);
 }
 
-char*
-kmap(KeySym k) {
-	int i;
-	for(i = 0; i < LEN(key); i++)
-		if(key[i].k == k)
-			return (char*)key[i].s;
-	return NULL;
+void
+expose(XEvent *ev) {
+	draw(SCredraw);
 }
 
 void
-kpress(XKeyEvent *e) {
+kpress(XEvent *ev) {
+	XKeyEvent *e = &ev->xkey;
 	KeySym ksym;
 	char buf[32];
 	int len;
 	int meta;
 	int shift;
-	char* skmap;
 
 	meta  = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
 	len = XLookupString(e, buf, sizeof(buf), &ksym, NULL);
-	if(skmap = kmap(ksym))
-		ttywrite(skmap, strlen(skmap));
+	if(key[ksym])
+		ttywrite(key[ksym], strlen(key[ksym]));
 	else if(len > 0) {
 		buf[sizeof(buf)-1] = '\0';
 		if(meta && len == 1)
@@ -1054,7 +1057,6 @@ resize(XEvent *e) {
 
 void
 run(void) {
-	int ret;
 	XEvent ev;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dis);
@@ -1062,38 +1064,24 @@ run(void) {
 	running = 1;
 	XSelectInput(xw.dis, xw.win, ExposureMask | KeyPressMask | StructureNotifyMask);
 	XResizeWindow(xw.dis, xw.win, xw.w , xw.h); /* fix resize bug in wmii (?) */
-	
+
 	while(running) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
-		XFlush(xw.dis);
-		ret = select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, NULL);
-
-		if(ret < 0)
+		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, NULL) == -1) {
+			if(errno == EINTR)
+				continue;
 			die("select failed: %s\n", SERRNO);
-				
-		if(FD_ISSET(xfd, &rfd)) {
-			while(XPending(xw.dis)) {
-				XNextEvent(xw.dis, &ev);
-				switch (ev.type) {
-				default:
-					break;
-				case KeyPress:
-					kpress(&ev.xkey);
-					break;
-				case Expose:
-					draw(SCredraw);
-					break;
-				case ConfigureNotify:
-					resize(&ev);
-					break;
-				}
-			}
 		}
 		if(FD_ISSET(cmdfd, &rfd)) {
 			ttyread();
 			draw(SCupdate);
+		}
+		while(XPending(xw.dis)) {
+			XNextEvent(xw.dis, &ev);
+			if(handler[ev.type])
+				(handler[ev.type])(&ev);
 		}
 	}
 }
