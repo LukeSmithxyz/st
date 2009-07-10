@@ -43,11 +43,6 @@ enum { SCupdate, SCredraw };
 typedef int Color;
 
 typedef struct {
-	KeySym k;
-	char s[ESCSIZ];
-} Key;
-
-typedef struct {
 	char c;     /* character code  */
 	char mode;  /* attribute flags */
 	Color fg;   /* foreground      */
@@ -125,7 +120,6 @@ static void tcpos(int);
 static void tcursor(int);
 static void tdeletechar(int);
 static void tdeleteline(int);
-static void tdump(void);
 static void tinsertblank(int);
 static void tinsertblankline(int);
 static void tmoveto(int, int);
@@ -169,6 +163,26 @@ static Escseq escseq;
 static int cmdfd;
 static pid_t pid;
 static int running;
+
+#ifdef DEBUG
+void
+tdump(void) {
+	int row, col;
+	Glyph c;
+
+	for(row = 0; row < term.row; row++) {
+		for(col = 0; col < term.col; col++) {
+			if(col == term.c.x && row == term.c.y)
+				putchar('#');
+			else {
+				c = term.line[row][col];
+				putchar(c.state & CRset ? c.c : '.');
+			}
+		}
+		putchar('\n');
+	}
+}
+#endif
 
 void
 die(const char *errstr, ...) {
@@ -795,24 +809,6 @@ void
 tputs(char *s, int len) { 
 	for(; len > 0; len--)
 		tputc(*s++);
-}
-
-void
-tdump(void) {
-	int row, col;
-	Glyph c;
-
-	for(row = 0; row < term.row; row++) {
-		for(col = 0; col < term.col; col++) {
-			if(col == term.c.x && row == term.c.y)
-				putchar('#');
-			else {
-				c = term.line[row][col];
-				putchar(c.state & CRset ? c.c : '.');
-			}
-		}
-		putchar('\n');
-	}
 }
 
 void
