@@ -93,6 +93,11 @@ typedef struct {
 	int cw; /* char width  */
 } XWindow; 
 
+typedef struct {
+	KeySym k;
+	char s[ESCSIZ];
+} Key;
+
 #include "config.h"
 
 /* Drawing Context */
@@ -146,6 +151,7 @@ static void xinit(void);
 static void xscroll(void);
 
 static void expose(XEvent *);
+static char * kmap(KeySym);
 static void kpress(XEvent *);
 static void resize(XEvent *);
 
@@ -1005,11 +1011,21 @@ expose(XEvent *ev) {
 	draw(SCredraw);
 }
 
+char *
+kmap(KeySym k) {
+	int i;
+	for(i = 0; i < LEN(key); i++)
+		if(key[i].k == k)
+			return (char*)key[i].s;
+	return NULL;
+}
+
 void
 kpress(XEvent *ev) {
 	XKeyEvent *e = &ev->xkey;
 	KeySym ksym;
 	char buf[32];
+	char *customkey;
 	int len;
 	int meta;
 	int shift;
@@ -1017,8 +1033,9 @@ kpress(XEvent *ev) {
 	meta  = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
 	len = XLookupString(e, buf, sizeof(buf), &ksym, NULL);
-	if(key[ksym])
-		ttywrite(key[ksym], strlen(key[ksym]));
+
+	if(customkey = kmap(ksym))
+		ttywrite(customkey, strlen(customkey));
 	else if(len > 0) {
 		buf[sizeof(buf)-1] = '\0';
 		if(meta && len == 1)

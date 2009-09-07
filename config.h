@@ -24,16 +24,15 @@ static const char *colorname[] = {
 #define DefaultCS 1
 #define BellCol   DefaultFG
 
-
 /* special keys */
-static const char *key[] = {
-	[XK_Delete] = "\033[3~", 
-	[XK_Home]   = "\033[1~",
-	[XK_End]    = "\033[4~",
-	[XK_Prior]  = "\033[5~",
-	[XK_Next]   = "\033[6~",
-	[XK_Left]   = "\033[D",
-	[XK_Right]  = "\033[C",
-	[XK_Up]     = "\033[A",
-	[XK_Down]   = "\033[B",
+static Key key[] = {
+	{ XK_Delete, "\033[3~" },
+	{ XK_Home,   "\033[1~" },
+	{ XK_End,    "\033[4~" },
+	{ XK_Prior,  "\033[5~" },
+	{ XK_Next,   "\033[6~" },
+	{ XK_Left,   "\033[D" },
+	{ XK_Right,  "\033[C" },
+	{ XK_Up,     "\033[A" },
+	{ XK_Down,   "\033[B" },
 };
