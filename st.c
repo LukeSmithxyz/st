@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <locale.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -24,6 +25,7 @@
 /* Arbitrary sizes */
 #define ESCSIZ 256
 #define ESCARG 16
+#define MAXDRAWBUF 1024
 
 #define SERRNO strerror(errno)
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
@@ -32,6 +34,7 @@
 #define DEFAULT(a, b)     (a) = (a) ? (a) : (b)    
 #define BETWEEN(x, a, b)  ((a) <= (x) && (x) <= (b))
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
+#define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 
 /* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
 enum { ATnone=0 , ATreverse=1 , ATunderline=2, ATbold=4 };
@@ -934,6 +937,23 @@ xinit(void) {
 }
 
 void
+xdraws (char *s, Glyph base, int x, int y, int len) {
+	unsigned long xfg, xbg;
+	int winx = x*xw.cw, winy = y*xw.ch + dc.font->ascent, width = len*xw.cw;
+	if(base.mode & ATreverse)
+		xfg = dc.col[base.bg], xbg = dc.col[base.fg];
+	else
+		xfg = dc.col[base.fg], xbg = dc.col[base.bg];
+
+	XSetBackground(xw.dis, dc.gc, xbg);
+	XSetForeground(xw.dis, dc.gc, xfg);
+	XDrawImageString(xw.dis, xw.win, dc.gc, winx, winy, s, len);
+	
+	if(base.mode & ATunderline)
+		XDrawLine(xw.dis, xw.win, dc.gc, winx, winy+1, winx+width-1, winy+1);
+}
+
+void
 xdrawc(int x, int y, Glyph g) {
 	XRectangle r = { x * xw.cw, y * xw.ch, xw.cw, xw.ch };
 	unsigned long xfg, xbg;
@@ -944,18 +964,9 @@ xdrawc(int x, int y, Glyph g) {
 	else
 		xfg = dc.col[g.fg], xbg = dc.col[g.bg];
 	/* background */
-	XSetForeground(xw.dis, dc.gc, xbg);
-	XFillRectangles(xw.dis, xw.win, dc.gc, &r, 1);
-	/* string */
+	XSetBackground(xw.dis, dc.gc, xbg);
 	XSetForeground(xw.dis, dc.gc, xfg);
-	XDrawString(xw.dis, xw.win, dc.gc, r.x, r.y+dc.font->ascent, &(g.c), 1);
-	if(g.mode & ATbold)	 /* XXX: bold hack (draw again at x+1) */
-		XDrawString(xw.dis, xw.win, dc.gc, r.x+1, r.y+dc.font->ascent, &(g.c), 1);
-	/* underline */
-	if(g.mode & ATunderline) {
-		r.y += dc.font->ascent + 1;
-		XDrawLine(xw.dis, xw.win, dc.gc, r.x, r.y, r.x+r.width-1, r.y);
-	}
+	XDrawImageString(xw.dis, xw.win, dc.gc, r.x, r.y+dc.font->ascent, &g.c, 1);
 }
 
 void
@@ -983,25 +994,26 @@ xcursor(int mode) {
 
 void
 draw(int redraw_all) {
-	int x, y;
-	int changed, set;
-
-	if(redraw_all)
-		XClearWindow(xw.dis, xw.win);
-
-	/* XXX: drawing could be optimised */
+	int i, x, y, ox;
+	Glyph base, new;
+	char buf[MAXDRAWBUF];
+	
 	for(y = 0; y < term.row; y++) {
+		base = term.line[y][0];
+		i = ox = 0;
 		for(x = 0; x < term.col; x++) {
-			changed = term.line[y][x].state & CRupdate;
-			set = term.line[y][x].state & CRset;
-			if(redraw_all || changed) {
-				term.line[y][x].state &= ~CRupdate;
-				if(set)
-					xdrawc(x, y, term.line[y][x]);
-				else
-					xclear(x, y, x, y);
+			new = term.line[y][x];
+			if(!ATTRCMP(base, new) && i < MAXDRAWBUF)
+				buf[i++] = new.c;
+			else {
+				xdraws(buf, base, ox, y, i);
+				buf[0] = new.c;
+				i = 1;
+				ox = x;
+				base = new;
 			}
 		}
+		xdraws(buf, base, ox, y, i);
 	}
 	xcursor(CSdraw);
 }

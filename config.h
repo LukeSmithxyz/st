@@ -3,7 +3,7 @@
 
 #define FONT "fixed"
 #define BORDER 3
-#define LINESPACE 1 /* additional pixel between each line */
+#define LINESPACE 0 /* additional pixel between each line */
 
 /* Terminal colors */
 static const char *colorname[] = {
