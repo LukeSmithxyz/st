@@ -20,11 +20,12 @@
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
 
-#define TNAME "st"
+#define TNAME "xterm"
 
 /* Arbitrary sizes */
+#define TITLESIZ 256
 #define ESCSIZ 256
-#define ESCARG 16
+#define ESCARGSIZ 16
 #define MAXDRAWBUF 1024
 
 #define SERRNO strerror(errno)
@@ -40,7 +41,8 @@
 enum { ATnone=0 , ATreverse=1 , ATunderline=2, ATbold=4 };
 enum { CSup, CSdown, CSright, CSleft, CShide, CSdraw, CSwrap, CSsave, CSload };
 enum { CRset=1, CRupdate=2 };
-enum { TMwrap=1, TMinsert=2 };
+enum { TMwrap=1, TMinsert=2, TMtitle=4 };
+enum { ESCin = 1, ESCcsi = 2, ESCosc = 4, ESCtitle = 8 };
 enum { SCupdate, SCredraw };
 
 typedef int Color;
@@ -62,17 +64,16 @@ typedef struct {
 	int y;
 } TCursor;
 
-/* Escape sequence structs */
-/* ESC <pre> [[ [<priv>] <arg> [;]] <mode>] */
+/* CSI Escape sequence structs */
+/* ESC '[' [[ [<priv>] <arg> [;]] <mode>] */
 typedef struct {
-	char buf[ESCSIZ+1]; /* raw string */
+	char buf[ESCSIZ]; /* raw string */
 	int len;            /* raw string length */
-	char pre;           
 	char priv;
-	int arg[ESCARG+1];
+	int arg[ESCARGSIZ];
 	int narg;           /* nb of args */
 	char mode;
-} Escseq;
+} CSIEscape;
 
 /* Internal representation of the screen */
 typedef struct {
@@ -83,6 +84,9 @@ typedef struct {
 	int top;    /* top    scroll limit */
 	int bot;    /* bottom scroll limit */
 	int mode;   /* terminal mode */
+	int esc;
+	char title[TITLESIZ];
+	int titlelen;
 } Term;
 
 /* Purely graphic info */
@@ -116,12 +120,10 @@ static void execsh(void);
 static void sigchld(int);
 static void run(void);
 
-static int escaddc(char);
-static int escfinal(char);
-static void escdump(void);
-static void eschandle(void);
-static void escparse(void);
-static void escreset(void);
+static void csidump(void);
+static void csihandle(void);
+static void csiparse(void);
+static void csireset(void);
 
 static void tclearregion(int, int, int, int);
 static void tcpos(int);
@@ -168,7 +170,7 @@ static void (*handler[LASTEvent])(XEvent *) = {
 static DC dc;
 static XWindow xw;
 static Term term;
-static Escseq escseq;
+static CSIEscape escseq;
 static int cmdfd;
 static pid_t pid;
 static int running;
@@ -269,7 +271,7 @@ ttynew(void) {
 void
 dump(char c) {
 	static int col;
-	fprintf(stderr, " %02x %c ", c, isprint(c)?c:'.');
+	fprintf(stderr, " %02x '%c' ", c, isprint(c)?c:'.');
 	if(++col % 10 == 0)
 		fprintf(stderr, "\n");
 }
@@ -303,24 +305,6 @@ ttyresize(int x, int y) {
 	w.ws_xpixel = w.ws_ypixel = 0;
 	if(ioctl(cmdfd, TIOCSWINSZ, &w) < 0)
 		fprintf(stderr, "Couldn't set window size: %s\n", SERRNO);
-}
-
-int
-escfinal(char c) {
-	if(escseq.len == 1)
-		switch(c) {
-		case '[':
-		case ']':
-		case '(':
-			return 0;
-		case '=':
-		case '>':
-		default:
-			return 1;
-		}
-	else if(BETWEEN(c, 0x40, 0x7E))
-		return 1;
-	return 0;	  
 }
 
 void
@@ -372,44 +356,27 @@ tnewline(void) {
 	tmoveto(0, y);
 }
 
-int
-escaddc(char c) {
-	escseq.buf[escseq.len++] = c;
-	if(escfinal(c) || escseq.len >= ESCSIZ) {
-		escparse(), eschandle();
-		return 0;
-	}
-	return 1;
-}
-
 void
-escparse(void) {
+csiparse(void) {
 	/* int noarg = 1; */
 	char *p = escseq.buf;
 
 	escseq.narg = 0;
-	switch(escseq.pre = *p++) {
-	case '[': /* CSI */
-		if(*p == '?')
-			escseq.priv = 1, p++;
-
-		while(p < escseq.buf+escseq.len) {
-			while(isdigit(*p)) {
-				escseq.arg[escseq.narg] *= 10;
-				escseq.arg[escseq.narg] += *(p++) - '0'/*, noarg = 0 */;
-			}
-			if(*p == ';')
-				escseq.narg++, p++;
-			else {
-				escseq.mode = *p;
-				escseq.narg++;
-				return;
-			}
+	if(*p == '?')
+		escseq.priv = 1, p++;
+	
+	while(p < escseq.buf+escseq.len) {
+		while(isdigit(*p)) {
+			escseq.arg[escseq.narg] *= 10;
+			escseq.arg[escseq.narg] += *p++ - '0'/*, noarg = 0 */;
 		}
-		break;
-	case '(':
-		/* XXX: graphic character set */
-		break;
+		if(*p == ';' && escseq.narg+1 < ESCARGSIZ)
+			escseq.narg++, p++;
+		else {
+			escseq.mode = *p;
+			escseq.narg++;
+			return;
+		}
 	}
 }
 
@@ -625,146 +592,141 @@ tsetscroll(int t, int b) {
 }
 
 void
-eschandle(void) {
-	switch(escseq.pre) {
+csihandle(void) {
+	switch(escseq.mode) {
 	default:
-		goto unknown_seq;
-	case '[':
-		switch(escseq.mode) {
-		default:
-		unknown_seq:
-			fprintf(stderr, "erresc: unknown sequence\n");
-			escdump();
+		fprintf(stderr, "erresc: unknown sequence\n");
+		csidump();
+		/* die(""); */
+		break;
+	case '@': /* Insert <n> blank char */
+		DEFAULT(escseq.arg[0], 1);
+		tinsertblank(escseq.arg[0]);
+		break;
+	case 'A': /* Cursor <n> Up */
+	case 'e':
+		DEFAULT(escseq.arg[0], 1);
+		tmoveto(term.c.x, term.c.y-escseq.arg[0]);
+		break;
+	case 'B': /* Cursor <n> Down */
+		DEFAULT(escseq.arg[0], 1);
+		tmoveto(term.c.x, term.c.y+escseq.arg[0]);
+		break;
+	case 'C': /* Cursor <n> Forward */
+	case 'a':
+		DEFAULT(escseq.arg[0], 1);
+		tmoveto(term.c.x+escseq.arg[0], term.c.y);
+		break;
+	case 'D': /* Cursor <n> Backward */
+		DEFAULT(escseq.arg[0], 1);
+		tmoveto(term.c.x-escseq.arg[0], term.c.y);
+		break;
+	case 'E': /* Cursor <n> Down and first col */
+		DEFAULT(escseq.arg[0], 1);
+		tmoveto(0, term.c.y+escseq.arg[0]);
+		break;
+	case 'F': /* Cursor <n> Up and first col */
+		DEFAULT(escseq.arg[0], 1);
+		tmoveto(0, term.c.y-escseq.arg[0]);
+		break;
+	case 'G': /* Move to <col> */
+	case '`':
+		DEFAULT(escseq.arg[0], 1);
+     	tmoveto(escseq.arg[0]-1, term.c.y);
+		break;
+	case 'H': /* Move to <row> <col> */
+	case 'f':
+		DEFAULT(escseq.arg[0], 1);
+		DEFAULT(escseq.arg[1], 1);
+		tmoveto(escseq.arg[1]-1, escseq.arg[0]-1);
+		break;
+	case 'J': /* Clear screen */
+		switch(escseq.arg[0]) {
+		case 0: /* below */
+			tclearregion(term.c.x, term.c.y, term.col-1, term.row-1);
 			break;
-		case '@': /* Insert <n> blank char */
-			DEFAULT(escseq.arg[0], 1);
-			tinsertblank(escseq.arg[0]);
+		case 1: /* above */
+			tclearregion(0, 0, term.c.x, term.c.y);
 			break;
-		case 'A': /* Cursor <n> Up */
-		case 'e':
-			DEFAULT(escseq.arg[0], 1);
-			tmoveto(term.c.x, term.c.y-escseq.arg[0]);
+		case 2: /* all */
+			tclearregion(0, 0, term.col-1, term.row-1);
+			break;				  
+		}
+		break;
+	case 'K': /* Clear line */
+		switch(escseq.arg[0]) {
+		case 0: /* right */
+			tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
 			break;
-		case 'B': /* Cursor <n> Down */
-			DEFAULT(escseq.arg[0], 1);
-			tmoveto(term.c.x, term.c.y+escseq.arg[0]);
+		case 1: /* left */
+			tclearregion(0, term.c.y, term.c.x, term.c.y);
 			break;
-		case 'C': /* Cursor <n> Forward */
-		case 'a':
-			DEFAULT(escseq.arg[0], 1);
-			tmoveto(term.c.x+escseq.arg[0], term.c.y);
-			break;
-		case 'D': /* Cursor <n> Backward */
-			DEFAULT(escseq.arg[0], 1);
-			tmoveto(term.c.x-escseq.arg[0], term.c.y);
-			break;
-		case 'E': /* Cursor <n> Down and first col */
-			DEFAULT(escseq.arg[0], 1);
-			tmoveto(0, term.c.y+escseq.arg[0]);
-			break;
-		case 'F': /* Cursor <n> Up and first col */
-			DEFAULT(escseq.arg[0], 1);
-			tmoveto(0, term.c.y-escseq.arg[0]);
-			break;
-		case 'G': /* Move to <col> */
-		case '`':
-			DEFAULT(escseq.arg[0], 1);
-			tmoveto(escseq.arg[0]-1, term.c.y);
-			break;
-		case 'H': /* Move to <row> <col> */
-		case 'f':
-			DEFAULT(escseq.arg[0], 1);
-			DEFAULT(escseq.arg[1], 1);
-			tmoveto(escseq.arg[1]-1, escseq.arg[0]-1);
-			break;
-		case 'J': /* Clear screen */
-			switch(escseq.arg[0]) {
-			case 0: /* below */
-				tclearregion(term.c.x, term.c.y, term.col-1, term.row-1);
-				break;
-			case 1: /* above */
-				tclearregion(0, 0, term.c.x, term.c.y);
-				break;
-			case 2: /* all */
-				tclearregion(0, 0, term.col-1, term.row-1);
-				break;				  
-			}
-			break;
-		case 'K': /* Clear line */
-			switch(escseq.arg[0]) {
-			case 0: /* right */
-				tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
-				break;
-			case 1: /* left */
-				tclearregion(0, term.c.y, term.c.x, term.c.y);
-				break;
-			case 2: /* all */
-				tclearregion(0, term.c.y, term.col-1, term.c.y);
-				break;
-			}
-			break;
-		case 'L': /* Insert <n> blank lines */
-			DEFAULT(escseq.arg[0], 1);
-			tinsertblankline(escseq.arg[0]);
-			break;
-		case 'l':
-			if(escseq.priv && escseq.arg[0] == 25)
-				term.c.hidden = 1;
-			break;
-		case 'M': /* Delete <n> lines */
-			DEFAULT(escseq.arg[0], 1);
-			tdeleteline(escseq.arg[0]);
-			break;
-		case 'P': /* Delete <n> char */
-			DEFAULT(escseq.arg[0], 1);
-			tdeletechar(escseq.arg[0]);
-			break;
-		case 'd': /* Move to <row> */
-			DEFAULT(escseq.arg[0], 1);
-			tmoveto(term.c.x, escseq.arg[0]-1);
-			break;
-		case 'h': /* Set terminal mode */
-			if(escseq.priv && escseq.arg[0] == 25)
-				term.c.hidden = 0;
-			break;
-		case 'm': /* Terminal attribute (color) */
-			tsetattr(escseq.arg, escseq.narg);
-			break;
-		case 'r':
-			if(escseq.priv)
-				;
-			else {
-				DEFAULT(escseq.arg[0], 1);
-				DEFAULT(escseq.arg[1], term.row);
-				tsetscroll(escseq.arg[0]-1, escseq.arg[1]-1);
-			}
-			break;
-		case 's': /* Save cursor position */
-			tcpos(CSsave);
-			break;
-		case 'u': /* Load cursor position */
-			tcpos(CSload);
+		case 2: /* all */
+			tclearregion(0, term.c.y, term.col-1, term.c.y);
 			break;
 		}
+		break;
+	case 'S':
+	case 'L': /* Insert <n> blank lines */
+		DEFAULT(escseq.arg[0], 1);
+		tinsertblankline(escseq.arg[0]);
+		break;
+	case 'l':
+		if(escseq.priv && escseq.arg[0] == 25)
+				term.c.hidden = 1;
+		break;
+	case 'M': /* Delete <n> lines */
+		DEFAULT(escseq.arg[0], 1);
+		tdeleteline(escseq.arg[0]);
+		break;
+	case 'X':
+	case 'P': /* Delete <n> char */
+		DEFAULT(escseq.arg[0], 1);
+		tdeletechar(escseq.arg[0]);
+		break;
+	case 'd': /* Move to <row> */
+		DEFAULT(escseq.arg[0], 1);
+		tmoveto(term.c.x, escseq.arg[0]-1);
+		break;
+	case 'h': /* Set terminal mode */
+		if(escseq.priv && escseq.arg[0] == 25)
+			term.c.hidden = 0;
+		break;
+	case 'm': /* Terminal attribute (color) */
+		tsetattr(escseq.arg, escseq.narg);
+		break;
+	case 'r':
+		if(escseq.priv)
+			;
+		else {
+			DEFAULT(escseq.arg[0], 1);
+			DEFAULT(escseq.arg[1], term.row);
+			tsetscroll(escseq.arg[0]-1, escseq.arg[1]-1);
+		}
+		break;
+	case 's': /* Save cursor position */
+		tcpos(CSsave);
+		break;
+	case 'u': /* Load cursor position */
+		tcpos(CSload);
 		break;
 	}
 }
 
 void
-escdump(void) { 
+csidump(void) { 
 	int i;
-	printf("rawbuf	: %s\n", escseq.buf);
-	printf("prechar : %c\n", escseq.pre);
-	printf("private : %c\n", escseq.priv ? '?' : ' ');
-	printf("narg	: %d\n", escseq.narg);
+	printf("ESC [ %s", escseq.priv ? "? " : "");
 	if(escseq.narg)
 		for(i = 0; i < escseq.narg; i++)
-			printf("\targ %d = %d\n", i, escseq.arg[i]);
-	printf("mode	: %c\n", escseq.mode);
+			printf("%d ", escseq.arg[i]);
+	if(escseq.mode)
+		putchar(escseq.mode);
+	putchar('\n');
 }
 
 void
-escreset(void) {
+csireset(void) {
 	memset(&escseq, 0, sizeof(escseq));
 }
 
@@ -781,21 +743,41 @@ tputtab(void) {
 
 void
 tputc(char c) {
-	static int inesc = 0;
 #if 0
 	dump(c);
 #endif	
-	/* start of escseq */
-	if(c == '\033')
-		escreset(), inesc = 1;
-	else if(inesc) {
-		inesc = escaddc(c);
-	} /* normal char */ 
-	else switch(c) { 
-		default:
-			tsetchar(c);
-			tcursor(CSright);
-			break;
+	if(term.esc & ESCin) {
+		if(term.esc & ESCcsi) {
+			escseq.buf[escseq.len++] = c;
+			if(BETWEEN(c, 0x40, 0x7E) || escseq.len >= ESCSIZ) {
+				term.esc = 0;
+				csiparse(), csihandle();
+			}
+		} else if (term.esc & ESCosc) {
+			if(c == ';') {
+				term.titlelen = 0;
+				term.esc = ESCin | ESCtitle;
+			}
+		} else if(term.esc & ESCtitle) {
+			if(c == '\a' || term.titlelen+1 >= TITLESIZ) {
+				term.esc = 0;
+				term.title[term.titlelen] = '\0';
+				XStoreName(xw.dis, xw.win, term.title);
+			} else {
+				term.title[term.titlelen++] = c;
+			}
+		} else {		
+			switch(c) {
+			case '[':
+				term.esc |= ESCcsi;
+				break;
+			case ']':
+				term.esc |= ESCosc;
+				break;
+			}
+		}
+	} else {
+		switch(c) {
 		case '\t':
 			tputtab();
 			break;
@@ -811,6 +793,15 @@ tputc(char c) {
 		case '\a':
 			xbell();
 			break;
+		case '\033':
+			csireset();
+			term.esc = ESCin;
+			break;
+		default:
+			tsetchar(c);
+			tcursor(CSright);
+			break;
+		}
 	}
 }
 
