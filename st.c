@@ -38,11 +38,11 @@
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 
 /* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
-enum { ATnone=0 , ATreverse=1 , ATunderline=2, ATbold=4 };
-enum { CSup, CSdown, CSright, CSleft, CShide, CSdraw, CSwrap, CSsave, CSload };
+enum { ATnone=0 , ATreverse=1 , ATunderline=2, ATbold=4, ATgfx=8 };
+enum { CSup, CSdown, CSright, CSleft, CShide, CSdraw, CSsave, CSload };
 enum { CRset=1, CRupdate=2 };
-enum { TMwrap=1, TMinsert=2, TMtitle=4 };
-enum { ESCin = 1, ESCcsi = 2, ESCosc = 4, ESCtitle = 8 };
+enum { TMwrap=1, TMinsert=2 };
+enum { ESCin=1, ESCcsi=2, ESCosc=4, ESCtitle=8, ESCcharset=16 };
 enum { SCupdate, SCredraw };
 
 typedef int Color;
@@ -68,7 +68,7 @@ typedef struct {
 /* ESC '[' [[ [<priv>] <arg> [;]] <mode>] */
 typedef struct {
 	char buf[ESCSIZ]; /* raw string */
-	int len;            /* raw string length */
+	int len;          /* raw string length */
 	char priv;
 	int arg[ESCARGSIZ];
 	int narg;           /* nb of args */
@@ -389,7 +389,7 @@ tmoveto(int x, int y) {
 void
 tcursor(int dir) {
 	int xf = term.c.x, yf = term.c.y;
-
+	
 	switch(dir) {
 	case CSup:
 		yf--;
@@ -399,7 +399,7 @@ tcursor(int dir) {
 		break;
 	case CSleft:
 		xf--;
-		if(xf < 0) {
+		if(term.mode & TMwrap && xf < 0) {
 			xf = term.col-1, yf--;
 			if(yf < term.top)
 				yf = term.top, xf = 0;
@@ -407,7 +407,7 @@ tcursor(int dir) {
 		break;
 	case CSright:
 		xf++;
-		if(xf >= term.col) {
+		if(term.mode & TMwrap && xf >= term.col) {
 			xf = 0, yf++;
 			if(yf > term.bot)
 				yf = term.bot, tscroll();
@@ -416,7 +416,7 @@ tcursor(int dir) {
 	}
 	tmoveto(xf, yf);
 }
-
+	
 void
 tsetchar(char c) {
 	term.line[term.c.y][term.c.x] = term.c.attr;
@@ -535,7 +535,7 @@ tsetattr(int *attr, int l) {
 	for(i = 0; i < l; i++) {
 		switch(attr[i]) {
 		case 0:
-			memset(&term.c.attr, 0, sizeof(term.c.attr));
+			term.c.attr.mode &= ~(ATreverse | ATunderline | ATbold);
 			term.c.attr.fg = DefaultFG;
 			term.c.attr.bg = DefaultBG;
 			break;
@@ -593,7 +593,10 @@ tsetscroll(int t, int b) {
 
 void
 csihandle(void) {
+	if(escseq.priv)
+		csidump();
 	switch(escseq.mode) {
+	unknown:
 	default:
 		fprintf(stderr, "erresc: unknown sequence\n");
 		csidump();
@@ -672,8 +675,16 @@ csihandle(void) {
 		tinsertblankline(escseq.arg[0]);
 		break;
 	case 'l':
-		if(escseq.priv && escseq.arg[0] == 25)
+		if(escseq.priv) {
+			switch(escseq.arg[0]) {
+			case 7:
+				term.mode &= ~TMwrap;
+				break;
+			case 25:
 				term.c.hidden = 1;
+				break;
+			}
+		}
 		break;
 	case 'M': /* Delete <n> lines */
 		DEFAULT(escseq.arg[0], 1);
@@ -689,15 +700,25 @@ csihandle(void) {
 		tmoveto(term.c.x, escseq.arg[0]-1);
 		break;
 	case 'h': /* Set terminal mode */
-		if(escseq.priv && escseq.arg[0] == 25)
-			term.c.hidden = 0;
+		if(escseq.priv)
+			switch(escseq.arg[0]) {
+			case 7:
+				term.mode |= TMwrap;
+				break;
+			case 25:
+				term.c.hidden = 0;
+				break;
+			case 1034:
+				/* XXX: Interpret "meta" key, sets eighth bit. */
+				break;
+			}
 		break;
 	case 'm': /* Terminal attribute (color) */
 		tsetattr(escseq.arg, escseq.narg);
 		break;
 	case 'r':
 		if(escseq.priv)
-			;
+			goto unknown;
 		else {
 			DEFAULT(escseq.arg[0], 1);
 			DEFAULT(escseq.arg[1], term.row);
@@ -766,6 +787,17 @@ tputc(char c) {
 			} else {
 				term.title[term.titlelen++] = c;
 			}
+		} else if(term.esc & ESCcharset) {
+			printf("ESC ( %c\n", c);
+			switch(c) {
+			case '0': /* Line drawing crap */
+				term.c.attr.mode |= ATgfx;
+				break;
+			case 'B': /* Back to regular text */
+				term.c.attr.mode &= ~ATgfx;
+				break;
+			}
+			term.esc = 0;
 		} else {		
 			switch(c) {
 			case '[':
@@ -774,6 +806,23 @@ tputc(char c) {
 			case ']':
 				term.esc |= ESCosc;
 				break;
+			case '(':
+				term.esc |= ESCcharset;
+				break;
+			case 'A':
+				tmoveto(term.c.x, term.c.y-1);
+				break;
+			case 'B':
+				tmoveto(term.c.x, term.c.y+1);
+				break;
+			case 'C':
+				tmoveto(term.c.x+1, term.c.y);
+				break;
+			case 'D':
+				tmoveto(term.c.x-1, term.c.y);
+				break;
+			default:
+				fprintf(stderr, "erresc: unknown sequence ESC %02X '%c'\n", c, isprint(c)?c:'.');
 			}
 		}
 	} else {
@@ -931,6 +980,8 @@ void
 xdraws (char *s, Glyph base, int x, int y, int len) {
 	unsigned long xfg, xbg;
 	int winx = x*xw.cw, winy = y*xw.ch + dc.font->ascent, width = len*xw.cw;
+	int i;
+
 	if(base.mode & ATreverse)
 		xfg = dc.col[base.bg], xbg = dc.col[base.fg];
 	else
@@ -938,6 +989,13 @@ xdraws (char *s, Glyph base, int x, int y, int len) {
 
 	XSetBackground(xw.dis, dc.gc, xbg);
 	XSetForeground(xw.dis, dc.gc, xfg);
+	
+	if(base.mode & ATgfx) {
+	   
+		for(i = 0; i < len; i++)
+			s[i] = gfx[s[i]];
+	}
+	
 	XDrawImageString(xw.dis, xw.win, dc.gc, winx, winy, s, len);
 	
 	if(base.mode & ATunderline)
@@ -1006,7 +1064,8 @@ draw(int redraw_all) {
 		}
 		xdraws(buf, base, ox, y, i);
 	}
-	xcursor(CSdraw);
+	if(!term.c.hidden)
+		xcursor(CSdraw);
 }
 
 void
@@ -1014,7 +1073,7 @@ expose(XEvent *ev) {
 	draw(SCredraw);
 }
 
-char *
+char*
 kmap(KeySym k) {
 	int i;
 	for(i = 0; i < LEN(key); i++)
