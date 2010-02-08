@@ -31,10 +31,6 @@ static Key key[] = {
 	{ XK_End,    "\033[4~" },
 	{ XK_Prior,  "\033[5~" },
 	{ XK_Next,   "\033[6~" },
-	{ XK_Left,   "\033[D" },
-	{ XK_Right,  "\033[C" },
-	{ XK_Up,     "\033[A" },
-	{ XK_Down,   "\033[B" },
 };
 
 static char gfx[] = {
@@ -70,4 +66,5 @@ static char gfx[] = {
 	['l'] = '+',
 	['k'] = '+',
 	['x'] = '|',
+	[255] = 0,
 };
