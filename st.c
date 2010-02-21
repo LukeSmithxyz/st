@@ -856,8 +856,12 @@ tputc(char c) {
 				tmoveto(term.c.x+1, term.c.y);
 				term.esc = 0;
 				break;
-			case 'D':
+			case 'D': /* XXX: CUP (VT100) or IND (VT52) ... */
 				tmoveto(term.c.x-1, term.c.y);
+				term.esc = 0;
+				break;
+			case 'E': /* NEL -- Next line */
+				tnewline();
 				term.esc = 0;
 				break;
 			case 'M': /* RI -- Reverse index */
