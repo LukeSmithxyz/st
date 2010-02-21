@@ -868,6 +868,12 @@ tputc(char c) {
 				term.mode &= ~MODE_APPKEYPAD;
 				term.esc = 0;
 				break;
+			case '7':
+				tcursor(CURSOR_SAVE);
+				break;
+			case '8':
+				tcursor(CURSOR_LOAD);
+				break;
 			default:
 				fprintf(stderr, "erresc: unknown sequence ESC %02X '%c'\n", c, isprint(c)?c:'.');
 				term.esc = 0;
