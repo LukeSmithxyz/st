@@ -860,6 +860,13 @@ tputc(char c) {
 				tmoveto(term.c.x-1, term.c.y);
 				term.esc = 0;
 				break;
+			case 'M': /* RI -- Reverse index */
+				if(term.c.y == term.top)
+					tinsertblankline(1);
+				else
+					tmoveto(term.c.x, term.c.y-1);
+				term.esc = 0;
+				break;
 			case '=': /* DECPAM */
 				term.mode |= MODE_APPKEYPAD;
 				term.esc = 0;
@@ -870,9 +877,11 @@ tputc(char c) {
 				break;
 			case '7':
 				tcursor(CURSOR_SAVE);
+				term.esc = 0;
 				break;
 			case '8':
 				tcursor(CURSOR_LOAD);
+				term.esc = 0;
 				break;
 			default:
 				fprintf(stderr, "erresc: unknown sequence ESC %02X '%c'\n", c, isprint(c)?c:'.');
