@@ -692,13 +692,24 @@ csihandle(void) {
 			default:
 				goto unknown;
 			}
-		} else goto unknown;
+		} else {
+			switch(escseq.arg[0]) {
+			case 4:
+				term.mode &= ~MODE_INSERT;
+				break;
+			default:
+				goto unknown;
+			}
+		}
 		break;
 	case 'M': /* DL -- Delete <n> lines */
 		DEFAULT(escseq.arg[0], 1);
 		tdeleteline(escseq.arg[0]);
 		break;
-	case 'X': /* ECH -- Erase <n> char XXX: same? */
+	case 'X': /* ECH -- Erase <n> char */
+		DEFAULT(escseq.arg[0], 1);
+		tclearregion(term.c.x, term.c.y, term.c.x + escseq.arg[0], term.c.y);
+		break;
 	case 'P': /* DCH -- Delete <n> char */
 		DEFAULT(escseq.arg[0], 1);
 		tdeletechar(escseq.arg[0]);
@@ -727,10 +738,16 @@ csihandle(void) {
 				tcursor(CURSOR_SAVE);
 				tclearregion(0, 0, term.col-1, term.row-1);
 				break;
-			default:
-				goto unknown;
+			default: goto unknown;
 			}
-		} else goto unknown;
+		} else {
+			switch(escseq.arg[0]) {
+			case 4:
+				term.mode |= MODE_INSERT;
+				break;
+			default: goto unknown;
+			}
+		};
 		break;
 	case 'm': /* SGR -- Terminal attribute (color) */
 		tsetattr(escseq.arg, escseq.narg);
