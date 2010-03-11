@@ -57,7 +57,6 @@ typedef Glyph* Line;
 
 typedef struct {
 	Glyph attr;  /* current char attributes */
-	char hidden;
 	int x;
 	int y;
 } TCursor;
@@ -79,6 +78,7 @@ typedef struct {
 	int col;    /* nb col */
 	Line* line; /* screen */
 	TCursor c;  /* cursor */
+	char hidec;
 	int top;    /* top    scroll limit */
 	int bot;    /* bottom scroll limit */
 	int mode;   /* terminal mode flags */
@@ -109,6 +109,7 @@ typedef struct {
 typedef struct {
 	unsigned long col[LEN(colorname)];
 	XFontStruct* font;
+	XFontStruct* bfont;
 	GC gc;
 } DC;
 
@@ -135,8 +136,11 @@ static void tnew(int, int);
 static void tnewline(void);
 static void tputc(char);
 static void tputs(char*, int);
+static void treset(void);
 static void tresize(int, int);
 static void tscroll(void);
+static void tscrollup(int);
+static void tscrolldown(int);
 static void tsetattr(int*, int);
 static void tsetchar(char);
 static void tsetscroll(int, int);
@@ -149,12 +153,11 @@ static void ttywrite(const char *, size_t);
 static unsigned long xgetcol(const char *);
 static void xclear(int, int, int, int);
 static void xcursor(int);
-static void xdrawc(int, int, Glyph);
 static void xinit(void);
 static void xscroll(void);
 
 static void expose(XEvent *);
-static char * kmap(KeySym);
+static char* kmap(KeySym);
 static void kpress(XEvent *);
 static void resize(XEvent *);
 
@@ -313,6 +316,18 @@ tcursor(int mode) {
 }
 
 void
+treset(void) {
+	term.c.attr.mode = ATTR_NULL;
+	term.c.attr.fg = DefaultFG;
+	term.c.attr.bg = DefaultBG;
+	term.c.x = term.c.y = 0;
+	term.hidec = 0;
+	term.top = 0, term.bot = term.row - 1;
+	term.mode = MODE_WRAP;
+	tclearregion(0, 0, term.col-1, term.row-1);
+}
+
+void
 tnew(int col, int row) {   /* screen size */
 	term.row = row, term.col = col;
 	term.top = 0, term.bot = term.row - 1;
@@ -323,23 +338,60 @@ tnew(int col, int row) {   /* screen size */
 	term.c.attr.fg = DefaultFG;
 	term.c.attr.bg = DefaultBG;
 	term.c.x = term.c.y = 0;
-	term.c.hidden = 0;
+	term.hidec = 0;
 	/* allocate screen */
 	term.line = calloc(term.row, sizeof(Line));
 	for(row = 0 ; row < term.row; row++)
 		term.line[row] = calloc(term.col, sizeof(Glyph));
 }
 
+/* TODO: Replace with scrollup/scolldown */
 void
 tscroll(void) {
 	Line temp = term.line[term.top];
 	int i;
+	/* No dirty flag to set because of xscroll */
 	/* X stuff _before_ the line swapping (results in wrong line index) */
 	xscroll();
 	for(i = term.top; i < term.bot; i++)
 		term.line[i] = term.line[i+1];
 	memset(temp, 0, sizeof(Glyph) * term.col);
 	term.line[term.bot] = temp;
+}
+
+void
+tscrolldown (int n) {
+	int i;
+	Line temp;
+	
+	/* TODO: set dirty flag or scroll with some X func */
+	LIMIT(n, 0, term.bot-term.top+1);
+
+	for(i = 0; i < n; i++)
+		memset(term.line[term.bot-i], 0, term.col*sizeof(Glyph));
+   	
+	for(i = term.bot; i >= term.top+n; i--) {
+		temp = term.line[i];
+		term.line[i] = term.line[i-n];
+		term.line[i-n] = temp;
+	}
+}
+
+void
+tscrollup (int n) {
+	int i;
+	Line temp;
+	LIMIT(n, 0, term.bot-term.top+1);
+	
+	/* TODO: set dirty flag or scroll with some X func */
+	for(i = 0; i < n; i++)
+		memset(term.line[term.top+i], 0, term.col*sizeof(Glyph));
+	
+	 for(i = term.top; i <= term.bot-n; i++) { 
+		 temp = term.line[i];
+		 term.line[i] = term.line[i+n]; 
+		 term.line[i+n] = temp;
+	 }
 }
 
 void
@@ -420,17 +472,20 @@ tsetchar(char c) {
 
 void
 tclearregion(int x1, int y1, int x2, int y2) {
-	int x, y;
+	int y, temp;
+
+	if(x1 > x2)
+		temp = x1, x1 = x2, x2 = temp;
+	if(y1 > y2)
+		temp = y1, y1 = y2, y2 = temp;
 
 	LIMIT(x1, 0, term.col-1);
 	LIMIT(x2, 0, term.col-1);
 	LIMIT(y1, 0, term.row-1);
 	LIMIT(y2, 0, term.row-1);
 
-	/* XXX: could be optimized */
-	for(x = x1; x <= x2; x++)
-		for(y = y1; y <= y2; y++)
-			memset(&term.line[y][x], 0, sizeof(Glyph));
+	for(y = y1; y <= y2; y++)
+		memset(&term.line[y][x1], 0, sizeof(Glyph)*(x2-x1+1));
 
 	xclear(x1, y1, x2, y2);
 }
@@ -542,9 +597,6 @@ tsetattr(int *attr, int l) {
 		case 7: 
 			term.c.attr.mode |= ATTR_REVERSE;	
 			break;
-		case 8:
-			term.c.hidden = CURSOR_HIDE;
-			break;
 		case 22: 
 			term.c.attr.mode &= ~ATTR_BOLD;  
 			break;
@@ -565,6 +617,8 @@ tsetattr(int *attr, int l) {
 				term.c.attr.fg = attr[i] - 30;
 			else if(BETWEEN(attr[i], 40, 47))
 				term.c.attr.bg = attr[i] - 40;
+			else 
+				fprintf(stderr, "erresc: gfx attr %d unkown\n", attr[i]); 
 			break;
 		}
 	}
@@ -590,7 +644,7 @@ csihandle(void) {
 	switch(escseq.mode) {
 	default:
 	unknown:
-		printf("erresc: unknown sequence -- ");
+		printf("erresc: unknown csi ");
 		csidump();
 		/* die(""); */
 		break;
@@ -665,7 +719,14 @@ csihandle(void) {
 			break;
 		}
 		break;
-	case 'S': /* XXX: SU -- Scroll <n> line up (faked) */ 
+	case 'S': /* SU -- Scroll <n> line up */
+		DEFAULT(escseq.arg[0], 1);
+		tscrollup(escseq.arg[0]);
+		break;
+	case 'T': /* SD -- Scroll <n> line down */
+		DEFAULT(escseq.arg[0], 1);
+		tscrolldown(escseq.arg[0]);
+		break;
 	case 'L': /* IL -- Insert <n> blank lines */
 		DEFAULT(escseq.arg[0], 1);
 		tinsertblankline(escseq.arg[0]);
@@ -682,7 +743,7 @@ csihandle(void) {
 			case 12: /* att610 -- Stop blinking cursor (IGNORED) */
 				break;
 			case 25:
-				term.c.hidden = 1;
+				term.hidec = 1;
 				break;
 			case 1048: /* XXX: no alt. screen to erase/save */
 			case 1049:
@@ -731,7 +792,7 @@ csihandle(void) {
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				break;
 			case 25:
-				term.c.hidden = 0;
+				term.hidec = 0;
 				break;
 			case 1048: 
 			case 1049: /* XXX: no alt. screen to erase/save */
@@ -866,9 +927,13 @@ tputc(char c) {
 				break;
 			case 'M': /* RI -- Reverse index */
 				if(term.c.y == term.top)
-					tinsertblankline(1);
+					tscrolldown(1);
 				else
 					tmoveto(term.c.x, term.c.y-1);
+				term.esc = 0;
+				break;
+			case 'c': /* RIS -- Reset to inital state */
+				treset();
 				term.esc = 0;
 				break;
 			case '=': /* DECPAM */
@@ -888,7 +953,7 @@ tputc(char c) {
 				term.esc = 0;
 				break;
 			default:
-				fprintf(stderr, "erresc: unknown sequence ESC %02X '%c'\n", c, isprint(c)?c:'.');
+				fprintf(stderr, "erresc: unknown sequence ESC 0x%02X '%c'\n", c, isprint(c)?c:'.');
 				term.esc = 0;
 			}
 		}
@@ -991,8 +1056,6 @@ xscroll(void) {
 
 void
 xinit(void) {
-	XGCValues values;
-	unsigned long valuemask;
 	XClassHint chint;
 	XWMHints wmhint;
 	XSizeHints shint;
@@ -1005,9 +1068,10 @@ xinit(void) {
 		die("Can't open display\n");
 	
 	/* font */
-	if(!(dc.font = XLoadQueryFont(xw.dis, FONT)))
-		die("Can't load font %s\n", FONT);
+	if(!(dc.font = XLoadQueryFont(xw.dis, FONT)) || !(dc.bfont = XLoadQueryFont(xw.dis, BOLDFONT)))
+		die("Can't load font %s\n", dc.font ? BOLDFONT : FONT);
 
+	/* XXX: Assuming same size for bold font */
 	xw.cw = dc.font->max_bounds.rbearing - dc.font->min_bounds.lbearing;
 	xw.ch = dc.font->ascent + dc.font->descent + LINESPACE;
 
@@ -1027,10 +1091,7 @@ xinit(void) {
 			dc.col[DefaultBG],
 			dc.col[DefaultBG]);
 	/* gc */
-	values.foreground = XWhitePixel(xw.dis, xw.scr);
-	values.font = dc.font->fid;
-	valuemask = GCForeground | GCFont;
-	dc.gc = XCreateGC(xw.dis, xw.win, valuemask, &values);
+	dc.gc = XCreateGC(xw.dis, xw.win, 0, NULL);
 	XMapWindow(xw.dis, xw.win);
 	/* wm stuff */
 	chint.res_name = TNAME, chint.res_class = TNAME;
@@ -1060,27 +1121,12 @@ xdraws(char *s, Glyph base, int x, int y, int len) {
 	if(base.mode & ATTR_GFX)
 		for(i = 0; i < len; i++)
 			s[i] = gfx[s[i]];
-	
+
+	XSetFont(xw.dis, dc.gc, base.mode & ATTR_BOLD ? dc.bfont->fid : dc.font->fid);	
 	XDrawImageString(xw.dis, xw.win, dc.gc, winx, winy, s, len);
 	
 	if(base.mode & ATTR_UNDERLINE)
 		XDrawLine(xw.dis, xw.win, dc.gc, winx, winy+1, winx+width-1, winy+1);
-}
-
-void
-xdrawc(int x, int y, Glyph g) {
-	XRectangle r = { x * xw.cw, y * xw.ch, xw.cw, xw.ch };
-	unsigned long xfg, xbg;
-
-	/* reverse video */
-	if(g.mode & ATTR_REVERSE)
-		xfg = dc.col[g.bg], xbg = dc.col[g.fg];
-	else
-		xfg = dc.col[g.fg], xbg = dc.col[g.bg];
-	/* background */
-	XSetBackground(xw.dis, dc.gc, xbg);
-	XSetForeground(xw.dis, dc.gc, xfg);
-	XDrawImageString(xw.dis, xw.win, dc.gc, r.x, r.y+dc.font->ascent, &g.c, 1);
 }
 
 void
@@ -1094,17 +1140,46 @@ xcursor(int mode) {
 	
 	if(term.line[term.c.y][term.c.x].state & GLYPH_SET)
 		g.c = term.line[term.c.y][term.c.x].c;
+
 	/* remove the old cursor */
 	if(term.line[oldy][oldx].state & GLYPH_SET)
-		xdrawc(oldx, oldy, term.line[oldy][oldx]);
-	else 
+		xdraws(&term.line[oldy][oldx].c, term.line[oldy][oldx], oldx, oldy, 1);
+	else
 		xclear(oldx, oldy, oldx, oldy);
+	
 	/* draw the new one */
 	if(mode == CURSOR_DRAW) {
-		xdrawc(term.c.x, term.c.y, g);
+		xdraws(&g.c, g, term.c.x, term.c.y, 1);
 		oldx = term.c.x, oldy = term.c.y;
 	}
 }
+
+
+#ifdef DEBUG
+/* basic drawing routines */
+void
+xdrawc(int x, int y, Glyph g) {
+	XRectangle r = { x * xw.cw, y * xw.ch, xw.cw, xw.ch };
+	XSetBackground(xw.dis, dc.gc, dc.col[g.bg]);
+	XSetForeground(xw.dis, dc.gc, dc.col[g.fg]);
+	XSetFont(xw.dis, dc.gc, g.mode & ATTR_BOLD ? dc.bfont->fid : dc.font->fid);
+	XDrawImageString(xw.dis, xw.win, dc.gc, r.x, r.y+dc.font->ascent, &g.c, 1);
+}
+
+void
+draw_(int dummy) {
+	int x, y;
+
+	xclear(0, 0, term.col-1, term.row-1);
+	for(y = 0; y < term.row; y++)
+		for(x = 0; x < term.col; x++)
+			if(term.line[y][x].state & GLYPH_SET)
+				xdrawc(x, y, term.line[y][x]);
+
+	if(!term.hidec)
+		xcursor(CURSOR_DRAW);
+}
+#endif
 
 void
 draw(int redraw_all) {
@@ -1112,6 +1187,7 @@ draw(int redraw_all) {
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
 	
+	/* XXX: optimize with GLYPH_DIRTY hint */
 	for(y = 0; y < term.row; y++) {
 		base = term.line[y][0];
 		i = ox = 0;
@@ -1129,8 +1205,7 @@ draw(int redraw_all) {
 		}
 		xdraws(buf, base, ox, y, i);
 	}
-	if(!term.c.hidden)
-		xcursor(CURSOR_DRAW);
+	xcursor(term.hidec ? CURSOR_HIDE : CURSOR_DRAW);
 }
 
 void
@@ -1179,7 +1254,7 @@ kpress(XEvent *ev) {
 			break;
 		case XK_Insert:
 			if(shift)
-				/* XXX: paste X clipboard */;
+				draw(1), puts("draw!")/* XXX: paste X clipboard */;
 			break;
 		default:
 			fprintf(stderr, "errkey: %d\n", (int)ksym);
