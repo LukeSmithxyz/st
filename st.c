@@ -91,6 +91,7 @@ typedef struct {
 typedef struct {
 	Display* dis;
 	Window win;
+	Pixmap buf;
 	int scr;
 	int w;  /* window width  */
 	int h;  /* window height */
@@ -154,7 +155,6 @@ static unsigned long xgetcol(const char *);
 static void xclear(int, int, int, int);
 static void xcursor(int);
 static void xinit(void);
-static void xscroll(void);
 
 static void expose(XEvent *);
 static char* kmap(KeySym);
@@ -215,7 +215,7 @@ execsh(void) {
 
 void
 xbell(void) { /* visual bell */
-	XRectangle r = { 0, 0, xw.w, xw.h };
+	XRectangle r = { BORDER, BORDER, xw.w, xw.h };
 	XSetForeground(xw.dis, dc.gc, dc.col[BellCol]);
 	XFillRectangles(xw.dis, xw.win, dc.gc, &r, 1);
 	/* usleep(30000); */
@@ -350,9 +350,7 @@ void
 tscroll(void) {
 	Line temp = term.line[term.top];
 	int i;
-	/* No dirty flag to set because of xscroll */
-	/* X stuff _before_ the line swapping (results in wrong line index) */
-	xscroll();
+
 	for(i = term.top; i < term.bot; i++)
 		term.line[i] = term.line[i+1];
 	memset(temp, 0, sizeof(Glyph) * term.col);
@@ -364,7 +362,6 @@ tscrolldown (int n) {
 	int i;
 	Line temp;
 	
-	/* TODO: set dirty flag or scroll with some X func */
 	LIMIT(n, 0, term.bot-term.top+1);
 
 	for(i = 0; i < n; i++)
@@ -383,7 +380,6 @@ tscrollup (int n) {
 	Line temp;
 	LIMIT(n, 0, term.bot-term.top+1);
 	
-	/* TODO: set dirty flag or scroll with some X func */
 	for(i = 0; i < n; i++)
 		memset(term.line[term.top+i], 0, term.col*sizeof(Glyph));
 	
@@ -467,7 +463,7 @@ void
 tsetchar(char c) {
 	term.line[term.c.y][term.c.x] = term.c.attr;
 	term.line[term.c.y][term.c.x].c = c;
-	term.line[term.c.y][term.c.x].state |= GLYPH_SET | GLYPH_DIRTY;
+	term.line[term.c.y][term.c.x].state |= GLYPH_SET;
 }
 
 void
@@ -486,8 +482,6 @@ tclearregion(int x1, int y1, int x2, int y2) {
 
 	for(y = y1; y <= y2; y++)
 		memset(&term.line[y][x1], 0, sizeof(Glyph)*(x2-x1+1));
-
-	xclear(x1, y1, x2, y2);
 }
 
 void
@@ -519,13 +513,6 @@ tinsertblank(int n) {
 }
 
 void
-tsetlinestate(int n, int state) {
-	int i;
-	for(i = 0; i < term.col; i++)
-		term.line[n][i].state |= state;
-}
-
-void
 tinsertblankline(int n) {
 	int i;
 	Line blank;
@@ -546,8 +533,6 @@ tinsertblankline(int n) {
 		term.line[i-n] = blank;
 		/* blank it */
 		memset(blank, 0, term.col * sizeof(Glyph));
-		tsetlinestate(i, GLYPH_DIRTY);
-		tsetlinestate(i-n, GLYPH_DIRTY);
 	}
 }
 
@@ -572,8 +557,6 @@ tdeleteline(int n) {
 		term.line[i+n] = blank;
 		/* blank it */
 		memset(blank, 0, term.col * sizeof(Glyph));
-		tsetlinestate(i, GLYPH_DIRTY);
-		tsetlinestate(i-n, GLYPH_DIRTY);
 	}
 }
 
@@ -1037,21 +1020,10 @@ xgetcol(const char *s) {
 
 void
 xclear(int x1, int y1, int x2, int y2) {
-	XClearArea(xw.dis, xw.win, 
-			x1 * xw.cw, y1 * xw.ch, 
-			(x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch, 
-			False);
-}
-
-void
-xscroll(void) {
-	int srcy = (term.top+1) * xw.ch;
-	int dsty = term.top * xw.ch;
-	int height = (term.bot-term.top) * xw.ch;
-
-	xcursor(CURSOR_HIDE);
-	XCopyArea(xw.dis, xw.win, xw.win, dc.gc, 0, srcy, xw.w, height, 0, dsty);
-	xclear(0, term.bot, term.col-1, term.bot);
+	XSetForeground(xw.dis, dc.gc, dc.col[DefaultBG]);
+	XFillRectangle(xw.dis, xw.buf, dc.gc,
+				   x1 * xw.cw, y1 * xw.ch, 
+				   (x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch);
 }
 
 void
@@ -1073,7 +1045,7 @@ xinit(void) {
 
 	/* XXX: Assuming same size for bold font */
 	xw.cw = dc.font->max_bounds.rbearing - dc.font->min_bounds.lbearing;
-	xw.ch = dc.font->ascent + dc.font->descent + LINESPACE;
+	xw.ch = dc.font->ascent + dc.font->descent;
 
 	/* colors */
 	for(i = 0; i < LEN(colorname); i++)
@@ -1085,11 +1057,11 @@ xinit(void) {
 	/* windows */
 	xw.h = term.row * xw.ch;
 	xw.w = term.col * xw.cw;
-	/* XXX: this BORDER is useless after the first resize, handle it in xdraws() */
 	xw.win = XCreateSimpleWindow(xw.dis, XRootWindow(xw.dis, xw.scr), 0, 0,
-			xw.w, xw.h, BORDER, 
+			xw.w + 2*BORDER, xw.h + 2*BORDER, 0, 
 			dc.col[DefaultBG],
 			dc.col[DefaultBG]);
+	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.w, xw.h, XDefaultDepth(xw.dis, xw.scr));
 	/* gc */
 	dc.gc = XCreateGC(xw.dis, xw.win, 0, NULL);
 	XMapWindow(xw.dis, xw.win);
@@ -1097,11 +1069,13 @@ xinit(void) {
 	chint.res_name = TNAME, chint.res_class = TNAME;
 	wmhint.input = 1, wmhint.flags = InputHint;
 	shint.height_inc = xw.ch, shint.width_inc = xw.cw;
-	shint.height = xw.h, shint.width = xw.w;
+	shint.height = xw.h + 2*BORDER, shint.width = xw.w + 2*BORDER;
 	shint.flags = PSize | PResizeInc;
 	XSetWMProperties(xw.dis, xw.win, NULL, NULL, &args[0], 0, &shint, &wmhint, &chint);
 	XStoreName(xw.dis, xw.win, TNAME);
+	XFillRectangle(xw.dis, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
 	XSync(xw.dis, 0);
+
 }
 
 void
@@ -1123,10 +1097,10 @@ xdraws(char *s, Glyph base, int x, int y, int len) {
 			s[i] = gfx[s[i]];
 
 	XSetFont(xw.dis, dc.gc, base.mode & ATTR_BOLD ? dc.bfont->fid : dc.font->fid);	
-	XDrawImageString(xw.dis, xw.win, dc.gc, winx, winy, s, len);
+	XDrawImageString(xw.dis, xw.buf, dc.gc, winx, winy, s, len);
 	
 	if(base.mode & ATTR_UNDERLINE)
-		XDrawLine(xw.dis, xw.win, dc.gc, winx, winy+1, winx+width-1, winy+1);
+		XDrawLine(xw.dis, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
 }
 
 void
@@ -1163,7 +1137,7 @@ xdrawc(int x, int y, Glyph g) {
 	XSetBackground(xw.dis, dc.gc, dc.col[g.bg]);
 	XSetForeground(xw.dis, dc.gc, dc.col[g.fg]);
 	XSetFont(xw.dis, dc.gc, g.mode & ATTR_BOLD ? dc.bfont->fid : dc.font->fid);
-	XDrawImageString(xw.dis, xw.win, dc.gc, r.x, r.y+dc.font->ascent, &g.c, 1);
+	XDrawImageString(xw.dis, xw.buf, dc.gc, r.x, r.y+dc.font->ascent, &g.c, 1);
 }
 
 void
@@ -1178,6 +1152,8 @@ draw_(int dummy) {
 
 	if(!term.hidec)
 		xcursor(CURSOR_DRAW);
+	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.w, xw.h, BORDER, BORDER);
+	XFlush(xw.dis);
 }
 #endif
 
@@ -1187,7 +1163,6 @@ draw(int redraw_all) {
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
 	
-	/* XXX: optimize with GLYPH_DIRTY hint */
 	for(y = 0; y < term.row; y++) {
 		base = term.line[y][0];
 		i = ox = 0;
@@ -1206,6 +1181,8 @@ draw(int redraw_all) {
 		xdraws(buf, base, ox, y, i);
 	}
 	xcursor(term.hidec ? CURSOR_HIDE : CURSOR_DRAW);
+	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.w, xw.h, BORDER, BORDER);
+	XFlush(xw.dis);
 }
 
 void
@@ -1273,6 +1250,8 @@ resize(XEvent *e) {
 		ttyresize(col, row);
 		xw.w = e->xconfigure.width;
 		xw.h = e->xconfigure.height;
+		XFreePixmap(xw.dis, xw.buf);
+		xw.buf = XCreatePixmap(xw.dis, xw.win, xw.w, xw.h, XDefaultDepth(xw.dis, xw.scr));
 		draw(SCREEN_REDRAW);
 	}
 }
@@ -1285,7 +1264,7 @@ run(void) {
 
 	running = 1;
 	XSelectInput(xw.dis, xw.win, ExposureMask | KeyPressMask | StructureNotifyMask);
-	XResizeWindow(xw.dis, xw.win, xw.w , xw.h); /* fix resize bug in wmii (?) */
+	XResizeWindow(xw.dis, xw.win, xw.w+2*BORDER, xw.h+2*BORDER); /* fix resize bug in wmii (?) */
 
 	while(running) {
 		FD_ZERO(&rfd);

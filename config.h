@@ -3,8 +3,7 @@
 
 #define FONT "6x13"
 #define BOLDFONT FONT"bold"
-#define BORDER 3
-#define LINESPACE 0 /* additional pixel between each line */
+#define BORDER 2
 
 /* Terminal colors */
 static const char *colorname[] = {
