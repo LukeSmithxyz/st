@@ -208,12 +208,10 @@ die(const char *errstr, ...) {
 
 void
 execsh(void) {
-	char *shell = getenv("SHELL");
-	if(!shell)
-		shell = "/bin/sh";
-	char *args[3] = {shell, "-i", NULL};
+	char *args[3] = {getenv("SHELL"), "-i", NULL};
+	DEFAULT(args[0], "/bin/sh"); /* default shell if getenv() failed */
 	putenv("TERM=" TNAME);
-	execvp(shell, args);
+	execvp(args[0], args);
 }
 
 void
