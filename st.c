@@ -208,9 +208,12 @@ die(const char *errstr, ...) {
 
 void
 execsh(void) {
-	char *args[3] = {SHELL, "-i", NULL};
+	char *shell = getenv("SHELL");
+	if(!shell)
+		shell = "/bin/sh";
+	char *args[3] = {shell, "-i", NULL};
 	putenv("TERM=" TNAME);
-	execvp(SHELL, args);
+	execvp(shell, args);
 }
 
 void
@@ -844,7 +847,6 @@ tputtab(void) {
 
 void
 tputc(char c) {
-	/* dump(c); */
 	if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
 			escseq.buf[escseq.len++] = c;
@@ -1277,7 +1279,7 @@ run(void) {
 		}
 		if(FD_ISSET(cmdfd, &rfd)) {
 			ttyread();
-			draw(SCREEN_UPDATE);
+			draw(SCREEN_UPDATE); 
 		}
 		while(XPending(xw.dis)) {
 			XNextEvent(xw.dis, &ev);

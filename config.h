@@ -1,4 +1,3 @@
-#define SHELL "/bin/bash"
 #define TAB    8
 
 #define FONT "6x13"
