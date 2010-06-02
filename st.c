@@ -56,7 +56,7 @@ typedef struct {
 typedef Glyph* Line;
 
 typedef struct {
-	Glyph attr;  /* current char attributes */
+	Glyph attr;	 /* current char attributes */
 	int x;
 	int y;
 } TCursor;
@@ -65,24 +65,24 @@ typedef struct {
 /* ESC '[' [[ [<priv>] <arg> [;]] <mode>] */
 typedef struct {
 	char buf[ESC_BUF_SIZ]; /* raw string */
-	int len;               /* raw string length */
+	int len;			   /* raw string length */
 	char priv;
 	int arg[ESC_ARG_SIZ];
-	int narg;              /* nb of args */
+	int narg;			   /* nb of args */
 	char mode;
 } CSIEscape;
 
 /* Internal representation of the screen */
 typedef struct {
-	int row;    /* nb row */  
-	int col;    /* nb col */
+	int row;	/* nb row */  
+	int col;	/* nb col */
 	Line* line; /* screen */
-	TCursor c;  /* cursor */
+	TCursor c;	/* cursor */
 	char hidec;
-	int top;    /* top    scroll limit */
-	int bot;    /* bottom scroll limit */
-	int mode;   /* terminal mode flags */
-	int esc;    /* escape state flags */
+	int top;	/* top	  scroll limit */
+	int bot;	/* bottom scroll limit */
+	int mode;	/* terminal mode flags */
+	int esc;	/* escape state flags */
 	char title[ESC_TITLE_SIZ];
 	int titlelen;
 } Term;
@@ -93,8 +93,10 @@ typedef struct {
 	Window win;
 	Pixmap buf;
 	int scr;
-	int w;  /* window width  */
-	int h;  /* window height */
+	int w;	/* window width	 */
+	int h;	/* window height */
+	int bufw; /* pixmap width  */
+	int bufh; /* pixmap height */
 	int ch; /* char height */
 	int cw; /* char width  */
 } XWindow; 
@@ -216,7 +218,7 @@ execsh(void) {
 
 void
 xbell(void) { /* visual bell */
-	XRectangle r = { BORDER, BORDER, xw.w, xw.h };
+	XRectangle r = { BORDER, BORDER, xw.bufw, xw.bufh };
 	XSetForeground(xw.dis, dc.gc, dc.col[BellCol]);
 	XFillRectangles(xw.dis, xw.win, dc.gc, &r, 1);
 	/* usleep(30000); */
@@ -367,7 +369,7 @@ tscrolldown (int n) {
 
 	for(i = 0; i < n; i++)
 		memset(term.line[term.bot-i], 0, term.col*sizeof(Glyph));
-   	
+	
 	for(i = term.bot; i >= term.top+n; i--) {
 		temp = term.line[i];
 		term.line[i] = term.line[i-n];
@@ -582,7 +584,7 @@ tsetattr(int *attr, int l) {
 			term.c.attr.mode |= ATTR_REVERSE;	
 			break;
 		case 22: 
-			term.c.attr.mode &= ~ATTR_BOLD;  
+			term.c.attr.mode &= ~ATTR_BOLD;	 
 			break;
 		case 24: 
 			term.c.attr.mode &= ~ATTR_UNDERLINE;
@@ -665,7 +667,7 @@ csihandle(void) {
 	case 'G': /* CHA -- Move to <col> */
 	case '`': /* XXX: HPA -- same? */
 		DEFAULT(escseq.arg[0], 1);
-     	tmoveto(escseq.arg[0]-1, term.c.y);
+		tmoveto(escseq.arg[0]-1, term.c.y);
 		break;
 	case 'H': /* CUP -- Move to <row> <col> */
 	case 'f': /* XXX: HVP -- same? */
@@ -1027,11 +1029,22 @@ xclear(int x1, int y1, int x2, int y2) {
 }
 
 void
+xhints(void)
+{
+	XClassHint chint = {TNAME, TNAME};
+	XWMHints wmhint	 = {.flags = InputHint, .input = 1};
+	XSizeHints shint = { 
+		.flags = PSize | PResizeInc,
+		.height = xw.h, /* XXX: doesn't seem to work, see run() */
+		.width = xw.w,
+		.height_inc = xw.ch,
+		.width_inc = xw.cw,
+	};
+	XSetWMProperties(xw.dis, xw.win, NULL, NULL, NULL, 0, &shint, &wmhint, &chint);
+}
+
+void
 xinit(void) {
-	XClassHint chint;
-	XWMHints wmhint;
-	XSizeHints shint;
-	char *args[] = {NULL};
 	int i;
 
 	xw.dis = XOpenDisplay(NULL);
@@ -1055,27 +1068,21 @@ xinit(void) {
 	term.c.attr.bg = DefaultBG;
 	term.c.attr.mode = ATTR_NULL;
 	/* windows */
-	xw.h = term.row * xw.ch;
-	xw.w = term.col * xw.cw;
+	xw.h = term.row * xw.ch + 2*BORDER;
+	xw.w = term.col * xw.cw + 2*BORDER;
 	xw.win = XCreateSimpleWindow(xw.dis, XRootWindow(xw.dis, xw.scr), 0, 0,
-			xw.w + 2*BORDER, xw.h + 2*BORDER, 0, 
+			xw.w, xw.h, 0, 
 			dc.col[DefaultBG],
 			dc.col[DefaultBG]);
-	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.w, xw.h, XDefaultDepth(xw.dis, xw.scr));
+	xw.bufw = xw.w - 2*BORDER;
+	xw.bufh = xw.h - 2*BORDER;
+	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
 	/* gc */
 	dc.gc = XCreateGC(xw.dis, xw.win, 0, NULL);
 	XMapWindow(xw.dis, xw.win);
-	/* wm stuff */
-	chint.res_name = TNAME, chint.res_class = TNAME;
-	wmhint.input = 1, wmhint.flags = InputHint;
-	shint.height_inc = xw.ch, shint.width_inc = xw.cw;
-	shint.height = xw.h + 2*BORDER, shint.width = xw.w + 2*BORDER;
-	shint.flags = PSize | PResizeInc;
-	XSetWMProperties(xw.dis, xw.win, NULL, NULL, &args[0], 0, &shint, &wmhint, &chint);
+	xhints();
 	XStoreName(xw.dis, xw.win, TNAME);
-	XFillRectangle(xw.dis, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
 	XSync(xw.dis, 0);
-
 }
 
 void
@@ -1152,7 +1159,7 @@ draw_(int dummy) {
 
 	if(!term.hidec)
 		xcursor(CURSOR_DRAW);
-	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.w, xw.h, BORDER, BORDER);
+	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
 #endif
@@ -1181,7 +1188,7 @@ draw(int redraw_all) {
 		xdraws(buf, base, ox, y, i);
 	}
 	xcursor(term.hidec ? CURSOR_HIDE : CURSOR_DRAW);
-	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.w, xw.h, BORDER, BORDER);
+	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
 
@@ -1209,7 +1216,7 @@ kpress(XEvent *ev) {
 	int meta;
 	int shift;
 
-	meta  = e->state & Mod1Mask;
+	meta = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
 	len = XLookupString(e, buf, sizeof(buf), &ksym, NULL);
 
@@ -1242,18 +1249,21 @@ kpress(XEvent *ev) {
 void
 resize(XEvent *e) {
 	int col, row;
-	col = e->xconfigure.width / xw.cw;
-	row = e->xconfigure.height / xw.ch;
 	
-	if(term.col != col || term.row != row) {
-		tresize(col, row);
-		ttyresize(col, row);
-		xw.w = e->xconfigure.width;
-		xw.h = e->xconfigure.height;
-		XFreePixmap(xw.dis, xw.buf);
-		xw.buf = XCreatePixmap(xw.dis, xw.win, xw.w, xw.h, XDefaultDepth(xw.dis, xw.scr));
-		draw(SCREEN_REDRAW);
-	}
+	if(e->xconfigure.width == xw.w && e->xconfigure.height == xw.h)
+		return;
+	
+	xw.w = e->xconfigure.width;
+	xw.h = e->xconfigure.height;
+	xw.bufw = xw.w - 2*BORDER;
+	xw.bufh = xw.h - 2*BORDER;
+	col = xw.bufw / xw.cw;
+	row = xw.bufh / xw.ch;
+	tresize(col, row);
+	ttyresize(col, row);
+	XFreePixmap(xw.dis, xw.buf);
+	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
+	draw(SCREEN_REDRAW);
 }
 
 void
@@ -1264,7 +1274,7 @@ run(void) {
 
 	running = 1;
 	XSelectInput(xw.dis, xw.win, ExposureMask | KeyPressMask | StructureNotifyMask);
-	XResizeWindow(xw.dis, xw.win, xw.w+2*BORDER, xw.h+2*BORDER); /* fix resize bug in wmii (?) */
+	XResizeWindow(xw.dis, xw.win, xw.w, xw.h); /* XXX: fix resize bug in wmii (?) */
 
 	while(running) {
 		FD_ZERO(&rfd);
