@@ -39,7 +39,8 @@
 
 /* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
 enum { ATTR_NULL=0 , ATTR_REVERSE=1 , ATTR_UNDERLINE=2, ATTR_BOLD=4, ATTR_GFX=8 };
-enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, CURSOR_HIDE, CURSOR_DRAW, CURSOR_SAVE, CURSOR_LOAD };
+enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, CURSOR_HIDE, CURSOR_DRAW, 
+       CURSOR_SAVE, CURSOR_LOAD };
 enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
 enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4 };
 enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
@@ -879,7 +880,7 @@ tputc(char c) {
 				printf("esc unhandled charset: ESC ( %c\n", c);
 			}
 			term.esc = 0;
-		} else {		
+		} else {
 			switch(c) {
 			case '[':
 				term.esc |= ESC_CSI;
@@ -972,7 +973,7 @@ tputc(char c) {
 }
 
 void
-tputs(char *s, int len) { 
+tputs(char *s, int len) {
 	for(; len > 0; len--)
 		tputc(*s++);
 }
@@ -1024,8 +1025,8 @@ void
 xclear(int x1, int y1, int x2, int y2) {
 	XSetForeground(xw.dis, dc.gc, dc.col[DefaultBG]);
 	XFillRectangle(xw.dis, xw.buf, dc.gc,
-				   x1 * xw.cw, y1 * xw.ch, 
-				   (x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch);
+	               x1 * xw.cw, y1 * xw.ch,
+	               (x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch);
 }
 
 void
@@ -1033,12 +1034,14 @@ xhints(void)
 {
 	XClassHint chint = {TNAME, TNAME};
 	XWMHints wmhint	 = {.flags = InputHint, .input = 1};
-	XSizeHints shint = { 
-		.flags = PSize | PResizeInc,
-		.height = xw.h, /* XXX: doesn't seem to work, see run() */
+	XSizeHints shint = {
+		.flags = PSize | PResizeInc | PBaseSize,
+		.height = xw.h,
 		.width = xw.w,
 		.height_inc = xw.ch,
 		.width_inc = xw.cw,
+		.base_height = 2*BORDER,
+		.base_width = 2*BORDER,
 	};
 	XSetWMProperties(xw.dis, xw.win, NULL, NULL, NULL, 0, &shint, &wmhint, &chint);
 }
@@ -1071,7 +1074,7 @@ xinit(void) {
 	xw.h = term.row * xw.ch + 2*BORDER;
 	xw.w = term.col * xw.cw + 2*BORDER;
 	xw.win = XCreateSimpleWindow(xw.dis, XRootWindow(xw.dis, xw.scr), 0, 0,
-			xw.w, xw.h, 0, 
+			xw.w, xw.h, 0,
 			dc.col[DefaultBG],
 			dc.col[DefaultBG]);
 	xw.bufw = xw.w - 2*BORDER;
@@ -1081,7 +1084,7 @@ xinit(void) {
 	dc.gc = XCreateGC(xw.dis, xw.win, 0, NULL);
 	XMapWindow(xw.dis, xw.win);
 	xhints();
-	XStoreName(xw.dis, xw.win, TNAME);
+	XStoreName(xw.dis, xw.win, "st");
 	XSync(xw.dis, 0);
 }
 
@@ -1103,7 +1106,7 @@ xdraws(char *s, Glyph base, int x, int y, int len) {
 		for(i = 0; i < len; i++)
 			s[i] = gfx[s[i]];
 
-	XSetFont(xw.dis, dc.gc, base.mode & ATTR_BOLD ? dc.bfont->fid : dc.font->fid);	
+	XSetFont(xw.dis, dc.gc, base.mode & ATTR_BOLD ? dc.bfont->fid : dc.font->fid);
 	XDrawImageString(xw.dis, xw.buf, dc.gc, winx, winy, s, len);
 	
 	if(base.mode & ATTR_UNDERLINE)
@@ -1135,7 +1138,6 @@ xcursor(int mode) {
 	}
 }
 
-
 #ifdef DEBUG
 /* basic drawing routines */
 void
@@ -1148,7 +1150,7 @@ xdrawc(int x, int y, Glyph g) {
 }
 
 void
-draw_(int dummy) {
+draw(int dummy) {
 	int x, y;
 
 	xclear(0, 0, term.col-1, term.row-1);
@@ -1162,8 +1164,9 @@ draw_(int dummy) {
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
-#endif
 
+#else
+/* optimized drawing routine */
 void
 draw(int redraw_all) {
 	int i, x, y, ox;
@@ -1191,6 +1194,8 @@ draw(int redraw_all) {
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
+
+#endif
 
 void
 expose(XEvent *ev) {
