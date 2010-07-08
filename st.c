@@ -1104,7 +1104,7 @@ xdraws(char *s, Glyph base, int x, int y, int len) {
 	
 	if(base.mode & ATTR_GFX)
 		for(i = 0; i < len; i++)
-			s[i] = gfx[s[i]];
+			s[i] = gfx[(int)s[i]];
 
 	XSetFont(xw.dis, dc.gc, base.mode & ATTR_BOLD ? dc.bfont->fid : dc.font->fid);
 	XDrawImageString(xw.dis, xw.buf, dc.gc, winx, winy, s, len);
@@ -1225,7 +1225,7 @@ kpress(XEvent *ev) {
 	shift = e->state & ShiftMask;
 	len = XLookupString(e, buf, sizeof(buf), &ksym, NULL);
 
-	if(customkey = kmap(ksym))
+	if((customkey = kmap(ksym)))
 		ttywrite(customkey, strlen(customkey));
 	else if(len > 0) {
 		buf[sizeof(buf)-1] = '\0';
