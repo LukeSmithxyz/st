@@ -597,7 +597,7 @@ tsetattr(int *attr, int l) {
 			term.c.attr.fg = DefaultFG;
 			break;
 		case 49:
-			term.c.attr.fg = DefaultBG;
+			term.c.attr.bg = DefaultBG;
 			break;
 		default:
 			if(BETWEEN(attr[i], 30, 37))
@@ -1032,9 +1032,9 @@ xclear(int x1, int y1, int x2, int y2) {
 void
 xhints(void)
 {
-	XClassHint chint = {TNAME, TNAME};
-	XWMHints wmhint	 = {.flags = InputHint, .input = 1};
-	XSizeHints shint = {
+	XClassHint class = {TNAME, TNAME};
+	XWMHints wm = {.flags = InputHint, .input = 1};
+	XSizeHints size = {
 		.flags = PSize | PResizeInc | PBaseSize,
 		.height = xw.h,
 		.width = xw.w,
@@ -1043,7 +1043,7 @@ xhints(void)
 		.base_height = 2*BORDER,
 		.base_width = 2*BORDER,
 	};
-	XSetWMProperties(xw.dis, xw.win, NULL, NULL, NULL, 0, &shint, &wmhint, &chint);
+	XSetWMProperties(xw.dis, xw.win, NULL, NULL, NULL, 0, &size, &wm, &class);
 }
 
 void
