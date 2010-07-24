@@ -7,13 +7,21 @@
 /* Terminal colors */
 static const char *colorname[] = {
 	"black",
-	"red",
-	"green",
-	"yellow",
-	"blue",
-	"magenta",
-	"cyan",
-	"white",
+	"#CC0000",
+	"#4E9A06",
+	"#C4A000",
+	"#3465A4",
+	"#75507B",
+	"#06989A",
+	"#888a85",
+	"#555753",
+	"#EF2929",
+	"#8AE234",
+	"#FCE94F",
+	"#729FCF",
+	"#AD7FA8",
+	"#34E2E2",
+	"#EEEEEC"
 };
 
 /* Default colors (colorname index) */

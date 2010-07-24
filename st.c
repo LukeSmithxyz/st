@@ -20,7 +20,7 @@
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
 
-#define TNAME "xterm"
+#define TNAME "st-256color"
 
 /* Arbitrary sizes */
 #define ESC_TITLE_SIZ 256
@@ -111,7 +111,7 @@ typedef struct {
 
 /* Drawing Context */
 typedef struct {
-	unsigned long col[LEN(colorname)];
+	unsigned long col[256];
 	XFontStruct* font;
 	XFontStruct* bfont;
 	GC gc;
@@ -154,7 +154,6 @@ static void ttyread(void);
 static void ttyresize(int, int);
 static void ttywrite(const char *, size_t);
 
-static unsigned long xgetcol(const char *);
 static void xclear(int, int, int, int);
 static void xcursor(int);
 static void xinit(void);
@@ -593,8 +592,30 @@ tsetattr(int *attr, int l) {
 		case 27: 
 			term.c.attr.mode &= ~ATTR_REVERSE;	 
 			break;
+		case 38:
+			if (i + 2 < l && attr[i + 1] == 5) {
+				i += 2;
+				if (BETWEEN(attr[i], 0, 255))
+					term.c.attr.fg = attr[i];
+				else
+					fprintf(stderr, "erresc: bad fgcolor %d\n", attr[i]);
+			}
+			else
+				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]); 
+			break;
 		case 39:
 			term.c.attr.fg = DefaultFG;
+			break;
+		case 48:
+			if (i + 2 < l && attr[i + 1] == 5) {
+				i += 2;
+				if (BETWEEN(attr[i], 0, 255))
+					term.c.attr.bg = attr[i];
+				else
+					fprintf(stderr, "erresc: bad bgcolor %d\n", attr[i]);
+			}
+			else
+				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]); 
 			break;
 		case 49:
 			term.c.attr.bg = DefaultBG;
@@ -604,8 +625,12 @@ tsetattr(int *attr, int l) {
 				term.c.attr.fg = attr[i] - 30;
 			else if(BETWEEN(attr[i], 40, 47))
 				term.c.attr.bg = attr[i] - 40;
+			else if(BETWEEN(attr[i], 90, 97))
+				term.c.attr.fg = attr[i] - 90 + 8;
+			else if(BETWEEN(attr[i], 100, 107))
+				term.c.attr.fg = attr[i] - 100 + 8;
 			else 
-				fprintf(stderr, "erresc: gfx attr %d unkown\n", attr[i]); 
+				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]); 
 			break;
 		}
 	}
@@ -1009,16 +1034,44 @@ tresize(int col, int row) {
 	term.col = col, term.row = row;
 }
 
-unsigned long
-xgetcol(const char *s) {
+void
+tloadcols(void) {
+	int i, r, g, b;
 	XColor color;
 	Colormap cmap = DefaultColormap(xw.dis, xw.scr);
+	unsigned long white = WhitePixel(xw.dis, xw.scr);
 
-	if(!XAllocNamedColor(xw.dis, cmap, s, &color, &color)) {
-		color.pixel = WhitePixel(xw.dis, xw.scr);
-		fprintf(stderr, "Could not allocate color '%s'\n", s);
+	for(i = 0; i < 16; i++) {
+		if (!XAllocNamedColor(xw.dis, cmap, colorname[i], &color, &color)) {
+			dc.col[i] = white;
+			fprintf(stderr, "Could not allocate color '%s'\n", colorname[i]);
+		} else
+			dc.col[i] = color.pixel;
 	}
-	return color.pixel;
+
+	/* same colors as xterm */
+	for(r = 0; r < 6; r++)
+		for(g = 0; g < 6; g++)
+			for(b = 0; b < 6; b++) {
+				color.red = r == 0 ? 0 : 0x3737 + 0x2828 * r;
+				color.green = g == 0 ? 0 : 0x3737 + 0x2828 * g;
+				color.blue = b == 0 ? 0 : 0x3737 + 0x2828 * b;
+				if (!XAllocColor(xw.dis, cmap, &color)) {
+					dc.col[i] = white;
+					fprintf(stderr, "Could not allocate color %d\n", i);
+				} else
+					dc.col[i] = color.pixel;
+				i++;
+			}
+
+	for(r = 0; r < 24; r++, i++) {
+		color.red = color.green = color.blue = 0x0808 + 0x0a0a * r;
+		if (!XAllocColor(xw.dis, cmap, &color)) {
+			dc.col[i] = white;
+			fprintf(stderr, "Could not allocate color %d\n", i);
+		} else
+			dc.col[i] = color.pixel;
+	}
 }
 
 void
@@ -1048,8 +1101,6 @@ xhints(void)
 
 void
 xinit(void) {
-	int i;
-
 	xw.dis = XOpenDisplay(NULL);
 	xw.scr = XDefaultScreen(xw.dis);
 	if(!xw.dis)
@@ -1064,8 +1115,7 @@ xinit(void) {
 	xw.ch = dc.font->ascent + dc.font->descent;
 
 	/* colors */
-	for(i = 0; i < LEN(colorname); i++)
-		dc.col[i] = xgetcol(colorname[i]);
+	tloadcols();
 
 	term.c.attr.fg = DefaultFG;
 	term.c.attr.bg = DefaultBG;
@@ -1173,6 +1223,8 @@ draw(int redraw_all) {
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
 	
+	XSetForeground(xw.dis, dc.gc, dc.col[DefaultBG]);
+	XFillRectangle(xw.dis, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
 	for(y = 0; y < term.row; y++) {
 		base = term.line[y][0];
 		i = ox = 0;
