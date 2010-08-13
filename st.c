@@ -157,6 +157,7 @@ static void ttywrite(const char *, size_t);
 static void xclear(int, int, int, int);
 static void xcursor(int);
 static void xinit(void);
+static void xloadcols(void);
 
 static void expose(XEvent *);
 static char* kmap(KeySym);
@@ -1035,7 +1036,7 @@ tresize(int col, int row) {
 }
 
 void
-tloadcols(void) {
+xloadcols(void) {
 	int i, r, g, b;
 	XColor color;
 	Colormap cmap = DefaultColormap(xw.dis, xw.scr);
@@ -1115,7 +1116,7 @@ xinit(void) {
 	xw.ch = dc.font->ascent + dc.font->descent;
 
 	/* colors */
-	tloadcols();
+	xloadcols();
 
 	term.c.attr.fg = DefaultFG;
 	term.c.attr.bg = DefaultBG;
