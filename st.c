@@ -20,8 +20,6 @@
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
 
-#define TNAME "st-256color"
-
 /* Arbitrary sizes */
 #define ESC_TITLE_SIZ 256
 #define ESC_BUF_SIZ   256
@@ -107,8 +105,6 @@ typedef struct {
 	char s[ESC_BUF_SIZ];
 } Key;
 
-#include "config.h"
-
 /* Drawing Context */
 typedef struct {
 	unsigned long col[256];
@@ -116,6 +112,8 @@ typedef struct {
 	XFontStruct* bfont;
 	GC gc;
 } DC;
+
+#include "config.h"
 
 static void die(const char *errstr, ...);
 static void draw(int);

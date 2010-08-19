@@ -42,7 +42,6 @@ install: all
 	@cp -f st ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/st
 	@tic st.info
-	@tic st-256color.info
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin

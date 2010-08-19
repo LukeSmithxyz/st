@@ -1,5 +1,5 @@
 #define TAB    8
-
+#define TNAME "st-256color"
 #define FONT "6x13"
 #define BOLDFONT FONT"bold"
 #define BORDER 2
@@ -33,6 +33,7 @@ static const char *colorname[] = {
 
 /* special keys */
 static Key key[] = {
+	{ XK_BackSpace, "\177" },
 	{ XK_Delete, "\033[3~" },
 	{ XK_Home,   "\033[1~" },
 	{ XK_End,    "\033[4~" },
