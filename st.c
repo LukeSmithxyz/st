@@ -497,21 +497,21 @@ tdeletechar(int n) {
 		return;
 	}
 	memmove(&term.line[term.c.y][dst], &term.line[term.c.y][src], size * sizeof(Glyph));
-	tclearregion(term.col-size, term.c.y, term.col-1, term.c.y);
+	tclearregion(term.col-n, term.c.y, term.col-1, term.c.y);
 }
 
 void
 tinsertblank(int n) {
 	int src = term.c.x;
 	int dst = src + n;
-	int size = term.col - n - src;
+	int size = term.col - dst;
 
 	if(dst >= term.col) {
 		tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
 		return;
 	}
 	memmove(&term.line[term.c.y][dst], &term.line[term.c.y][src], size * sizeof(Glyph));
-	tclearregion(src, term.c.y, dst, term.c.y);
+	tclearregion(src, term.c.y, dst - 1, term.c.y);
 }
 
 void
@@ -1173,7 +1173,7 @@ xcursor(int mode) {
 	
 	if(term.line[term.c.y][term.c.x].state & GLYPH_SET)
 		g.c = term.line[term.c.y][term.c.x].c;
-
+	
 	/* remove the old cursor */
 	if(term.line[oldy][oldx].state & GLYPH_SET)
 		xdraws(&term.line[oldy][oldx].c, term.line[oldy][oldx], oldx, oldy, 1);
