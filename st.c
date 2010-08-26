@@ -443,11 +443,6 @@ tmovecursor(int dir) {
 		break;
 	case CURSOR_LEFT:
 		xf--;
-		if(term.mode & MODE_WRAP && xf < 0) {
-			xf = term.col-1, yf--;
-			if(yf < term.top)
-				yf = term.top, xf = 0;
-		}
 		break;
 	case CURSOR_RIGHT:
 		xf++;
