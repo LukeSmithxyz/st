@@ -247,7 +247,7 @@ ttynew(void) {
 	if((m = posix_openpt(O_RDWR | O_NOCTTY)) < 0)
 		die("openpt failed: %s\n", SERRNO);
 	if(grantpt(m) < 0)
-		die("grandpt failed: %s\n", SERRNO);
+		die("grantpt failed: %s\n", SERRNO);
 	if(unlockpt(m) < 0)
 		die("unlockpt failed: %s\n", SERRNO);
 	if(!(pts = ptsname(m)))
@@ -265,7 +265,9 @@ ttynew(void) {
 		dup2(s, STDOUT_FILENO);
 		dup2(s, STDERR_FILENO);
 		if(ioctl(s, TIOCSCTTY, NULL) < 0)
-			die("ioctl TTIOCSTTY failed: %s\n", SERRNO);
+			die("ioctl TIOCSCTTY failed: %s\n", SERRNO);
+		close(s);
+		close(m);
 		execsh();
 		break;
 	default:
