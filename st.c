@@ -440,11 +440,11 @@ tmoveto(int x, int y) {
 void
 twrapcursor(void) {
 	int y = term.c.y+1;
-    if(y > term.bot) {
-        tmoveto(0, term.bot);
-        tscroll();
-    } else 
-        tmoveto(0, y);
+	if(y > term.bot) {
+		tmoveto(0, term.bot);
+		tscroll();
+	} else 
+		tmoveto(0, y);
 }
 	
 void
@@ -971,10 +971,10 @@ tputc(char c) {
 			break;
 		default:
 			tsetchar(c);
-            if(term.c.x+1 < term.col) {
-                tmoveto(term.c.x+1, term.c.y);
-            } else if(IS_SET(MODE_WRAP))
-                twrapcursor();
+			if(term.c.x+1 < term.col) {
+				tmoveto(term.c.x+1, term.c.y);
+			} else if(IS_SET(MODE_WRAP))
+				twrapcursor();
 			break;
 		}
 	}
