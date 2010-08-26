@@ -1001,23 +1001,21 @@ tputs(char *s, int len) {
 void
 tresize(int col, int row) {
 	int i;
-	Line *line;
 	int minrow = MIN(row, term.row);
 	int mincol = MIN(col, term.col);
 
 	if(col < 1 || row < 1)
 		return;
-	/* alloc */
-	line = calloc(row, sizeof(Line));
-	for(i = 0 ; i < row; i++)
-		line[i] = calloc(col, sizeof(Glyph));
-	/* copy */
-	for(i = 0 ; i < minrow; i++)
-		memcpy(line[i], term.line[i], mincol * sizeof(Glyph));
-	/* free */
-	for(i = 0; i < term.row; i++)
+
+	for(i = row; i < term.row; i++)
 		free(term.line[i]);
-	free(term.line);
+	term.line = realloc(term.line, row * sizeof(Line));
+	for(i = 0; i < minrow; i++) {
+		term.line[i] = realloc(term.line[i], col * sizeof(Glyph));
+		memset(term.line[i] + mincol, 0, (col - mincol) * sizeof(Glyph));
+	}
+	for(/* i == minrow */; i < row; i++)
+		term.line[i] = calloc(col, sizeof(Glyph));
 	
 	LIMIT(term.c.x, 0, col-1);
 	LIMIT(term.c.y, 0, row-1);
@@ -1025,7 +1023,6 @@ tresize(int col, int row) {
 	LIMIT(term.bot, 0, row-1);
 	
 	term.bot = row-1;
-	term.line = line;
 	term.col = col, term.row = row;
 }
 
