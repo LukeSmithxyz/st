@@ -861,12 +861,7 @@ csireset(void) {
 void
 tputtab(void) {
 	int space = TAB - term.c.x % TAB;
-	
-	if(term.c.x + space >= term.col)
-		space--;
-	
-	for(; space > 0; space--)
-		tmovecursor(CURSOR_RIGHT);
+	tmoveto(term.c.x + space, term.c.y);
 }
 
 void
