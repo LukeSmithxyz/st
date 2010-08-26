@@ -136,6 +136,7 @@ static void tinsertblankline(int);
 static void tmoveto(int, int);
 static void tnew(int, int);
 static void tnewline(void);
+static void tputtab(void);
 static void tputc(char);
 static void tputs(char*, int);
 static void treset(void);
@@ -152,6 +153,9 @@ static void ttyread(void);
 static void ttyresize(int, int);
 static void ttywrite(const char *, size_t);
 
+static void xbell(void);
+static void xdraws(char *, Glyph, int, int, int);
+static void xhints(void);
 static void xclear(int, int, int, int);
 static void xcursor(int);
 static void xinit(void);
