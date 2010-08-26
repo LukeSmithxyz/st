@@ -129,7 +129,6 @@ static void csireset(void);
 
 static void tclearregion(int, int, int, int);
 static void tcursor(int);
-static void twrapcursor(void);
 static void tdeletechar(int);
 static void tdeleteline(int);
 static void tinsertblank(int);
@@ -337,7 +336,8 @@ treset(void) {
 }
 
 void
-tnew(int col, int row) {   /* screen size */
+tnew(int col, int row) {
+	/* screen size */
 	term.row = row, term.col = col;
 	term.top = 0, term.bot = term.row - 1;
 	/* mode */
@@ -437,16 +437,6 @@ tmoveto(int x, int y) {
 	term.c.y = y < 0 ? 0 : y >= term.row ? term.row-1 : y;
 }
 
-void
-twrapcursor(void) {
-	int y = term.c.y+1;
-	if(y > term.bot) {
-		tmoveto(0, term.bot);
-		tscroll();
-	} else 
-		tmoveto(0, y);
-}
-	
 void
 tsetchar(char c) {
 	term.line[term.c.y][term.c.x] = term.c.attr;
@@ -974,7 +964,7 @@ tputc(char c) {
 			if(term.c.x+1 < term.col) {
 				tmoveto(term.c.x+1, term.c.y);
 			} else if(IS_SET(MODE_WRAP))
-				twrapcursor();
+				tnewline();
 			break;
 		}
 	}
@@ -995,13 +985,20 @@ tresize(int col, int row) {
 	if(col < 1 || row < 1)
 		return;
 
+	/* free uneeded rows */
 	for(i = row; i < term.row; i++)
 		free(term.line[i]);
+
+	/* resize to new height */
 	term.line = realloc(term.line, row * sizeof(Line));
+
+	/* resize each row to new width, zero-pad if needed */
 	for(i = 0; i < minrow; i++) {
 		term.line[i] = realloc(term.line[i], col * sizeof(Glyph));
 		memset(term.line[i] + mincol, 0, (col - mincol) * sizeof(Glyph));
 	}
+
+	/* allocate any new rows */
 	for(/* i == minrow */; i < row; i++)
 		term.line[i] = calloc(col, sizeof(Glyph));
 	
@@ -1337,7 +1334,7 @@ run(void) {
 int
 main(int argc, char *argv[]) {
 	if(argc == 2 && !strncmp("-v", argv[1], 3))
-		die("st-" VERSION ", © 2009 st engineers\n");
+		die("st-" VERSION ", (c) 2010 st engineers\n");
 	else if(argc != 1)
 		die("usage: st [-v]\n");
 	setlocale(LC_CTYPE, "");
