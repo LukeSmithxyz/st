@@ -34,6 +34,7 @@
 #define BETWEEN(x, a, b)  ((a) <= (x) && (x) <= (b))
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
+#define IS_SET(flag) (term.mode & flag)
 
 /* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
 enum { ATTR_NULL=0 , ATTR_REVERSE=1 , ATTR_UNDERLINE=2, ATTR_BOLD=4, ATTR_GFX=8 };
@@ -128,7 +129,7 @@ static void csireset(void);
 
 static void tclearregion(int, int, int, int);
 static void tcursor(int);
-static void tmovecursor(int);
+static void twrapcursor(void);
 static void tdeletechar(int);
 static void tdeleteline(int);
 static void tinsertblank(int);
@@ -437,29 +438,13 @@ tmoveto(int x, int y) {
 }
 
 void
-tmovecursor(int dir) {
-	int xf = term.c.x, yf = term.c.y;
-	
-	switch(dir) {
-	case CURSOR_UP:
-		yf--;
-		break;
-	case CURSOR_DOWN:
-		yf++;
-		break;
-	case CURSOR_LEFT:
-		xf--;
-		break;
-	case CURSOR_RIGHT:
-		xf++;
-		if(term.mode & MODE_WRAP && xf >= term.col) {
-			xf = 0, yf++;
-			if(yf > term.bot)
-				yf = term.bot, tscroll();
-		}
-		break;
-	}
-	tmoveto(xf, yf);
+twrapcursor(void) {
+	int y = term.c.y+1;
+    if(y > term.bot) {
+        tmoveto(0, term.bot);
+        tscroll();
+    } else 
+        tmoveto(0, y);
 }
 	
 void
@@ -969,7 +954,7 @@ tputc(char c) {
 			tputtab();
 			break;
 		case '\b':
-			tmovecursor(CURSOR_LEFT);
+			tmoveto(term.c.x-1, term.c.y);
 			break;
 		case '\r':
 			tmoveto(0, term.c.y);
@@ -986,7 +971,10 @@ tputc(char c) {
 			break;
 		default:
 			tsetchar(c);
-			tmovecursor(CURSOR_RIGHT);
+            if(term.c.x+1 < term.col) {
+                tmoveto(term.c.x+1, term.c.y);
+            } else if(IS_SET(MODE_WRAP))
+                twrapcursor();
 			break;
 		}
 	}
@@ -1282,7 +1270,7 @@ kpress(XEvent *ev) {
 		case XK_Down:
 		case XK_Left:
 		case XK_Right:
-			sprintf(buf, "\033%c%c", term.mode & MODE_APPKEYPAD ? 'O' : '[', "DACB"[ksym - XK_Left]);
+			sprintf(buf, "\033%c%c", IS_SET(MODE_APPKEYPAD) ? 'O' : '[', "DACB"[ksym - XK_Left]);
 			ttywrite(buf, 3);
 			break;
 		case XK_Insert:
