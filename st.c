@@ -1078,10 +1078,9 @@ xhints(void)
 
 void
 xinit(void) {
-	xw.dis = XOpenDisplay(NULL);
-	xw.scr = XDefaultScreen(xw.dis);
-	if(!xw.dis)
+	if(!(xw.dis = XOpenDisplay(NULL)))
 		die("Can't open display\n");
+	xw.scr = XDefaultScreen(xw.dis);
 	
 	/* font */
 	if(!(dc.font = XLoadQueryFont(xw.dis, FONT)) || !(dc.bfont = XLoadQueryFont(xw.dis, BOLDFONT)))
