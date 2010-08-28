@@ -20,6 +20,14 @@
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
 
+#if   defined(LINUX)
+ #include <pty.h>
+#elif defined(OPENBSD)
+ #include <util.h>
+#elif defined(FREEBSD)
+ #include <libutil.h>
+#endif
+
 /* Arbitrary sizes */
 #define ESC_TITLE_SIZ 256
 #define ESC_BUF_SIZ   256
@@ -242,19 +250,12 @@ sigchld(int a) {
 void
 ttynew(void) {
 	int m, s;
-	char *pts;
+	
+	/* seems to work fine on linux, openbsd and freebsd */
+	struct winsize w = {term.row, term.col, 0, 0};
+	if(openpty(&m, &s, NULL, NULL, &w) < 0)
+		die("openpty failed: %s\n", SERRNO);
 
-	if((m = posix_openpt(O_RDWR | O_NOCTTY)) < 0)
-		die("openpt failed: %s\n", SERRNO);
-	if(grantpt(m) < 0)
-		die("grantpt failed: %s\n", SERRNO);
-	if(unlockpt(m) < 0)
-		die("unlockpt failed: %s\n", SERRNO);
-	if(!(pts = ptsname(m)))
-		die("ptsname failed: %s\n", SERRNO);
-	if((s = open(pts, O_RDWR | O_NOCTTY)) < 0)
-		die("Couldn't open slave: %s\n", SERRNO);
-	fcntl(s, F_SETFL, O_NDELAY);
 	switch(pid = fork()) {
 	case -1:
 		die("fork failed\n");

@@ -10,6 +10,7 @@ all: options st
 
 options:
 	@echo st build options:
+	@echo "SYSTEM   = ${SYSTEM}"
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
@@ -31,7 +32,7 @@ clean:
 dist: clean
 	@echo creating dist tarball
 	@mkdir -p st-${VERSION}
-	@cp -R LICENSE Makefile README config.mk st.h ${SRC} st-${VERSION}
+	@cp -R LICENSE Makefile README config.mk config.h st.info ${SRC} st-${VERSION}
 	@tar -cf st-${VERSION}.tar st-${VERSION}
 	@gzip st-${VERSION}.tar
 	@rm -rf st-${VERSION}
@@ -41,7 +42,7 @@ install: all
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f st ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/st
-	@tic st.info
+	@tic -s st.info
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
