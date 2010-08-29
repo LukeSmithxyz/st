@@ -149,7 +149,6 @@ static void tputc(char);
 static void tputs(char*, int);
 static void treset(void);
 static void tresize(int, int);
-static void tscroll(void);
 static void tscrollup(int);
 static void tscrolldown(int);
 static void tsetattr(int*, int);
@@ -355,18 +354,6 @@ tnew(int col, int row) {
 		term.line[row] = calloc(term.col, sizeof(Glyph));
 }
 
-/* TODO: Replace with scrollup/scolldown */
-void
-tscroll(void) {
-	Line temp = term.line[term.top];
-	int i;
-
-	for(i = term.top; i < term.bot; i++)
-		term.line[i] = term.line[i+1];
-	memset(temp, 0, sizeof(Glyph) * term.col);
-	term.line[term.bot] = temp;
-}
-
 void
 tscrolldown (int n) {
 	int i;
@@ -404,7 +391,7 @@ void
 tnewline(void) {
 	int y = term.c.y + 1;
 	if(y > term.bot)
-		tscroll(), y = term.bot;
+		tscrollup(1), y = term.bot;
 	tmoveto(0, y);
 }
 
