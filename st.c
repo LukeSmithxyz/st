@@ -22,7 +22,7 @@
 
 #if   defined(LINUX)
  #include <pty.h>
-#elif defined(OPENBSD)
+#elif defined(OPENBSD) || defined(NETBSD)
  #include <util.h>
 #elif defined(FREEBSD)
  #include <libutil.h>
