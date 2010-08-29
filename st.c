@@ -165,7 +165,7 @@ static void xbell(void);
 static void xdraws(char *, Glyph, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
-static void xcursor(void);
+static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
 
@@ -1071,9 +1071,6 @@ xinit(void) {
 	/* colors */
 	xloadcols();
 
-	term.c.attr.fg = DefaultFG;
-	term.c.attr.bg = DefaultBG;
-	term.c.attr.mode = ATTR_NULL;
 	/* windows */
 	xw.h = term.row * xw.ch + 2*BORDER;
 	xw.w = term.col * xw.cw + 2*BORDER;
@@ -1118,7 +1115,7 @@ xdraws(char *s, Glyph base, int x, int y, int len) {
 }
 
 void
-xcursor(void) {
+xdrawcursor(void) {
 	static int oldx = 0;
 	static int oldy = 0;
 	Glyph g = {' ', ATTR_NULL, DefaultBG, DefaultCS, 0};
@@ -1163,7 +1160,7 @@ draw(int dummy) {
 			if(term.line[y][x].state & GLYPH_SET)
 				xdrawc(x, y, term.line[y][x]);
 
-	xcursor();
+	xdrawcursor();
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
@@ -1199,7 +1196,7 @@ draw(int redraw_all) {
 		if(i > 0)
 			xdraws(buf, base, ox, y, i);
 	}
-	xcursor();
+	xdrawcursor();
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
