@@ -30,6 +30,7 @@ static const char *colorname[] = {
 #define DefaultBG 0
 #define DefaultCS 1
 #define BellCol   DefaultFG
+#define BellTime  30000 /* microseconds */
 
 /* special keys */
 static Key key[] = {

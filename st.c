@@ -67,6 +67,7 @@ typedef struct {
 	Glyph attr;	 /* current char attributes */
 	int x;
 	int y;
+	char hide;
 } TCursor;
 
 /* CSI Escape sequence structs */
@@ -86,7 +87,6 @@ typedef struct {
 	int col;	/* nb col */
 	Line* line; /* screen */
 	TCursor c;	/* cursor */
-	char hidec;
 	int top;	/* top	  scroll limit */
 	int bot;	/* bottom scroll limit */
 	int mode;	/* terminal mode flags */
@@ -221,17 +221,16 @@ die(const char *errstr, ...) {
 void
 execsh(void) {
 	char *args[3] = {getenv("SHELL"), "-i", NULL};
-	DEFAULT(args[0], "/bin/sh"); /* default shell if getenv() failed */
+	DEFAULT(args[0], "/bin/sh"); /* if getenv() failed */
 	putenv("TERM=" TNAME);
 	execvp(args[0], args);
 }
 
 void
-xbell(void) { /* visual bell */
-	XRectangle r = { BORDER, BORDER, xw.bufw, xw.bufh };
+xbell(void) {
 	XSetForeground(xw.dis, dc.gc, dc.col[BellCol]);
-	XFillRectangles(xw.dis, xw.win, dc.gc, &r, 1);
-	/* usleep(30000); */
+	XFillRectangle(xw.dis, xw.win, dc.gc, BORDER, BORDER, xw.bufw, xw.bufh);
+	usleep(BellTime);
 	draw(SCREEN_REDRAW);
 }
 
@@ -325,11 +324,12 @@ tcursor(int mode) {
 
 void
 treset(void) {
-	term.c.attr.mode = ATTR_NULL;
-	term.c.attr.fg = DefaultFG;
-	term.c.attr.bg = DefaultBG;
-	term.c.x = term.c.y = 0;
-	term.hidec = 0;
+	term.c = (TCursor){{
+		.mode = ATTR_NULL, 
+		.fg = DefaultFG, 
+		.bg = DefaultBG
+	}, .x = 0, .y = 0, .hide = 0};
+	
 	term.top = 0, term.bot = term.row - 1;
 	term.mode = MODE_WRAP;
 	tclearregion(0, 0, term.col-1, term.row-1);
@@ -337,21 +337,13 @@ treset(void) {
 
 void
 tnew(int col, int row) {
-	/* screen size */
+	/* set screen size */
 	term.row = row, term.col = col;
-	term.top = 0, term.bot = term.row - 1;
-	/* mode */
-	term.mode = MODE_WRAP;
-	/* cursor */
-	term.c.attr.mode = ATTR_NULL;
-	term.c.attr.fg = DefaultFG;
-	term.c.attr.bg = DefaultBG;
-	term.c.x = term.c.y = 0;
-	term.hidec = 0;
-	/* allocate screen */
-	term.line = calloc(term.row, sizeof(Line));
+	term.line = malloc(term.row * sizeof(Line));
 	for(row = 0 ; row < term.row; row++)
-		term.line[row] = calloc(term.col, sizeof(Glyph));
+		term.line[row] = malloc(term.col * sizeof(Glyph));
+	/* setup screen */
+	treset();
 }
 
 void
@@ -718,7 +710,7 @@ csihandle(void) {
 			case 12: /* att610 -- Stop blinking cursor (IGNORED) */
 				break;
 			case 25:
-				term.hidec = 1;
+				term.c.hide = 1;
 				break;
 			case 1048: /* XXX: no alt. screen to erase/save */
 			case 1049:
@@ -767,7 +759,7 @@ csihandle(void) {
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				break;
 			case 25:
-				term.hidec = 0;
+				term.c.hide = 0;
 				break;
 			case 1048: 
 			case 1049: /* XXX: no alt. screen to erase/save */
@@ -1173,7 +1165,7 @@ draw(int dummy) {
 			if(term.line[y][x].state & GLYPH_SET)
 				xdrawc(x, y, term.line[y][x]);
 
-	if(!term.hidec)
+	if(!term.c.hide)
 		xcursor(CURSOR_DRAW);
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
@@ -1206,7 +1198,7 @@ draw(int redraw_all) {
 		}
 		xdraws(buf, base, ox, y, i);
 	}
-	xcursor(term.hidec ? CURSOR_HIDE : CURSOR_DRAW);
+	xcursor(term.c.hide ? CURSOR_HIDE : CURSOR_DRAW);
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
