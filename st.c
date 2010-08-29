@@ -373,11 +373,11 @@ tscrollup (int n) {
 	for(i = 0; i < n; i++)
 		memset(term.line[term.top+i], 0, term.col*sizeof(Glyph));
 	
-	 for(i = term.top; i <= term.bot-n; i++) { 
+	for(i = term.top; i <= term.bot-n; i++) { 
 		 temp = term.line[i];
 		 term.line[i] = term.line[i+n]; 
 		 term.line[i+n] = temp;
-	 }
+	}
 }
 
 void
@@ -1181,7 +1181,7 @@ draw(int redraw_all) {
 	char buf[DRAW_BUF_SIZ];
 	
 	XSetForeground(xw.dis, dc.gc, dc.col[DefaultBG]);
-	XFillRectangle(xw.dis, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
+	XFillRectangle(xw.dis, xw.buf, dc.gc, 0, 0, xw.bufw, xw.bufh);
 	for(y = 0; y < term.row; y++) {
 		base = term.line[y][0];
 		i = ox = 0;
