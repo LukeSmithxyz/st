@@ -46,8 +46,8 @@
 
 /* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
 enum { ATTR_NULL=0 , ATTR_REVERSE=1 , ATTR_UNDERLINE=2, ATTR_BOLD=4, ATTR_GFX=8 };
-enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, CURSOR_HIDE, CURSOR_DRAW, 
-       CURSOR_SAVE, CURSOR_LOAD };
+enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, CURSOR_HIDE = 1, 
+       CURSOR_DRAW = 0, CURSOR_SAVE, CURSOR_LOAD };
 enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
 enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4 };
 enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
@@ -711,7 +711,7 @@ csihandle(void) {
 			case 12: /* att610 -- Stop blinking cursor (IGNORED) */
 				break;
 			case 25:
-				term.c.hide = 1;
+				term.c.hide = CURSOR_HIDE;
 				break;
 			case 1048: /* XXX: no alt. screen to erase/save */
 			case 1049:
@@ -760,7 +760,7 @@ csihandle(void) {
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				break;
 			case 25:
-				term.c.hide = 0;
+				term.c.hide = CURSOR_DRAW;
 				break;
 			case 1048: 
 			case 1049: /* XXX: no alt. screen to erase/save */
@@ -1166,8 +1166,7 @@ draw(int dummy) {
 			if(term.line[y][x].state & GLYPH_SET)
 				xdrawc(x, y, term.line[y][x]);
 
-	if(!term.c.hide)
-		xcursor(CURSOR_DRAW);
+	xcursor(term.c.hide);
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
@@ -1187,19 +1186,23 @@ draw(int redraw_all) {
 		i = ox = 0;
 		for(x = 0; x < term.col; x++) {
 			new = term.line[y][x];
-			if(!ATTRCMP(base, new) && i < DRAW_BUF_SIZ)
-				buf[i++] = new.c;
-			else {
+			if(i > 0 && (!(new.state & GLYPH_SET) || ATTRCMP(base, new) ||
+						i >= DRAW_BUF_SIZ)) {
 				xdraws(buf, base, ox, y, i);
-				buf[0] = new.c;
-				i = 1;
-				ox = x;
-				base = new;
+				i = 0;
+			}
+			if(new.state & GLYPH_SET) {
+				if(i == 0) {
+					ox = x;
+					base = new;
+				}
+				buf[i++] = new.c;
 			}
 		}
-		xdraws(buf, base, ox, y, i);
+		if(i > 0)
+			xdraws(buf, base, ox, y, i);
 	}
-	xcursor(term.c.hide ? CURSOR_HIDE : CURSOR_DRAW);
+	xcursor(term.c.hide);
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
