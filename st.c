@@ -230,6 +230,7 @@ void
 xbell(void) {
 	XSetForeground(xw.dis, dc.gc, dc.col[BellCol]);
 	XFillRectangle(xw.dis, xw.win, dc.gc, BORDER, BORDER, xw.bufw, xw.bufh);
+	XFlush(xw.dis);
 	usleep(BellTime);
 	draw(SCREEN_REDRAW);
 }
@@ -1293,7 +1294,7 @@ run(void) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
-		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, NULL) == -1) {
+		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, NULL) < 0) {
 			if(errno == EINTR)
 				continue;
 			die("select failed: %s\n", SERRNO);
