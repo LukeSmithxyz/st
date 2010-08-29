@@ -46,8 +46,9 @@
 
 /* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
 enum { ATTR_NULL=0 , ATTR_REVERSE=1 , ATTR_UNDERLINE=2, ATTR_BOLD=4, ATTR_GFX=8 };
-enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT, CURSOR_HIDE = 1, 
-       CURSOR_DRAW = 0, CURSOR_SAVE, CURSOR_LOAD };
+enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
+       CURSOR_SAVE, CURSOR_LOAD };
+enum { CURSOR_DEFAULT = 0, CURSOR_HIDE = 1, CURSOR_WRAPNEXT = 2 };
 enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
 enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4 };
 enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
@@ -67,7 +68,7 @@ typedef struct {
 	Glyph attr;	 /* current char attributes */
 	int x;
 	int y;
-	char hide;
+	char state;
 } TCursor;
 
 /* CSI Escape sequence structs */
@@ -164,7 +165,7 @@ static void xbell(void);
 static void xdraws(char *, Glyph, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
-static void xcursor(int);
+static void xcursor(void);
 static void xinit(void);
 static void xloadcols(void);
 
@@ -329,7 +330,7 @@ treset(void) {
 		.mode = ATTR_NULL, 
 		.fg = DefaultFG, 
 		.bg = DefaultBG
-	}, .x = 0, .y = 0, .hide = 0};
+	}, .x = 0, .y = 0, .state = CURSOR_DEFAULT};
 	
 	term.top = 0, term.bot = term.row - 1;
 	term.mode = MODE_WRAP;
@@ -414,8 +415,11 @@ csiparse(void) {
 
 void
 tmoveto(int x, int y) {
-	term.c.x = x < 0 ? 0 : x >= term.col ? term.col-1 : x;
-	term.c.y = y < 0 ? 0 : y >= term.row ? term.row-1 : y;
+	LIMIT(x, 0, term.col-1);
+	LIMIT(y, 0, term.row-1);
+	term.c.state &= ~CURSOR_WRAPNEXT;
+	term.c.x = x;
+	term.c.y = y;
 }
 
 void
@@ -711,7 +715,7 @@ csihandle(void) {
 			case 12: /* att610 -- Stop blinking cursor (IGNORED) */
 				break;
 			case 25:
-				term.c.hide = CURSOR_HIDE;
+				term.c.state |= CURSOR_HIDE;
 				break;
 			case 1048: /* XXX: no alt. screen to erase/save */
 			case 1049:
@@ -760,7 +764,7 @@ csihandle(void) {
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				break;
 			case 25:
-				term.c.hide = CURSOR_DRAW;
+				term.c.state &= ~CURSOR_HIDE;
 				break;
 			case 1048: 
 			case 1049: /* XXX: no alt. screen to erase/save */
@@ -788,6 +792,7 @@ csihandle(void) {
 			DEFAULT(escseq.arg[0], 1);
 			DEFAULT(escseq.arg[1], term.row);
 			tsetscroll(escseq.arg[0]-1, escseq.arg[1]-1);
+			tmoveto(0, 0);
 		}
 		break;
 	case 's': /* DECSC -- Save cursor position (ANSI.SYS) */
@@ -932,11 +937,13 @@ tputc(char c) {
 			term.esc = ESC_START;
 			break;
 		default:
-			tsetchar(c);
-			if(term.c.x+1 < term.col) {
-				tmoveto(term.c.x+1, term.c.y);
-			} else if(IS_SET(MODE_WRAP))
+			if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
 				tnewline();
+			tsetchar(c);
+			if(term.c.x+1 < term.col)
+				tmoveto(term.c.x+1, term.c.y);
+			else
+				term.c.state |= CURSOR_WRAPNEXT;
 			break;
 		}
 	}
@@ -974,13 +981,12 @@ tresize(int col, int row) {
 	for(/* i == minrow */; i < row; i++)
 		term.line[i] = calloc(col, sizeof(Glyph));
 	
-	LIMIT(term.c.x, 0, col-1);
-	LIMIT(term.c.y, 0, row-1);
-	LIMIT(term.top, 0, row-1);
-	LIMIT(term.bot, 0, row-1);
-	
-	term.bot = row-1;
+	/* update terminal size */
 	term.col = col, term.row = row;
+	/* make use of the LIMIT in tmoveto */
+	tmoveto(term.c.x, term.c.y);
+	/* reset scrolling region */
+	tsetscroll(0, row-1);
 }
 
 void
@@ -1112,7 +1118,7 @@ xdraws(char *s, Glyph base, int x, int y, int len) {
 }
 
 void
-xcursor(int mode) {
+xcursor(void) {
 	static int oldx = 0;
 	static int oldy = 0;
 	Glyph g = {' ', ATTR_NULL, DefaultBG, DefaultCS, 0};
@@ -1130,7 +1136,7 @@ xcursor(int mode) {
 		xclear(oldx, oldy, oldx, oldy);
 	
 	/* draw the new one */
-	if(mode == CURSOR_DRAW) {
+	if(!(term.c.state & CURSOR_HIDE)) {
 		xdraws(&g.c, g, term.c.x, term.c.y, 1);
 		oldx = term.c.x, oldy = term.c.y;
 	}
@@ -1157,7 +1163,7 @@ draw(int dummy) {
 			if(term.line[y][x].state & GLYPH_SET)
 				xdrawc(x, y, term.line[y][x]);
 
-	xcursor(term.c.hide);
+	xcursor();
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
@@ -1193,7 +1199,7 @@ draw(int redraw_all) {
 		if(i > 0)
 			xdraws(buf, base, ox, y, i);
 	}
-	xcursor(term.c.hide);
+	xcursor();
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 	XFlush(xw.dis);
 }
