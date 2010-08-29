@@ -867,20 +867,11 @@ tputc(char c) {
 			case '(':
 				term.esc |= ESC_ALTCHARSET;
 				break;
-			case 'A':
-				tmoveto(term.c.x, term.c.y-1);
-				term.esc = 0;
-				break;
-			case 'B':
-				tmoveto(term.c.x, term.c.y+1);
-				term.esc = 0;
-				break;
-			case 'C':
-				tmoveto(term.c.x+1, term.c.y);
-				term.esc = 0;
-				break;
-			case 'D': /* XXX: CUP (VT100) or IND (VT52) ... */
-				tmoveto(term.c.x-1, term.c.y);
+			case 'D': /* IND -- Linefeed */
+				if(term.c.y == term.bot)
+					tscrollup(1);
+				else
+					tmoveto(term.c.x, term.c.y+1);
 				term.esc = 0;
 				break;
 			case 'E': /* NEL -- Next line */
