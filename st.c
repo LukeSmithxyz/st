@@ -108,6 +108,7 @@ typedef struct {
 	int bufh; /* pixmap height */
 	int ch; /* char height */
 	int cw; /* char width  */
+	int hasfocus;
 } XWindow; 
 
 typedef struct {
@@ -161,23 +162,27 @@ static void ttyread(void);
 static void ttyresize(int, int);
 static void ttywrite(const char *, size_t);
 
-static void xbell(void);
 static void xdraws(char *, Glyph, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
 static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
+static void xseturgency(int);
 
 static void expose(XEvent *);
 static char* kmap(KeySym);
 static void kpress(XEvent *);
 static void resize(XEvent *);
+static void focus(XEvent *);
+
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
 	[Expose] = expose,
-	[ConfigureNotify] = resize
+	[ConfigureNotify] = resize,
+	[FocusIn] = focus,
+	[FocusOut] = focus,
 };
 
 /* Globals */
@@ -187,7 +192,6 @@ static Term term;
 static CSIEscape escseq;
 static int cmdfd;
 static pid_t pid;
-static int running;
 
 #ifdef DEBUG
 void
@@ -225,15 +229,6 @@ execsh(void) {
 	DEFAULT(args[0], "/bin/sh"); /* if getenv() failed */
 	putenv("TERM=" TNAME);
 	execvp(args[0], args);
-}
-
-void
-xbell(void) {
-	XSetForeground(xw.dis, dc.gc, dc.col[BellCol]);
-	XFillRectangle(xw.dis, xw.win, dc.gc, BORDER, BORDER, xw.bufw, xw.bufh);
-	XFlush(xw.dis);
-	usleep(BellTime);
-	draw(SCREEN_REDRAW);
 }
 
 void 
@@ -930,7 +925,8 @@ tputc(char c) {
 			tnewline();
 			break;
 		case '\a':
-			xbell();
+			if(!xw.hasfocus)
+				xseturgency(1);
 			break;
 		case '\033':
 			csireset();
@@ -1208,6 +1204,20 @@ expose(XEvent *ev) {
 	draw(SCREEN_REDRAW);
 }
 
+void
+xseturgency(int add) {
+	XWMHints *h = XGetWMHints(xw.dis, xw.win);
+	h->flags = add ? (h->flags | XUrgencyHint) : (h->flags & ~XUrgencyHint);
+	XSetWMHints(xw.dis, xw.win, h);
+	XFree(h);
+}
+
+void
+focus(XEvent *ev) {
+	if((xw.hasfocus = ev->type == FocusIn))
+		xseturgency(0);
+}
+
 char*
 kmap(KeySym k) {
 	int i;
@@ -1282,12 +1292,12 @@ run(void) {
 	XEvent ev;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dis);
+	long mask = ExposureMask | KeyPressMask | StructureNotifyMask | FocusChangeMask;
 
-	running = 1;
-	XSelectInput(xw.dis, xw.win, ExposureMask | KeyPressMask | StructureNotifyMask);
+	XSelectInput(xw.dis, xw.win, mask);
 	XResizeWindow(xw.dis, xw.win, xw.w, xw.h); /* XXX: fix resize bug in wmii (?) */
 
-	while(running) {
+	while(1) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
