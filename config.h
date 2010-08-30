@@ -1,7 +1,7 @@
 #define TAB    8
 #define TNAME "st-256color"
 #define FONT "6x13"
-#define BOLDFONT FONT"bold"
+#define BOLDFONT "6x13bold"
 #define BORDER 2
 
 /* Terminal colors */

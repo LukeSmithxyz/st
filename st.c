@@ -1129,7 +1129,7 @@ xdrawcursor(void) {
 		xclear(oldx, oldy, oldx, oldy);
 	
 	/* draw the new one */
-	if(!(term.c.state & CURSOR_HIDE)) {
+	if(!(term.c.state & CURSOR_HIDE) && xw.hasfocus) {
 		xdraws(&g.c, g, term.c.x, term.c.y, 1);
 		oldx = term.c.x, oldy = term.c.y;
 	}
@@ -1216,6 +1216,7 @@ void
 focus(XEvent *ev) {
 	if((xw.hasfocus = ev->type == FocusIn))
 		xseturgency(0);
+	draw(SCREEN_UPDATE);
 }
 
 char*
