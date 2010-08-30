@@ -213,10 +213,10 @@ static inline int selected(int x, int y) {
 	if ((seley==y && selby==y)) {
 		int bx = MIN(selbx, selex);
 		int ex = MAX(selbx, selex);
-		return if(x>=bx && x<=ex)
+		return (x>=bx && x<=ex);
 	}
 	return (((y>sb[1] && y<se[1]) || (y==se[1] && x<=se[0])) || \
-		(y==sb[1] && x>=sb[0] && (x<=se[0] || sb[1]!=se[1])))
+		(y==sb[1] && x>=sb[0] && (x<=se[0] || sb[1]!=se[1])));
 }
 
 static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
@@ -331,7 +331,7 @@ die(const char *errstr, ...) {
 void
 execsh(void) {
 	char *args[3] = {getenv("SHELL"), "-i", NULL};
-	DEFAULT(args[0], "/bin/sh"); /* if getenv() failed */
+	DEFAULT(args[0], SHELL); /* if getenv() failed */
 	putenv("TERM=" TNAME);
 	execvp(args[0], args);
 }

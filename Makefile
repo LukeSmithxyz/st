@@ -8,11 +8,14 @@ OBJ = ${SRC:.c=.o}
 
 all: options st
 
-options:
+options: options
 	@echo st build options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
+
+config.h:
+	cp config.def.h config.h
 
 .c.o:
 	@echo CC $<

@@ -3,6 +3,7 @@
 #define FONT "6x13"
 #define BOLDFONT "6x13bold"
 #define BORDER 2
+#define SHELL "/bin/sh"
 
 /* Terminal colors */
 static const char *colorname[] = {
@@ -33,11 +34,11 @@ static const char *colorname[] = {
 /* special keys */
 static Key key[] = {
 	{ XK_BackSpace, "\177" },
-	{ XK_Delete, "\033[3~" },
-	{ XK_Home,   "\033[1~" },
-	{ XK_End,    "\033[4~" },
-	{ XK_Prior,  "\033[5~" },
-	{ XK_Next,   "\033[6~" },
+	{ XK_Delete,    "\033[3~" },
+	{ XK_Home,      "\033[1~" },
+	{ XK_End,       "\033[4~" },
+	{ XK_Prior,     "\033[5~" },
+	{ XK_Next,      "\033[6~" },
 	{ XK_F1,        "\033OP"   },
 	{ XK_F2,        "\033OQ"   },
 	{ XK_F3,        "\033OR"   },
