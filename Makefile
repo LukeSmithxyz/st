@@ -10,7 +10,6 @@ all: options st
 
 options:
 	@echo st build options:
-	@echo "SYSTEM   = ${SYSTEM}"
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"

@@ -20,11 +20,11 @@
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
 
-#if   defined(LINUX)
+#if   defined(__linux)
  #include <pty.h>
-#elif defined(OPENBSD) || defined(NETBSD)
+#elif defined(__OpenBSD__) || defined(__NetBSD__)
  #include <util.h>
-#elif defined(FREEBSD)
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
  #include <libutil.h>
 #endif
 

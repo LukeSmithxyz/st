@@ -14,15 +14,8 @@ X11LIB = /usr/X11R6/lib
 INCS = -I. -I/usr/include -I${X11INC}
 LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 -lutil
 
-# uncomment manualy your system if compilation fail
-SYSTEM = -D`uname | tr a-z A-Z`
-#SYSTEM = -DLINUX
-#SYSTEM = -DOPENBSD
-#SYSTEM = -DFREEBSD
-#SYSTEM = -DNETBSD
-
 # flags
-CPPFLAGS = -DVERSION=\"${VERSION}\" ${SYSTEM}
+CPPFLAGS = -DVERSION=\"${VERSION}\"
 CFLAGS = -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
 LDFLAGS = -s ${LIBS}
 
