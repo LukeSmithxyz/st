@@ -14,7 +14,8 @@ X11LIB = /usr/X11R6/lib
 INCS = -I. -I/usr/include -I${X11INC}
 LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 -lutil
 
-# uncomment your system #
+# uncomment manualy your system if compilation fail
+SYSTEM = -D`uname | tr a-z A-Z`
 #SYSTEM = -DLINUX
 #SYSTEM = -DOPENBSD
 #SYSTEM = -DFREEBSD
