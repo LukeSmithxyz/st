@@ -50,7 +50,7 @@ enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
        CURSOR_SAVE, CURSOR_LOAD };
 enum { CURSOR_DEFAULT = 0, CURSOR_HIDE = 1, CURSOR_WRAPNEXT = 2 };
 enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
-enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4 };
+enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4, MODE_ALTSCREEN=8 };
 enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
 enum { SCREEN_UPDATE, SCREEN_REDRAW };
 
@@ -86,7 +86,8 @@ typedef struct {
 typedef struct {
 	int row;	/* nb row */  
 	int col;	/* nb col */
-	Line* line; /* screen */
+	Line* line;	/* screen */
+	Line* alt;	/* alternate screen */
 	TCursor c;	/* cursor */
 	int top;	/* top	  scroll limit */
 	int bot;	/* bottom scroll limit */
@@ -156,6 +157,7 @@ static void tscrolldown(int);
 static void tsetattr(int*, int);
 static void tsetchar(char);
 static void tsetscroll(int, int);
+static void tswapscreen(void);
 
 static void ttynew(void);
 static void ttyread(void);
@@ -337,10 +339,21 @@ tnew(int col, int row) {
 	/* set screen size */
 	term.row = row, term.col = col;
 	term.line = malloc(term.row * sizeof(Line));
-	for(row = 0 ; row < term.row; row++)
+	term.alt  = malloc(term.row * sizeof(Line));
+	for(row = 0 ; row < term.row; row++) {
 		term.line[row] = malloc(term.col * sizeof(Glyph));
+		term.alt [row] = malloc(term.col * sizeof(Glyph));
+	}
 	/* setup screen */
 	treset();
+}
+
+void
+tswapscreen(void) {
+	Line* tmp = term.line;
+	term.line = term.alt;
+	term.alt = tmp;
+	term.mode ^= MODE_ALTSCREEN;
 }
 
 void
@@ -712,10 +725,21 @@ csihandle(void) {
 			case 25:
 				term.c.state |= CURSOR_HIDE;
 				break;
-			case 1048: /* XXX: no alt. screen to erase/save */
+			case 1047:
+				if(IS_SET(MODE_ALTSCREEN)) {
+					tclearregion(0, 0, term.col-1, term.row-1);
+					tswapscreen();
+				}
+				break;
+			case 1048:
+				tcursor(CURSOR_LOAD);
+				break;
 			case 1049:
 				tcursor(CURSOR_LOAD);
-				tclearregion(0, 0, term.col-1, term.row-1);
+				if(IS_SET(MODE_ALTSCREEN)) {
+					tclearregion(0, 0, term.col-1, term.row-1);
+					tswapscreen();
+				}
 				break;
 			default:
 				goto unknown;
@@ -761,10 +785,21 @@ csihandle(void) {
 			case 25:
 				term.c.state &= ~CURSOR_HIDE;
 				break;
-			case 1048: 
-			case 1049: /* XXX: no alt. screen to erase/save */
+			case 1047:
+				if(IS_SET(MODE_ALTSCREEN))
+					tclearregion(0, 0, term.col-1, term.row-1);
+				else
+					tswapscreen();
+				break;				
+			case 1048:
 				tcursor(CURSOR_SAVE);
-				tclearregion(0, 0, term.col-1, term.row-1);
+				break;
+			case 1049:
+				tcursor(CURSOR_SAVE);
+				if(IS_SET(MODE_ALTSCREEN))
+					tclearregion(0, 0, term.col-1, term.row-1);
+				else
+					tswapscreen();
 				break;
 			default: goto unknown;
 			}
@@ -889,19 +924,19 @@ tputc(char c) {
 				treset();
 				term.esc = 0;
 				break;
-			case '=': /* DECPAM */
+			case '=': /* DECPAM -- Application keypad */
 				term.mode |= MODE_APPKEYPAD;
 				term.esc = 0;
 				break;
-			case '>': /* DECPNM */
+			case '>': /* DECPNM -- Normal keypad */
 				term.mode &= ~MODE_APPKEYPAD;
 				term.esc = 0;
 				break;
-			case '7':
+			case '7': /* DECSC -- Save Cursor*/
 				tcursor(CURSOR_SAVE);
 				term.esc = 0;
 				break;
-			case '8':
+			case '8': /* DECRC -- Restore Cursor */
 				tcursor(CURSOR_LOAD);
 				term.esc = 0;
 				break;
@@ -961,21 +996,28 @@ tresize(int col, int row) {
 		return;
 
 	/* free uneeded rows */
-	for(i = row; i < term.row; i++)
+	for(i = row; i < term.row; i++) {
 		free(term.line[i]);
+		free(term.alt[i]);
+	}
 
 	/* resize to new height */
 	term.line = realloc(term.line, row * sizeof(Line));
+	term.line = realloc(term.alt,  row * sizeof(Line));
 
 	/* resize each row to new width, zero-pad if needed */
 	for(i = 0; i < minrow; i++) {
 		term.line[i] = realloc(term.line[i], col * sizeof(Glyph));
+		term.alt[i]  = realloc(term.alt[i],  col * sizeof(Glyph));
 		memset(term.line[i] + mincol, 0, (col - mincol) * sizeof(Glyph));
+		memset(term.alt[i]  + mincol, 0, (col - mincol) * sizeof(Glyph));
 	}
 
 	/* allocate any new rows */
-	for(/* i == minrow */; i < row; i++)
+	for(/* i == minrow */; i < row; i++) {
 		term.line[i] = calloc(col, sizeof(Glyph));
+		term.alt [i] = calloc(col, sizeof(Glyph));
+	}
 	
 	/* update terminal size */
 	term.col = col, term.row = row;
