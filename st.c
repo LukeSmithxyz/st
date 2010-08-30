@@ -177,6 +177,9 @@ static char* kmap(KeySym);
 static void kpress(XEvent *);
 static void resize(XEvent *);
 static void focus(XEvent *);
+static void brelease(XEvent *e);
+static void bpress(XEvent *e);
+static void bmotion(XEvent *e);
 
 
 static void (*handler[LASTEvent])(XEvent *) = {
@@ -185,6 +188,9 @@ static void (*handler[LASTEvent])(XEvent *) = {
 	[ConfigureNotify] = resize,
 	[FocusIn] = focus,
 	[FocusOut] = focus,
+	[MotionNotify] = bmotion,
+	[ButtonPress] = bpress,
+	[ButtonRelease] = brelease,
 };
 
 /* Globals */
@@ -194,6 +200,103 @@ static Term term;
 static CSIEscape escseq;
 static int cmdfd;
 static pid_t pid;
+
+/* selection */
+// TODO: use X11 clipboard
+static int selmode = 0;
+static int selbx = -1, selby;
+static int selex, seley;
+int sb[2], se[2];
+static const char *clipboard = NULL;
+
+static inline int selected(int x, int y) {
+	if ((seley==y && selby==y)) {
+		int bx = MIN(selbx, selex);
+		int ex = MAX(selbx, selex);
+		return if(x>=bx && x<=ex)
+	}
+	return (((y>sb[1] && y<se[1]) || (y==se[1] && x<=se[0])) || \
+		(y==sb[1] && x>=sb[0] && (x<=se[0] || sb[1]!=se[1])))
+}
+
+static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
+	if(b) *b = e->xbutton.state,
+		*b=*b==4096?5:*b==2048?4:*b==1024?3:*b==512?2:*b==256?1:-1;
+	*x = e->xbutton.x/xw.cw;
+	*y = e->xbutton.y/xw.ch;
+	sb[0] = selby<seley?selbx:selex;
+	sb[1] = MIN(selby, seley);
+	se[0] = selby<seley?selex:selbx;
+	se[1] = MAX(selby, seley);
+}
+
+static void bpress(XEvent *e) {
+	selmode = 1;
+	selex = selbx = e->xbutton.x/xw.cw;
+	seley = selby = e->xbutton.y/xw.ch;
+}
+
+static char *getseltext() {
+	char *str, *ptr;
+	int ls, x, y, sz;
+	if(selbx==-1)
+		return NULL;
+	sz = ((xw.w/xw.ch) * (se[1]-sb[1]+2));
+	ptr = str = malloc (sz);
+	for(y = 0; y < term.row; y++) {
+		for(x = 0; x < term.col; x++) {
+			if(term.line[y][x].c && (ls=selected(x, y))) {
+				*ptr = term.line[y][x].c;
+				ptr++;
+			}
+		}
+		if (ls) {
+			*ptr = '\n';
+			ptr++;
+		}
+	}
+	*ptr = 0;
+	return str;
+}
+
+static void clipboard_copy(const char *str) {
+	free((void *)clipboard);
+	clipboard = str;
+}
+
+static void clipboard_paste() {
+	if(clipboard)
+		ttywrite(clipboard, strlen(clipboard));
+}
+
+// TODO: doubleclick to select word
+static void brelease(XEvent *e) {
+	int b;
+	selmode = 0;
+	getbuttoninfo(e, &b, &selex, &seley);
+	if(b==4)
+		tscrollup(1);
+	else
+	if(b==5)
+		tscrolldown(1);
+	else
+	if(selbx==selex && selby==seley) {
+		selbx = -1;
+		if(b==2)
+			clipboard_paste();
+	} else {
+		if(b==1)
+			clipboard_copy(getseltext());
+	}
+	draw(1);
+}
+
+static void bmotion(XEvent *e) {
+	if (selmode) {
+		getbuttoninfo(e, NULL, &selex, &seley);
+		draw(1);
+	}
+}
 
 #ifdef DEBUG
 void
@@ -1210,7 +1313,7 @@ draw(int redraw_all) {
 	int i, x, y, ox;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
-	
+
 	XSetForeground(xw.dis, dc.gc, dc.col[DefaultBG]);
 	XFillRectangle(xw.dis, xw.buf, dc.gc, 0, 0, xw.bufw, xw.bufh);
 	for(y = 0; y < term.row; y++) {
@@ -1218,8 +1321,10 @@ draw(int redraw_all) {
 		i = ox = 0;
 		for(x = 0; x < term.col; x++) {
 			new = term.line[y][x];
+			if(selbx!=-1 && new.c && selected(x, y))
+				new.mode = ATTR_REVERSE;
 			if(i > 0 && (!(new.state & GLYPH_SET) || ATTRCMP(base, new) ||
-						i >= DRAW_BUF_SIZ)) {
+					i >= DRAW_BUF_SIZ)) {
 				xdraws(buf, base, ox, y, i);
 				i = 0;
 			}
@@ -1335,7 +1440,7 @@ run(void) {
 	XEvent ev;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dis);
-	long mask = ExposureMask | KeyPressMask | StructureNotifyMask | FocusChangeMask;
+	long mask = ExposureMask | KeyPressMask | StructureNotifyMask | FocusChangeMask | PointerMotionMask | ButtonPressMask | ButtonReleaseMask;
 
 	XSelectInput(xw.dis, xw.win, mask);
 	XResizeWindow(xw.dis, xw.win, xw.w, xw.h); /* XXX: fix resize bug in wmii (?) */
