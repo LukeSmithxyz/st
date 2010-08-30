@@ -1003,7 +1003,7 @@ tresize(int col, int row) {
 
 	/* resize to new height */
 	term.line = realloc(term.line, row * sizeof(Line));
-	term.line = realloc(term.alt,  row * sizeof(Line));
+	term.alt = realloc(term.alt,  row * sizeof(Line));
 
 	/* resize each row to new width, zero-pad if needed */
 	for(i = 0; i < minrow; i++) {
