@@ -210,8 +210,6 @@ static int cmdfd;
 static pid_t pid;
 static Selection sel;
 
-/* TODO: use X11 clipboard */
-
 static inline int selected(int x, int y) {
 	if ((sel.ey==y && sel.by==y)) {
 		int bx = MIN(sel.bx, sel.ex);
@@ -262,6 +260,7 @@ static char *getseltext() {
 	return str;
 }
 
+/* TODO: use X11 clipboard */
 static void clipboard_copy(char *str) {
 	free(sel.clip);
 	sel.clip = str;
@@ -272,7 +271,7 @@ static void clipboard_paste() {
 		ttywrite(sel.clip, strlen(sel.clip));
 }
 
-// TODO: doubleclick to select word
+/* TODO: doubleclick to select word */
 static void brelease(XEvent *e) {
 	int b;
 	sel.mode = 0;
@@ -1214,9 +1213,14 @@ xinit(void) {
 	xw.bufw = xw.w - 2*BORDER;
 	xw.bufh = xw.h - 2*BORDER;
 	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
-	xw.hasfocus = 1;
 	/* gc */
 	dc.gc = XCreateGC(xw.dis, xw.win, 0, NULL);
+	
+	/* event mask */
+	XSelectInput(xw.dis, xw.win, ExposureMask | KeyPressMask
+		| StructureNotifyMask | FocusChangeMask | PointerMotionMask
+		| ButtonPressMask | ButtonReleaseMask);
+	
 	XMapWindow(xw.dis, xw.win);
 	xhints();
 	XStoreName(xw.dis, xw.win, "st");
@@ -1435,12 +1439,6 @@ run(void) {
 	XEvent ev;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dis);
-	long mask = ExposureMask | KeyPressMask | StructureNotifyMask
-		| FocusChangeMask | PointerMotionMask | ButtonPressMask 
-		| ButtonReleaseMask;
-
-	XSelectInput(xw.dis, xw.win, mask);
-	XResizeWindow(xw.dis, xw.win, xw.w, xw.h); /* XXX: fix resize bug in wmii (?) */
 
 	for(;;) {
 		FD_ZERO(&rfd);
