@@ -125,11 +125,12 @@ typedef struct {
 	GC gc;
 } DC;
 
+/* TODO: use better name for vars... */
 typedef struct {
 	int mode;
 	int bx, by;
 	int ex, ey;
-	int b[2], e[2];
+	struct {int x, y;}  b, e;
 	char *clip;
 } Selection;
 
@@ -223,8 +224,8 @@ static inline int selected(int x, int y) {
 		int ex = MAX(sel.bx, sel.ex);
 		return BETWEEN(x, bx, ex);
 	}
-	return ((sel.b[1] < y&&y < sel.e[1]) || (y==sel.e[1] && x<=sel.e[0])) 
-		|| (y==sel.b[1] && x>=sel.b[0] && (x<=sel.e[0] || sel.b[1]!=sel.e[1]));
+	return ((sel.b.y < y&&y < sel.e.y) || (y==sel.e.y && x<=sel.e.x)) 
+		|| (y==sel.b.y && x>=sel.b.x && (x<=sel.e.x || sel.b.y!=sel.e.y));
 }
 
 static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
@@ -232,10 +233,10 @@ static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 		*b=*b==4096?5:*b==2048?4:*b==1024?3:*b==512?2:*b==256?1:-1;
 	*x = e->xbutton.x/xw.cw;
 	*y = e->xbutton.y/xw.ch;
-	sel.b[0] = sel.by < sel.ey ? sel.bx : sel.ex;
-	sel.b[1] = MIN(sel.by, sel.ey);
-	sel.e[0] = sel.by < sel.ey ? sel.ex : sel.bx;
-	sel.e[1] = MAX(sel.by, sel.ey);
+	sel.b.x = sel.by < sel.ey ? sel.bx : sel.ex;
+	sel.b.y = MIN(sel.by, sel.ey);
+	sel.e.x = sel.by < sel.ey ? sel.ex : sel.bx;
+	sel.e.y = MAX(sel.by, sel.ey);
 }
 
 static void bpress(XEvent *e) {
@@ -249,7 +250,7 @@ static char *getseltext() {
 	int ls, x, y, sz;
 	if(sel.bx == -1)
 		return NULL;
-	sz = (term.col+1) * (sel.e[1]-sel.b[1]+1);
+	sz = (term.col+1) * (sel.e.y-sel.b.y+1);
 	ptr = str = malloc(sz);
 	for(y = 0; y < term.row; y++) {
 		for(x = 0; x < term.col; x++)
