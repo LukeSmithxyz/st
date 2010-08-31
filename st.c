@@ -245,7 +245,7 @@ static char *getseltext() {
 	ptr = str = malloc (sz);
 	for(y = 0; y < term.row; y++) {
 		for(x = 0; x < term.col; x++) {
-			if(term.line[y][x].c && (ls=selected(x, y))) {
+			if(term.line[y][x].state & GLYPH_SET && (ls=selected(x, y))) {
 				*ptr = term.line[y][x].c;
 				ptr++;
 			}
@@ -1421,11 +1421,9 @@ resize(XEvent *e) {
 	row = xw.bufh / xw.ch;
 	tresize(col, row);
 	ttyresize(col, row);
+	xw.bufh = MAX(1, xw.bufh);
+	xw.bufw = MAX(1, xw.bufw);
 	XFreePixmap(xw.dis, xw.buf);
-	if(xw.bufh<1)
-		xw.bufh = 1;
-	if(xw.bufw<1)
-		xw.bufw = 1;
 	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
 	draw(SCREEN_REDRAW);
 }
@@ -1435,7 +1433,9 @@ run(void) {
 	XEvent ev;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dis);
-	long mask = ExposureMask | KeyPressMask | StructureNotifyMask | FocusChangeMask | PointerMotionMask | ButtonPressMask | ButtonReleaseMask;
+	long mask = ExposureMask | KeyPressMask | StructureNotifyMask
+		| FocusChangeMask | PointerMotionMask | ButtonPressMask 
+		| ButtonReleaseMask;
 
 	XSelectInput(xw.dis, xw.win, mask);
 	XResizeWindow(xw.dis, xw.win, xw.w, xw.h); /* XXX: fix resize bug in wmii (?) */
