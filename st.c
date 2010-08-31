@@ -218,13 +218,13 @@ selinit(void) {
 }
 
 static inline int selected(int x, int y) {
-	if ((sel.ey==y && sel.by==y)) {
+	if(sel.ey == y && sel.by == y) {
 		int bx = MIN(sel.bx, sel.ex);
 		int ex = MAX(sel.bx, sel.ex);
-		return (x>=bx && x<=ex);
+		return BETWEEN(x, bx, ex);
 	}
-	return (((y>sel.b[1] && y<sel.e[1]) || (y==sel.e[1] && x<=sel.e[0])) || \
-		(y==sel.b[1] && x>=sel.b[0] && (x<=sel.e[0] || sel.b[1]!=sel.e[1])));
+	return ((sel.b[1] < y&&y < sel.e[1]) || (y==sel.e[1] && x<=sel.e[0])) 
+		|| (y==sel.b[1] && x>=sel.b[0] && (x<=sel.e[0] || sel.b[1]!=sel.e[1]));
 }
 
 static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
@@ -232,9 +232,9 @@ static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 		*b=*b==4096?5:*b==2048?4:*b==1024?3:*b==512?2:*b==256?1:-1;
 	*x = e->xbutton.x/xw.cw;
 	*y = e->xbutton.y/xw.ch;
-	sel.b[0] = sel.by<sel.ey?sel.bx:sel.ex;
+	sel.b[0] = sel.by < sel.ey ? sel.bx : sel.ex;
 	sel.b[1] = MIN(sel.by, sel.ey);
-	sel.e[0] = sel.by<sel.ey?sel.ex:sel.bx;
+	sel.e[0] = sel.by < sel.ey ? sel.ex : sel.bx;
 	sel.e[1] = MAX(sel.by, sel.ey);
 }
 
@@ -247,16 +247,15 @@ static void bpress(XEvent *e) {
 static char *getseltext() {
 	char *str, *ptr;
 	int ls, x, y, sz;
-	if(sel.bx==-1)
+	if(sel.bx == -1)
 		return NULL;
-	sz = ((term.col+1) * (sel.e[1]-sel.b[1]+1));
-	ptr = str = malloc (sz);
+	sz = (term.col+1) * (sel.e[1]-sel.b[1]+1);
+	ptr = str = malloc(sz);
 	for(y = 0; y < term.row; y++) {
-		for(x = 0; x < term.col; x++) {
-			if(term.line[y][x].state & GLYPH_SET && (ls=selected(x, y)))
+		for(x = 0; x < term.col; x++)
+			if(term.line[y][x].state & GLYPH_SET && (ls = selected(x, y)))
 				*ptr = term.line[y][x].c, ptr++;
-		}
-		if (ls)
+		if(ls)
 			*ptr = '\n', ptr++;
 	}
 	*ptr = 0;
