@@ -185,9 +185,9 @@ static char* kmap(KeySym);
 static void kpress(XEvent *);
 static void resize(XEvent *);
 static void focus(XEvent *);
-static void brelease(XEvent *e);
-static void bpress(XEvent *e);
-static void bmotion(XEvent *e);
+static void brelease(XEvent *);
+static void bpress(XEvent *);
+static void bmotion(XEvent *);
 
 
 static void (*handler[LASTEvent])(XEvent *) = {
@@ -209,6 +209,13 @@ static CSIEscape escseq;
 static int cmdfd;
 static pid_t pid;
 static Selection sel;
+
+void
+selinit(void) {
+	sel.mode = 0;
+	sel.bx = -1;
+	sel.clip = NULL;
+}
 
 static inline int selected(int x, int y) {
 	if ((sel.ey==y && sel.by==y)) {
@@ -261,12 +268,12 @@ static char *getseltext() {
 }
 
 /* TODO: use X11 clipboard */
-static void clipboard_copy(char *str) {
+static void selcopy(char *str) {
 	free(sel.clip);
 	sel.clip = str;
 }
 
-static void clipboard_paste() {
+static void selpaste() {
 	if(sel.clip)
 		ttywrite(sel.clip, strlen(sel.clip));
 }
@@ -1471,6 +1478,7 @@ main(int argc, char *argv[]) {
 	tnew(80, 24);
 	ttynew();
 	xinit();
+	selinit();
 	run();
 	return 0;
 }
