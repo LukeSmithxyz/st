@@ -1422,6 +1422,10 @@ resize(XEvent *e) {
 	tresize(col, row);
 	ttyresize(col, row);
 	XFreePixmap(xw.dis, xw.buf);
+	if(xw.bufh<1)
+		xw.bufh = 1;
+	if(xw.bufw<1)
+		xw.bufw = 1;
 	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
 	draw(SCREEN_REDRAW);
 }
@@ -1436,7 +1440,7 @@ run(void) {
 	XSelectInput(xw.dis, xw.win, mask);
 	XResizeWindow(xw.dis, xw.win, xw.w, xw.h); /* XXX: fix resize bug in wmii (?) */
 
-	while(1) {
+	for(;;) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
