@@ -828,21 +828,16 @@ csihandle(void) {
 			case 25:
 				term.c.state |= CURSOR_HIDE;
 				break;
+			case 1049: /* = 1047 and 1048 */
 			case 1047:
 				if(IS_SET(MODE_ALTSCREEN)) {
 					tclearregion(0, 0, term.col-1, term.row-1);
 					tswapscreen();
 				}
-				break;
+				if(escseq.arg[0] == 1047)
+					break;
 			case 1048:
 				tcursor(CURSOR_LOAD);
-				break;
-			case 1049:
-				tcursor(CURSOR_LOAD);
-				if(IS_SET(MODE_ALTSCREEN)) {
-					tclearregion(0, 0, term.col-1, term.row-1);
-					tswapscreen();
-				}
 				break;
 			default:
 				goto unknown;
@@ -888,21 +883,16 @@ csihandle(void) {
 			case 25:
 				term.c.state &= ~CURSOR_HIDE;
 				break;
+			case 1049: /* = 1047 and 1048 */
 			case 1047:
 				if(IS_SET(MODE_ALTSCREEN))
 					tclearregion(0, 0, term.col-1, term.row-1);
 				else
 					tswapscreen();
-				break;				
+				if(escseq.arg[0] == 1047)
+					break;
 			case 1048:
 				tcursor(CURSOR_SAVE);
-				break;
-			case 1049:
-				tcursor(CURSOR_SAVE);
-				if(IS_SET(MODE_ALTSCREEN))
-					tclearregion(0, 0, term.col-1, term.row-1);
-				else
-					tswapscreen();
 				break;
 			default: goto unknown;
 			}
@@ -1222,6 +1212,7 @@ xinit(void) {
 	xw.bufw = xw.w - 2*BORDER;
 	xw.bufh = xw.h - 2*BORDER;
 	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
+	xw.hasfocus = 1;
 	/* gc */
 	dc.gc = XCreateGC(xw.dis, xw.win, 0, NULL);
 	XMapWindow(xw.dis, xw.win);
@@ -1322,7 +1313,7 @@ draw(int redraw_all) {
 		for(x = 0; x < term.col; x++) {
 			new = term.line[y][x];
 			if(selbx!=-1 && new.c && selected(x, y))
-				new.mode = ATTR_REVERSE;
+				new.mode ^= ATTR_REVERSE;
 			if(i > 0 && (!(new.state & GLYPH_SET) || ATTRCMP(base, new) ||
 					i >= DRAW_BUF_SIZ)) {
 				xdraws(buf, base, ox, y, i);

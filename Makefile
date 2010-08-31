@@ -8,7 +8,7 @@ OBJ = ${SRC:.c=.o}
 
 all: options st
 
-options: options
+options:
 	@echo st build options:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
