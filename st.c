@@ -125,6 +125,14 @@ typedef struct {
 	GC gc;
 } DC;
 
+typedef struct {
+	int mode;
+	int bx, by;
+	int ex, ey;
+	int b[2], e[2];
+	char *clip;
+} Selection;
+
 #include "config.h"
 
 static void die(const char *errstr, ...);
@@ -200,23 +208,18 @@ static Term term;
 static CSIEscape escseq;
 static int cmdfd;
 static pid_t pid;
+static Selection sel;
 
-/* selection */
-// TODO: use X11 clipboard
-static int selmode = 0;
-static int selbx = -1, selby;
-static int selex, seley;
-int sb[2], se[2];
-static const char *clipboard = NULL;
+/* TODO: use X11 clipboard */
 
 static inline int selected(int x, int y) {
-	if ((seley==y && selby==y)) {
-		int bx = MIN(selbx, selex);
-		int ex = MAX(selbx, selex);
+	if ((sel.ey==y && sel.by==y)) {
+		int bx = MIN(sel.bx, sel.ex);
+		int ex = MAX(sel.bx, sel.ex);
 		return (x>=bx && x<=ex);
 	}
-	return (((y>sb[1] && y<se[1]) || (y==se[1] && x<=se[0])) || \
-		(y==sb[1] && x>=sb[0] && (x<=se[0] || sb[1]!=se[1])));
+	return (((y>sel.b[1] && y<sel.e[1]) || (y==sel.e[1] && x<=sel.e[0])) || \
+		(y==sel.b[1] && x>=sel.b[0] && (x<=sel.e[0] || sel.b[1]!=sel.e[1])));
 }
 
 static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
@@ -224,24 +227,24 @@ static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 		*b=*b==4096?5:*b==2048?4:*b==1024?3:*b==512?2:*b==256?1:-1;
 	*x = e->xbutton.x/xw.cw;
 	*y = e->xbutton.y/xw.ch;
-	sb[0] = selby<seley?selbx:selex;
-	sb[1] = MIN(selby, seley);
-	se[0] = selby<seley?selex:selbx;
-	se[1] = MAX(selby, seley);
+	sel.b[0] = sel.by<sel.ey?sel.bx:sel.ex;
+	sel.b[1] = MIN(sel.by, sel.ey);
+	sel.e[0] = sel.by<sel.ey?sel.ex:sel.bx;
+	sel.e[1] = MAX(sel.by, sel.ey);
 }
 
 static void bpress(XEvent *e) {
-	selmode = 1;
-	selex = selbx = e->xbutton.x/xw.cw;
-	seley = selby = e->xbutton.y/xw.ch;
+	sel.mode = 1;
+	sel.ex = sel.bx = e->xbutton.x/xw.cw;
+	sel.ey = sel.by = e->xbutton.y/xw.ch;
 }
 
 static char *getseltext() {
 	char *str, *ptr;
 	int ls, x, y, sz;
-	if(selbx==-1)
+	if(sel.bx==-1)
 		return NULL;
-	sz = ((xw.w/xw.ch) * (se[1]-sb[1]+2));
+	sz = ((xw.w/xw.ch) * (sel.e[1]-sel.b[1]+2));
 	ptr = str = malloc (sz);
 	for(y = 0; y < term.row; y++) {
 		for(x = 0; x < term.col; x++) {
@@ -259,29 +262,29 @@ static char *getseltext() {
 	return str;
 }
 
-static void clipboard_copy(const char *str) {
-	free((void *)clipboard);
-	clipboard = str;
+static void clipboard_copy(char *str) {
+	free(sel.clip);
+	sel.clip = str;
 }
 
 static void clipboard_paste() {
-	if(clipboard)
-		ttywrite(clipboard, strlen(clipboard));
+	if(sel.clip)
+		ttywrite(sel.clip, strlen(sel.clip));
 }
 
 // TODO: doubleclick to select word
 static void brelease(XEvent *e) {
 	int b;
-	selmode = 0;
-	getbuttoninfo(e, &b, &selex, &seley);
+	sel.mode = 0;
+	getbuttoninfo(e, &b, &sel.ex, &sel.ey);
 	if(b==4)
 		tscrollup(1);
 	else
 	if(b==5)
 		tscrolldown(1);
 	else
-	if(selbx==selex && selby==seley) {
-		selbx = -1;
+	if(sel.bx==sel.ex && sel.by==sel.ey) {
+		sel.bx = -1;
 		if(b==2)
 			clipboard_paste();
 	} else {
@@ -292,8 +295,8 @@ static void brelease(XEvent *e) {
 }
 
 static void bmotion(XEvent *e) {
-	if (selmode) {
-		getbuttoninfo(e, NULL, &selex, &seley);
+	if (sel.mode) {
+		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
 		draw(1);
 	}
 }
@@ -784,7 +787,6 @@ csihandle(void) {
 		case 2: /* all */
 			tclearregion(0, 0, term.col-1, term.row-1);
 			break;
-		case 3: /* XXX: erase saved lines (xterm) */
 		default:
 			goto unknown;
 		}
@@ -1025,7 +1027,7 @@ tputc(char c) {
 				term.mode &= ~MODE_APPKEYPAD;
 				term.esc = 0;
 				break;
-			case '7': /* DECSC -- Save Cursor*/
+			case '7': /* DECSC -- Save Cursor */
 				tcursor(CURSOR_SAVE);
 				term.esc = 0;
 				break;
@@ -1096,7 +1098,7 @@ tresize(int col, int row) {
 
 	/* resize to new height */
 	term.line = realloc(term.line, row * sizeof(Line));
-	term.alt = realloc(term.alt,  row * sizeof(Line));
+	term.alt  = realloc(term.alt,  row * sizeof(Line));
 
 	/* resize each row to new width, zero-pad if needed */
 	for(i = 0; i < minrow; i++) {
@@ -1312,7 +1314,7 @@ draw(int redraw_all) {
 		i = ox = 0;
 		for(x = 0; x < term.col; x++) {
 			new = term.line[y][x];
-			if(selbx!=-1 && new.c && selected(x, y))
+			if(sel.bx!=-1 && new.c && selected(x, y))
 				new.mode ^= ATTR_REVERSE;
 			if(i > 0 && (!(new.state & GLYPH_SET) || ATTRCMP(base, new) ||
 					i >= DRAW_BUF_SIZ)) {
