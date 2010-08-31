@@ -249,19 +249,15 @@ static char *getseltext() {
 	int ls, x, y, sz;
 	if(sel.bx==-1)
 		return NULL;
-	sz = ((xw.w/xw.ch) * (sel.e[1]-sel.b[1]+2));
+	sz = ((term.col+1) * (sel.e[1]-sel.b[1]+1));
 	ptr = str = malloc (sz);
 	for(y = 0; y < term.row; y++) {
 		for(x = 0; x < term.col; x++) {
-			if(term.line[y][x].state & GLYPH_SET && (ls=selected(x, y))) {
-				*ptr = term.line[y][x].c;
-				ptr++;
-			}
+			if(term.line[y][x].state & GLYPH_SET && (ls=selected(x, y)))
+				*ptr = term.line[y][x].c, ptr++;
 		}
-		if (ls) {
-			*ptr = '\n';
-			ptr++;
-		}
+		if (ls)
+			*ptr = '\n', ptr++;
 	}
 	*ptr = 0;
 	return str;
@@ -283,12 +279,6 @@ static void brelease(XEvent *e) {
 	int b;
 	sel.mode = 0;
 	getbuttoninfo(e, &b, &sel.ex, &sel.ey);
-	if(b==4)
-		tscrollup(1);
-	else
-	if(b==5)
-		tscrolldown(1);
-	else
 	if(sel.bx==sel.ex && sel.by==sel.ey) {
 		sel.bx = -1;
 		if(b==2)
@@ -1411,7 +1401,7 @@ kpress(XEvent *ev) {
 			break;
 		case XK_Insert:
 			if(shift)
-				draw(1), puts("draw!")/* XXX: paste X clipboard */;
+				selpaste(), draw(1);
 			break;
 		default:
 			fprintf(stderr, "errkey: %d\n", (int)ksym);
