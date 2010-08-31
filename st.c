@@ -292,10 +292,10 @@ static void brelease(XEvent *e) {
 	if(sel.bx==sel.ex && sel.by==sel.ey) {
 		sel.bx = -1;
 		if(b==2)
-			clipboard_paste();
+			selpaste();
 	} else {
 		if(b==1)
-			clipboard_copy(getseltext());
+			selcopy(getseltext());
 	}
 	draw(1);
 }
