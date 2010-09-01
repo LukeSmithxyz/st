@@ -392,10 +392,8 @@ ttyread(void) {
 
 	if((ret = read(cmdfd, buf, LEN(buf))) < 0)
 		die("Couldn't read from shell: %s\n", SERRNO);
-	else {
-		printf("ttyread %d\n", ret);
+	else
 		tputs(buf, ret);
-	}
 }
 
 void
