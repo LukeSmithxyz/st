@@ -387,10 +387,10 @@ dump(char c) {
 
 void
 ttyread(void) {
-	char buf[BUFSIZ] = {0};
+	char buf[BUFSIZ];
 	int ret;
 
-	if((ret = read(cmdfd, buf, BUFSIZ)) < 0)
+	if((ret = read(cmdfd, buf, LEN(buf))) < 0)
 		die("Couldn't read from shell: %s\n", SERRNO);
 	else
 		tputs(buf, ret);
@@ -465,8 +465,7 @@ tscrolldown (int n) {
 	
 	LIMIT(n, 0, term.bot-term.top+1);
 
-	for(i = 0; i < n; i++)
-		memset(term.line[term.bot-i], 0, term.col*sizeof(Glyph));
+	tclearregion(0, term.bot-n+1, term.col-1, term.bot);
 	
 	for(i = term.bot; i >= term.top+n; i--) {
 		temp = term.line[i];
@@ -481,8 +480,7 @@ tscrollup (int n) {
 	Line temp;
 	LIMIT(n, 0, term.bot-term.top+1);
 	
-	for(i = 0; i < n; i++)
-		memset(term.line[term.top+i], 0, term.col*sizeof(Glyph));
+	tclearregion(0, term.top, term.col-1, term.top+n-1);
 	
 	for(i = term.top; i <= term.bot-n; i++) { 
 		 temp = term.line[i];
@@ -957,7 +955,8 @@ tputc(char c) {
 				term.esc = 0;
 				csiparse(), csihandle();
 			}
-		} else if(term.esc & ESC_OSC) {
+			/* TODO: handle other OSC */
+		} else if(term.esc & ESC_OSC) { 
 			if(c == ';') {
 				term.titlelen = 0;
 				term.esc = ESC_START | ESC_TITLE;
@@ -1201,18 +1200,18 @@ xinit(void) {
 	xloadcols();
 
 	/* windows */
-	xw.h = term.row * xw.ch + 2*BORDER;
-	xw.w = term.col * xw.cw + 2*BORDER;
+	xw.bufh = term.row * xw.ch;
+	xw.bufw = term.col * xw.cw;
+	xw.h = xw.bufh + 2*BORDER;
+	xw.w = xw.bufw + 2*BORDER;
 	xw.win = XCreateSimpleWindow(xw.dis, XRootWindow(xw.dis, xw.scr), 0, 0,
 			xw.w, xw.h, 0,
 			dc.col[DefaultBG],
 			dc.col[DefaultBG]);
-	xw.bufw = xw.w - 2*BORDER;
-	xw.bufh = xw.h - 2*BORDER;
 	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
 	/* gc */
 	dc.gc = XCreateGC(xw.dis, xw.win, 0, NULL);
-	
+
 	/* event mask */
 	XSelectInput(xw.dis, xw.win, ExposureMask | KeyPressMask
 		| StructureNotifyMask | FocusChangeMask | PointerMotionMask
