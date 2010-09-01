@@ -392,8 +392,10 @@ ttyread(void) {
 
 	if((ret = read(cmdfd, buf, LEN(buf))) < 0)
 		die("Couldn't read from shell: %s\n", SERRNO);
-	else
+	else {
+		printf("ttyread %d\n", ret);
 		tputs(buf, ret);
+	}
 }
 
 void
@@ -589,21 +591,16 @@ tinsertblankline(int n) {
 	Line blank;
 	int bot = term.bot;
 
-	if(term.c.y > term.bot)
-		bot = term.row - 1;
-	else if(term.c.y < term.top)
-		bot = term.top - 1;
-	if(term.c.y + n >= bot) {
-		tclearregion(0, term.c.y, term.col-1, bot);
+	if(term.c.y < term.top || term.c.y > term.bot)
 		return;
-	}
+
+	LIMIT(n, 0, bot-term.c.y+1);
+	tclearregion(0, bot-n+1, term.col-1, bot);
 	for(i = bot; i >= term.c.y+n; i--) {
 		/* swap deleted line <-> blanked line */
 		blank = term.line[i];
 		term.line[i] = term.line[i-n];
 		term.line[i-n] = blank;
-		/* blank it */
-		memset(blank, 0, term.col * sizeof(Glyph));
 	}
 }
 
@@ -613,21 +610,16 @@ tdeleteline(int n) {
 	Line blank;
 	int bot = term.bot;
 
-	if(term.c.y > term.bot)
-		bot = term.row - 1;
-	else if(term.c.y < term.top)
-		bot = term.top - 1;
-	if(term.c.y + n >= bot) {
-		tclearregion(0, term.c.y, term.col-1, bot);
+	if(term.c.y < term.top || term.c.y > term.bot)
 		return;
-	}
+
+	LIMIT(n, 0, bot-term.c.y+1);
+	tclearregion(0, term.c.y, term.col-1, term.c.y+n-1);
 	for(i = term.c.y; i <= bot-n; i++) {
 		/* swap deleted line <-> blanked line */
 		blank = term.line[i];
 		term.line[i] = term.line[i+n];
 		term.line[i+n] = blank;
-		/* blank it */
-		memset(blank, 0, term.col * sizeof(Glyph));
 	}
 }
 
