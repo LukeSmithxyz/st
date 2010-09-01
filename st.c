@@ -161,8 +161,8 @@ static void tputc(char);
 static void tputs(char*, int);
 static void treset(void);
 static void tresize(int, int);
-static void tscrollup(int);
-static void tscrolldown(int);
+static void tscrollup(int, int);
+static void tscrolldown(int, int);
 static void tsetattr(int*, int);
 static void tsetchar(char);
 static void tsetscroll(int, int);
@@ -459,15 +459,15 @@ tswapscreen(void) {
 }
 
 void
-tscrolldown (int n) {
+tscrolldown(int orig, int n) {
 	int i;
 	Line temp;
 	
-	LIMIT(n, 0, term.bot-term.top+1);
+	LIMIT(n, 0, term.bot-orig+1);
 
 	tclearregion(0, term.bot-n+1, term.col-1, term.bot);
 	
-	for(i = term.bot; i >= term.top+n; i--) {
+	for(i = term.bot; i >= orig+n; i--) {
 		temp = term.line[i];
 		term.line[i] = term.line[i-n];
 		term.line[i-n] = temp;
@@ -475,14 +475,14 @@ tscrolldown (int n) {
 }
 
 void
-tscrollup (int n) {
+tscrollup(int orig, int n) {
 	int i;
 	Line temp;
-	LIMIT(n, 0, term.bot-term.top+1);
+	LIMIT(n, 0, term.bot-orig+1);
 	
-	tclearregion(0, term.top, term.col-1, term.top+n-1);
+	tclearregion(0, orig, term.col-1, orig+n-1);
 	
-	for(i = term.top; i <= term.bot-n; i++) { 
+	for(i = orig; i <= term.bot-n; i++) { 
 		 temp = term.line[i];
 		 term.line[i] = term.line[i+n]; 
 		 term.line[i+n] = temp;
@@ -491,9 +491,11 @@ tscrollup (int n) {
 
 void
 tnewline(void) {
-	int y = term.c.y + 1;
-	if(y > term.bot)
-		tscrollup(1), y = term.bot;
+	int y = term.c.y;
+	if(term.c.y == term.bot)
+		tscrollup(term.top, 1);
+	else
+		y++;
 	tmoveto(0, y);
 }
 
@@ -585,40 +587,18 @@ tinsertblank(int n) {
 
 void
 tinsertblankline(int n) {
-	int i;
-	Line blank;
-	int bot = term.bot;
-
 	if(term.c.y < term.top || term.c.y > term.bot)
 		return;
 
-	LIMIT(n, 0, bot-term.c.y+1);
-	tclearregion(0, bot-n+1, term.col-1, bot);
-	for(i = bot; i >= term.c.y+n; i--) {
-		/* swap deleted line <-> blanked line */
-		blank = term.line[i];
-		term.line[i] = term.line[i-n];
-		term.line[i-n] = blank;
-	}
+	tscrolldown(term.c.y, n);
 }
 
 void
 tdeleteline(int n) {
-	int i;
-	Line blank;
-	int bot = term.bot;
-
 	if(term.c.y < term.top || term.c.y > term.bot)
 		return;
 
-	LIMIT(n, 0, bot-term.c.y+1);
-	tclearregion(0, term.c.y, term.col-1, term.c.y+n-1);
-	for(i = term.c.y; i <= bot-n; i++) {
-		/* swap deleted line <-> blanked line */
-		blank = term.line[i];
-		term.line[i] = term.line[i+n];
-		term.line[i+n] = blank;
-	}
+	tscrollup(term.c.y, n);
 }
 
 void
@@ -790,11 +770,11 @@ csihandle(void) {
 		break;
 	case 'S': /* SU -- Scroll <n> line up */
 		DEFAULT(escseq.arg[0], 1);
-		tscrollup(escseq.arg[0]);
+		tscrollup(term.top, escseq.arg[0]);
 		break;
 	case 'T': /* SD -- Scroll <n> line down */
 		DEFAULT(escseq.arg[0], 1);
-		tscrolldown(escseq.arg[0]);
+		tscrolldown(term.top, escseq.arg[0]);
 		break;
 	case 'L': /* IL -- Insert <n> blank lines */
 		DEFAULT(escseq.arg[0], 1);
@@ -984,7 +964,7 @@ tputc(char c) {
 				break;
 			case 'D': /* IND -- Linefeed */
 				if(term.c.y == term.bot)
-					tscrollup(1);
+					tscrollup(term.top, 1);
 				else
 					tmoveto(term.c.x, term.c.y+1);
 				term.esc = 0;
@@ -995,7 +975,7 @@ tputc(char c) {
 				break;
 			case 'M': /* RI -- Reverse index */
 				if(term.c.y == term.top)
-					tscrolldown(1);
+					tscrolldown(term.top, 1);
 				else
 					tmoveto(term.c.x, term.c.y-1);
 				term.esc = 0;
