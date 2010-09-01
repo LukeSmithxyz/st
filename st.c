@@ -28,6 +28,10 @@
  #include <libutil.h>
 #endif
 
+#define USAGE \
+	"st-" VERSION ", (c) 2010 st engineers\n" \
+	"usage: st [-t title] [-e cmd] [-v]\n"
+
 /* Arbitrary sizes */
 #define ESC_TITLE_SIZ 256
 #define ESC_BUF_SIZ   256
@@ -210,6 +214,8 @@ static CSIEscape escseq;
 static int cmdfd;
 static pid_t pid;
 static Selection sel;
+static char *opt_cmd   = NULL;
+static char *opt_title = NULL;
 
 void
 selinit(void) {
@@ -329,9 +335,12 @@ die(const char *errstr, ...) {
 
 void
 execsh(void) {
-	char *args[3] = {getenv("SHELL"), "-i", NULL};
-	DEFAULT(args[0], SHELL); /* if getenv() failed */
-	putenv("TERM=" TNAME);
+	char *args[] = {getenv("SHELL"), "-i", NULL};
+	if(opt_cmd)
+		args[0] = opt_cmd, args[1] = NULL;
+	else
+		DEFAULT(args[0], SHELL);
+	putenv("TERM="TNAME);
 	execvp(args[0], args);
 }
 
@@ -1189,7 +1198,7 @@ xinit(void) {
 	
 	XMapWindow(xw.dis, xw.win);
 	xhints();
-	XStoreName(xw.dis, xw.win, "st");
+	XStoreName(xw.dis, xw.win, opt_title ? opt_title : "st");
 	XSync(xw.dis, 0);
 }
 
@@ -1429,10 +1438,21 @@ run(void) {
 
 int
 main(int argc, char *argv[]) {
-	if(argc == 2 && !strncmp("-v", argv[1], 3))
-		die("st-" VERSION ", (c) 2010 st engineers\n");
-	else if(argc != 1)
-		die("usage: st [-v]\n");
+	int i;
+	
+	for(i = 1; i < argc; i++) {
+		switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
+		case 't':
+			if(++i < argc) opt_title = argv[i];
+			break;
+		case 'e':
+			if(++i < argc) opt_cmd = argv[i];
+			break;
+		case 'v':
+		default:
+			die(USAGE);
+		}
+	}
 	setlocale(LC_CTYPE, "");
 	tnew(80, 24);
 	ttynew();
