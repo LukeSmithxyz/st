@@ -1,3 +1,15 @@
-  - total rewrite of X code (pixmap, mouse, copy-paste, ...)
-  - write a clean terminfo entry
-  - handle utf8 
+vt emulation
+------------
+
+* screen erased with background color ## capname:bce
+* back tab                            ## capname:cbt ## seq:CSI Z
+* ...
+
+code & interface
+----------------
+
+* clean selection code
+* use the real x11 clipboard
+* clean terminfo entry
+* utf8
+* ...
