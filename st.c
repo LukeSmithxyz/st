@@ -677,7 +677,8 @@ tsetattr(int *attr, int l) {
 			else if(BETWEEN(attr[i], 100, 107))
 				term.c.attr.fg = attr[i] - 100 + 8;
 			else 
-				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]); 
+				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]), csidump();
+			
 			break;
 		}
 	}
@@ -1230,8 +1231,13 @@ xdraws(char *s, Glyph base, int x, int y, int len) {
 	XSetForeground(xw.dis, dc.gc, xfg);
 	
 	if(base.mode & ATTR_GFX)
-		for(i = 0; i < len; i++)
-			s[i] = gfx[(int)s[i]];
+		for(i = 0; i < len; i++) {
+			char c = gfx[(unsigned int)s[i] % 256];
+			if(c)
+				s[i] = c;
+			else if(s[i] > 0x5f)
+				s[i] -= 0x5f;
+		}
 
 	XSetFont(xw.dis, dc.gc, base.mode & ATTR_BOLD ? dc.bfont->fid : dc.font->fid);
 	XDrawImageString(xw.dis, xw.buf, dc.gc, winx, winy, s, len);
