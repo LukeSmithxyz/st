@@ -796,6 +796,8 @@ csihandle(void) {
 			case 1:
 				term.mode &= ~MODE_APPKEYPAD;
 				break;
+			case 5: /* TODO: DECSCNM -- Remove reverse video */
+				break;
 			case 7:
 				term.mode &= ~MODE_WRAP;
 				break;
@@ -850,6 +852,9 @@ csihandle(void) {
 			switch(escseq.arg[0]) {
 			case 1:
 				term.mode |= MODE_APPKEYPAD;
+				break;
+			case 5: /* DECSCNM -- Reverve video */
+				/* TODO: set REVERSE on the whole screen (f) */
 				break;
 			case 7:
 				term.mode |= MODE_WRAP;
