@@ -855,7 +855,9 @@ csihandle(void) {
 				term.mode |= MODE_WRAP;
 				break;
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
-				break;
+				 /* fallthrough for xterm cvvis = CSI [ ? 12 ; 25 h */
+				if(escseq.narg > 1 && escseq.arg[1] != 25)
+					break;
 			case 25:
 				term.c.state &= ~CURSOR_HIDE;
 				break;
