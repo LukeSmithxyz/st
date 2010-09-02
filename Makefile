@@ -34,7 +34,7 @@ clean:
 dist: clean
 	@echo creating dist tarball
 	@mkdir -p st-${VERSION}
-	@cp -R LICENSE Makefile README config.mk config.h st.info ${SRC} st-${VERSION}
+	@cp -R LICENSE Makefile README config.mk config.def.h st.info st.1 ${SRC} st-${VERSION}
 	@tar -cf st-${VERSION}.tar st-${VERSION}
 	@gzip st-${VERSION}.tar
 	@rm -rf st-${VERSION}
@@ -44,10 +44,16 @@ install: all
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f st ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/st
+	@echo installing manual page to ${DESTDIR}${MANPREFIX}/man1
+	@mkdir -p ${DESTDIR}${MANPREFIX}/man1
+	@sed "s/VERSION/${VERSION}/g" < st.1 > ${DESTDIR}${MANPREFIX}/man1/st.1
+	@chmod 644 ${DESTDIR}${MANPREFIX}/man1/st.1
 	@tic -s st.info
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
 	@rm -f ${DESTDIR}${PREFIX}/bin/st
+	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
+	@rm -f ${DESTDIR}${MANPREFIX}/man1/sic.1
 
 .PHONY: all options clean dist install uninstall
