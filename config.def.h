@@ -1,4 +1,4 @@
-#define TAB    8
+#define TAB 8
 #define TNAME "st-256color"
 #define FONT "-misc-*-medium-r-semicondensed-*-13-*-*-*-*-*-iso8859-*"
 #define BOLDFONT "-misc-*-bold-r-semicondensed-*-13-*-*-*-*-*-iso8859-*"
@@ -8,21 +8,21 @@
 /* Terminal colors */
 static const char *colorname[] = {
 	"black",
-	"#CC0000",
-	"#4E9A06",
-	"#C4A000",
-	"#3465A4",
-	"#75507B",
-	"#06989A",
-	"#888a85",
-	"#555753",
-	"#EF2929",
-	"#8AE234",
-	"#FCE94F",
-	"#729FCF",
-	"#AD7FA8",
-	"#34E2E2",
-	"#EEEEEC"
+	"red3",
+	"green3",
+	"yellow3",
+	"blue2",
+	"magenta3",
+	"cyan3",
+	"gray90",
+	"gray50",
+	"red",
+	"green",
+	"yellow",
+	"#5c5cff",
+	"magenta",
+	"cyan",
+	"white"
 };
 
 /* Default colors (colorname index) */
@@ -31,7 +31,7 @@ static const char *colorname[] = {
 #define DefaultBG 0
 #define DefaultCS 1
 
-/* special keys */
+/* Special keys */
 static Key key[] = {
 	{ XK_BackSpace, "\177" },
 	{ XK_Delete,    "\033[3~" },
@@ -53,7 +53,7 @@ static Key key[] = {
 	{ XK_F12,       "\033[24~" },
 };
 
-/* line drawing characters (sometime specific to each font...) */
+/* Line drawing characters (sometime specific to each font...) */
 static char gfx[] = {
 	['`'] = 0x01,
 	['a'] = 0x02,
