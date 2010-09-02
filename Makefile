@@ -54,6 +54,6 @@ uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
 	@rm -f ${DESTDIR}${PREFIX}/bin/st
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
-	@rm -f ${DESTDIR}${MANPREFIX}/man1/sic.1
+	@rm -f ${DESTDIR}${MANPREFIX}/man1/st.1
 
 .PHONY: all options clean dist install uninstall
