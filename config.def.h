@@ -55,16 +55,10 @@ static Key key[] = {
 
 /* line drawing characters (sometime specific to each font...) */
 static char gfx[] = {
-	['+'] = '>',
-	[','] = '<',
-	['-'] = '^',
-	['.'] = 'v',
-	['0'] = '#',
 	['`'] = 0x01,
 	['a'] = 0x02,
 	['f'] = 'o',
 	['g'] = '+',
-	['h'] = '#',
 	['i'] = '#',
 	['j'] = 0x0B,
 	['k'] = 0x0C,
