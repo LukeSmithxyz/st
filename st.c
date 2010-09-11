@@ -114,7 +114,7 @@ typedef struct {
 	int bufh; /* pixmap height */
 	int ch; /* char height */
 	int cw; /* char width  */
-	int hasfocus;
+	int focus;
 	int vis; /* is visible */
 } XWindow; 
 
@@ -1043,7 +1043,7 @@ tputc(char c) {
 			tnewline();
 			break;
 		case '\a':
-			if(!xw.hasfocus)
+			if(!xw.focus)
 				xseturgency(1);
 			break;
 		case '\033':
@@ -1286,7 +1286,7 @@ xdrawcursor(void) {
 		xclear(oldx, oldy, oldx, oldy);
 	
 	/* draw the new one */
-	if(!(term.c.state & CURSOR_HIDE) && xw.hasfocus) {
+	if(!(term.c.state & CURSOR_HIDE) && xw.focus) {
 		xdraws(&g.c, g, term.c.x, term.c.y, 1);
 		oldx = term.c.x, oldy = term.c.y;
 	}
@@ -1388,7 +1388,7 @@ xseturgency(int add) {
 
 void
 focus(XEvent *ev) {
-	if((xw.hasfocus = ev->type == FocusIn))
+	if((xw.focus = ev->type == FocusIn))
 		xseturgency(0);
 	draw(SCREEN_UPDATE);
 }
