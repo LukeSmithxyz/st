@@ -115,6 +115,7 @@ typedef struct {
 	int ch; /* char height */
 	int cw; /* char width  */
 	int hasfocus;
+	int vis; /* is visible */
 } XWindow; 
 
 typedef struct {
@@ -187,6 +188,8 @@ static void xloadcols(void);
 static void xseturgency(int);
 
 static void expose(XEvent *);
+static void visibility(XEvent *);
+static void unmap(XEvent *);
 static char* kmap(KeySym);
 static void kpress(XEvent *);
 static void resize(XEvent *);
@@ -198,8 +201,10 @@ static void bmotion(XEvent *);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
-	[Expose] = expose,
 	[ConfigureNotify] = resize,
+	[VisibilityNotify] = visibility,
+	[UnmapNotify] = unmap,
+	[Expose] = expose,
 	[FocusIn] = focus,
 	[FocusOut] = focus,
 	[MotionNotify] = bmotion,
@@ -1211,9 +1216,9 @@ xinit(void) {
 	attrs.background_pixel = dc.col[DefaultBG];
 	attrs.border_pixel = dc.col[DefaultBG];
 	attrs.bit_gravity = NorthWestGravity;
-	attrs.event_mask = ExposureMask | KeyPressMask
-		| StructureNotifyMask | FocusChangeMask | PointerMotionMask
-		| ButtonPressMask | ButtonReleaseMask;
+	attrs.event_mask = FocusChangeMask | KeyPressMask
+		| ExposureMask | VisibilityChangeMask | StructureNotifyMask
+		| PointerMotionMask | ButtonPressMask | ButtonReleaseMask;
 	attrs.colormap = xw.cmap;
 
 	xw.win = XCreateWindow(xw.dis, XRootWindow(xw.dis, xw.scr), 0, 0,
@@ -1321,6 +1326,9 @@ draw(int redraw_all) {
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
 
+	if(!xw.vis)
+		return;
+
 	xclear(0, 0, term.col-1, term.row-1);
 	for(y = 0; y < term.row; y++) {
 		base = term.line[y][0];
@@ -1355,6 +1363,19 @@ draw(int redraw_all) {
 void
 expose(XEvent *ev) {
 	draw(SCREEN_REDRAW);
+}
+
+void
+visibility(XEvent *ev) {
+	XVisibilityEvent *e = &ev->xvisibility;
+	/* XXX if this goes from 0 to 1, need a full redraw for next Expose,
+	 * not just a buf copy */
+	xw.vis = e->state != VisibilityFullyObscured;
+}
+
+void
+unmap(XEvent *ev) {
+	xw.vis = 0;
 }
 
 void
