@@ -104,6 +104,7 @@ typedef struct {
 /* Purely graphic info */
 typedef struct {
 	Display* dis;
+	Colormap cmap;
 	Window win;
 	Pixmap buf;
 	int scr;
@@ -1121,11 +1122,10 @@ void
 xloadcols(void) {
 	int i, r, g, b;
 	XColor color;
-	Colormap cmap = DefaultColormap(xw.dis, xw.scr);
 	unsigned long white = WhitePixel(xw.dis, xw.scr);
 
 	for(i = 0; i < 16; i++) {
-		if (!XAllocNamedColor(xw.dis, cmap, colorname[i], &color, &color)) {
+		if (!XAllocNamedColor(xw.dis, xw.cmap, colorname[i], &color, &color)) {
 			dc.col[i] = white;
 			fprintf(stderr, "Could not allocate color '%s'\n", colorname[i]);
 		} else
@@ -1139,7 +1139,7 @@ xloadcols(void) {
 				color.red = r == 0 ? 0 : 0x3737 + 0x2828 * r;
 				color.green = g == 0 ? 0 : 0x3737 + 0x2828 * g;
 				color.blue = b == 0 ? 0 : 0x3737 + 0x2828 * b;
-				if (!XAllocColor(xw.dis, cmap, &color)) {
+				if (!XAllocColor(xw.dis, xw.cmap, &color)) {
 					dc.col[i] = white;
 					fprintf(stderr, "Could not allocate color %d\n", i);
 				} else
@@ -1149,7 +1149,7 @@ xloadcols(void) {
 
 	for(r = 0; r < 24; r++, i++) {
 		color.red = color.green = color.blue = 0x0808 + 0x0a0a * r;
-		if (!XAllocColor(xw.dis, cmap, &color)) {
+		if (!XAllocColor(xw.dis, xw.cmap, &color)) {
 			dc.col[i] = white;
 			fprintf(stderr, "Could not allocate color %d\n", i);
 		} else
@@ -1184,6 +1184,8 @@ xhints(void)
 
 void
 xinit(void) {
+	XSetWindowAttributes attrs;
+
 	if(!(xw.dis = XOpenDisplay(NULL)))
 		die("Can't open display\n");
 	xw.scr = XDefaultScreen(xw.dis);
@@ -1197,25 +1199,32 @@ xinit(void) {
 	xw.ch = dc.font->ascent + dc.font->descent;
 
 	/* colors */
+	xw.cmap = XDefaultColormap(xw.dis, xw.scr);
 	xloadcols();
 
-	/* windows */
-	xw.bufh = term.row * xw.ch;
-	xw.bufw = term.col * xw.cw;
+	/* window - default size */
+	xw.bufh = 24 * xw.ch;
+	xw.bufw = 80 * xw.cw;
 	xw.h = xw.bufh + 2*BORDER;
 	xw.w = xw.bufw + 2*BORDER;
-	xw.win = XCreateSimpleWindow(xw.dis, XRootWindow(xw.dis, xw.scr), 0, 0,
-			xw.w, xw.h, 0,
-			dc.col[DefaultBG],
-			dc.col[DefaultBG]);
+
+	attrs.background_pixel = dc.col[DefaultBG];
+	attrs.border_pixel = dc.col[DefaultBG];
+	attrs.bit_gravity = NorthWestGravity;
+	attrs.event_mask = ExposureMask | KeyPressMask
+		| StructureNotifyMask | FocusChangeMask | PointerMotionMask
+		| ButtonPressMask | ButtonReleaseMask;
+	attrs.colormap = xw.cmap;
+
+	xw.win = XCreateWindow(xw.dis, XRootWindow(xw.dis, xw.scr), 0, 0,
+			xw.w, xw.h, 0, XDefaultDepth(xw.dis, xw.scr), InputOutput,
+			XDefaultVisual(xw.dis, xw.scr),
+			CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask
+			| CWColormap,
+			&attrs);
 	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
 	/* gc */
 	dc.gc = XCreateGC(xw.dis, xw.win, 0, NULL);
-
-	/* event mask */
-	XSelectInput(xw.dis, xw.win, ExposureMask | KeyPressMask
-		| StructureNotifyMask | FocusChangeMask | PointerMotionMask
-		| ButtonPressMask | ButtonReleaseMask);
 	
 	XMapWindow(xw.dis, xw.win);
 	xhints();
@@ -1432,7 +1441,6 @@ resize(XEvent *e) {
 	xw.bufw = MAX(1, xw.bufw);
 	XFreePixmap(xw.dis, xw.buf);
 	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
-	draw(SCREEN_REDRAW);
 }
 
 void
