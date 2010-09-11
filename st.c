@@ -1321,8 +1321,7 @@ draw(int redraw_all) {
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
 
-	XSetForeground(xw.dis, dc.gc, dc.col[DefaultBG]);
-	XFillRectangle(xw.dis, xw.buf, dc.gc, 0, 0, xw.bufw, xw.bufh);
+	xclear(0, 0, term.col-1, term.row-1);
 	for(y = 0; y < term.row; y++) {
 		base = term.line[y][0];
 		i = ox = 0;
