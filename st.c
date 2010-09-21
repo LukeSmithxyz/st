@@ -107,6 +107,8 @@ typedef struct {
 	Colormap cmap;
 	Window win;
 	Pixmap buf;
+	XIM xim;
+	XIC xic;
 	int scr;
 	int w;	/* window width	 */
 	int h;	/* window height */
@@ -1228,6 +1230,13 @@ xinit(void) {
 			| CWColormap,
 			&attrs);
 	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
+
+
+	/* input methods */
+	xw.xim = XOpenIM(xw.dis, NULL, NULL, NULL);
+	xw.xic = XCreateIC(xw.xim, XNInputStyle, XIMPreeditNothing 
+					   | XIMStatusNothing, XNClientWindow, xw.win, 
+					   XNFocusWindow, xw.win, NULL);
 	/* gc */
 	dc.gc = XCreateGC(xw.dis, xw.win, 0, NULL);
 	
@@ -1411,10 +1420,11 @@ kpress(XEvent *ev) {
 	int len;
 	int meta;
 	int shift;
+	Status status;
 
 	meta = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
-	len = XLookupString(e, buf, sizeof(buf), &ksym, NULL);
+	len = XmbLookupString(xw.xic, e, buf, sizeof(buf), &ksym, &status);
 
 	if((customkey = kmap(ksym)))
 		ttywrite(customkey, strlen(customkey));
@@ -1484,6 +1494,8 @@ run(void) {
 		}
 		while(XPending(xw.dis)) {
 			XNextEvent(xw.dis, &ev);
+			if (XFilterEvent(&ev, xw.win))
+				continue;
 			if(handler[ev.type])
 				(handler[ev.type])(&ev);
 		}
