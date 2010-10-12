@@ -17,6 +17,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #include <X11/keysym.h>
 #include <X11/Xutil.h>
 
@@ -199,7 +200,8 @@ static void focus(XEvent *);
 static void brelease(XEvent *);
 static void bpress(XEvent *);
 static void bmotion(XEvent *);
-
+static void selection_notify(XEvent *);
+static void selection_request(XEvent *);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
@@ -212,6 +214,8 @@ static void (*handler[LASTEvent])(XEvent *) = {
 	[MotionNotify] = bmotion,
 	[ButtonPress] = bpress,
 	[ButtonRelease] = brelease,
+	[SelectionNotify] = selection_notify,
+	[SelectionRequest] = selection_request,
 };
 
 /* Globals */
@@ -278,15 +282,129 @@ static char *getseltext() {
 	return str;
 }
 
-/* TODO: use X11 clipboard */
-static void selcopy(char *str) {
-	free(sel.clip);
-	sel.clip = str;
+static void selection_notify(XEvent *e) {
+	unsigned long nitems;
+	unsigned long length;
+	int format, res;
+	unsigned char *data;
+	Atom type;
+
+	res = XGetWindowProperty(xw.dis, xw.win, XA_PRIMARY, 0, 0, False, 
+				AnyPropertyType, &type, &format, &nitems, &length, &data);
+	switch(res) {
+		case BadAtom:
+		case BadValue:
+		case BadWindow:
+			fprintf(stderr, "Invalid paste, XGetWindowProperty0");
+			return;
+	}
+
+	res = XGetWindowProperty(xw.dis, xw.win, XA_PRIMARY, 0, length, False,
+				AnyPropertyType, &type, &format, &nitems, &length, &data);
+	switch(res) {
+		case BadAtom:
+		case BadValue:
+		case BadWindow:
+			fprintf(stderr, "Invalid paste, XGetWindowProperty0");
+			return;
+	}
+
+	if(data) {
+		ttywrite((const char *) data, nitems * format / 8);
+		XFree(data);
+	}
 }
 
 static void selpaste() {
-	if(sel.clip)
-		ttywrite(sel.clip, strlen(sel.clip));
+	XConvertSelection(xw.dis, XA_PRIMARY, XA_STRING, XA_PRIMARY, xw.win, CurrentTime);
+}
+
+static void selection_request(XEvent *e)
+{
+	XSelectionRequestEvent *xsre;
+	XSelectionEvent xev;
+	int res;
+	Atom xa_targets;
+
+	xsre = (XSelectionRequestEvent *) e;
+	xev.type = SelectionNotify;
+	xev.requestor = xsre->requestor;
+	xev.selection = xsre->selection;
+	xev.target = xsre->target;
+	xev.time = xsre->time;
+	/* reject */
+	xev.property = None;
+
+	xa_targets = XInternAtom(xw.dis, "TARGETS", 0);
+	if(xsre->target == xa_targets) {
+		/* respond with the supported type */
+		Atom string = XA_STRING;
+		res = XChangeProperty(xsre->display, xsre->requestor, xsre->property, XA_ATOM, 32,
+				PropModeReplace, (unsigned char *) &string, 1);
+		switch(res) {
+			case BadAlloc:
+			case BadAtom:
+			case BadMatch:
+			case BadValue:
+			case BadWindow:
+				fprintf(stderr, "Error in selection_request, TARGETS");
+				break;
+			default:
+				xev.property = xsre->property;
+		}
+	} else if(xsre->target == XA_STRING) {
+		res = XChangeProperty(xsre->display, xsre->requestor, xsre->property,
+				xsre->target, 8, PropModeReplace, (unsigned char *) sel.clip,
+				strlen(sel.clip));
+		switch(res) {
+			case BadAlloc:
+			case BadAtom:
+			case BadMatch:
+			case BadValue:
+			case BadWindow:
+				fprintf(stderr, "Error in selection_request, XA_STRING");
+				break;
+			default:
+			 xev.property = xsre->property;
+		}
+	}
+
+	/* all done, send a notification to the listener */
+	res = XSendEvent(xsre->display, xsre->requestor, True, 0, (XEvent *) &xev);
+	switch(res) {
+		case 0:
+		case BadValue:
+		case BadWindow:
+			fprintf(stderr, "Error in selection_requested, XSendEvent");
+	}
+}
+
+static void selcopy(char *str) {
+	/* register the selection for both the clipboard and the primary */
+	Atom clipboard;
+	int res;
+
+	free(sel.clip);
+	sel.clip = str;
+
+	res = XSetSelectionOwner(xw.dis, XA_PRIMARY, xw.win, CurrentTime);
+	switch(res) {
+		case BadAtom:
+		case BadWindow:
+			fprintf(stderr, "Invalid copy, XSetSelectionOwner");
+			return;
+	}
+
+	clipboard = XInternAtom(xw.dis, "CLIPBOARD", 0);
+	res = XSetSelectionOwner(xw.dis, clipboard, xw.win, CurrentTime);
+	switch(res) {
+		case BadAtom:
+		case BadWindow:
+			fprintf(stderr, "Invalid copy, XSetSelectionOwner");
+			return;
+	}
+
+	XFlush(xw.dis);
 }
 
 /* TODO: doubleclick to select word */
