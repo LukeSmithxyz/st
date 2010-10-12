@@ -243,8 +243,9 @@ static inline int selected(int x, int y) {
 }
 
 static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
-	if(b) *b = e->xbutton.state,
-		*b=*b==4096?5:*b==2048?4:*b==1024?3:*b==512?2:*b==256?1:-1;
+	if(b) 
+		*b = e->xbutton.button;
+
 	*x = e->xbutton.x/xw.cw;
 	*y = e->xbutton.y/xw.ch;
 	sel.b.x = sel.by < sel.ey ? sel.bx : sel.ex;
