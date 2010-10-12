@@ -1563,7 +1563,7 @@ kpress(XEvent *ev) {
 			break;
 		case XK_Insert:
 			if(shift)
-				selpaste(), draw(1);
+				selpaste();
 			break;
 		default:
 			fprintf(stderr, "errkey: %d\n", (int)ksym);
