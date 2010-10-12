@@ -677,7 +677,7 @@ tsetchar(char c) {
 
 void
 tclearregion(int x1, int y1, int x2, int y2) {
-	int y, temp;
+	int x, y, temp;
 
 	if(x1 > x2)
 		temp = x1, x1 = x2, x2 = temp;
@@ -690,7 +690,8 @@ tclearregion(int x1, int y1, int x2, int y2) {
 	LIMIT(y2, 0, term.row-1);
 
 	for(y = y1; y <= y2; y++)
-		memset(&term.line[y][x1], 0, sizeof(Glyph)*(x2-x1+1));
+		for(x = x1; x <= x2; x++)
+			term.line[y][x].state = 0;
 }
 
 void
@@ -1192,7 +1193,7 @@ tputs(char *s, int len) {
 
 void
 tresize(int col, int row) {
-	int i;
+	int i, x;
 	int minrow = MIN(row, term.row);
 	int mincol = MIN(col, term.col);
 	int slide = term.c.y - row + 1;
@@ -1226,8 +1227,10 @@ tresize(int col, int row) {
 	for(i = 0; i < minrow; i++) {
 		term.line[i] = realloc(term.line[i], col * sizeof(Glyph));
 		term.alt[i]  = realloc(term.alt[i],  col * sizeof(Glyph));
-		memset(term.line[i] + mincol, 0, (col - mincol) * sizeof(Glyph));
-		memset(term.alt[i]  + mincol, 0, (col - mincol) * sizeof(Glyph));
+		for(x = mincol; x < col; x++) {
+			term.line[i][x].state = 0;
+			term.alt[i][x].state = 0;
+		}
 	}
 
 	/* allocate any new rows */
