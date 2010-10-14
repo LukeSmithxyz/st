@@ -627,12 +627,13 @@ tscrollup(int orig, int n) {
 
 void
 tnewline(void) {
+	int x = term.c.x+1 < term.col ? term.c.x : 0;
 	int y = term.c.y;
 	if(term.c.y == term.bot)
 		tscrollup(term.top, 1);
 	else
 		y++;
-	tmoveto(0, y);
+	tmoveto(x, y);
 }
 
 void
