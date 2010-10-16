@@ -55,7 +55,8 @@ enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
        CURSOR_SAVE, CURSOR_LOAD };
 enum { CURSOR_DEFAULT = 0, CURSOR_HIDE = 1, CURSOR_WRAPNEXT = 2 };
 enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
-enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4, MODE_ALTSCREEN=8 };
+enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4, MODE_ALTSCREEN=8, 
+       MODE_CRLF=16 };
 enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
 enum { SCREEN_UPDATE, SCREEN_REDRAW };
 enum { WIN_VISIBLE=1, WIN_REDRAW=2, WIN_FOCUSED=4 };
@@ -164,7 +165,7 @@ static void tinsertblank(int);
 static void tinsertblankline(int);
 static void tmoveto(int, int);
 static void tnew(int, int);
-static void tnewline(void);
+static void tnewline(int);
 static void tputtab(void);
 static void tputc(char);
 static void tputs(char*, int);
@@ -626,14 +627,13 @@ tscrollup(int orig, int n) {
 }
 
 void
-tnewline(void) {
-	int x = term.c.x+1 < term.col ? term.c.x : 0;
+tnewline(int first_col) {
 	int y = term.c.y;
-	if(term.c.y == term.bot)
+	if(y == term.bot)
 		tscrollup(term.top, 1);
 	else
 		y++;
-	tmoveto(x, y);
+	tmoveto(first_col ? 0 : term.c.x, y);
 }
 
 void
@@ -932,6 +932,9 @@ csihandle(void) {
 				break;
 			case 12: /* att610 -- Stop blinking cursor (IGNORED) */
 				break;
+			case 20:
+				term.mode &= ~MODE_CRLF;
+				break;
 			case 25:
 				term.c.state |= CURSOR_HIDE;
 				break;
@@ -987,6 +990,9 @@ csihandle(void) {
 				break;
 			case 7:
 				term.mode |= MODE_WRAP;
+				break;
+			case 20:
+				term.mode |= MODE_CRLF;
 				break;
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				 /* fallthrough for xterm cvvis = CSI [ ? 12 ; 25 h */
@@ -1116,7 +1122,7 @@ tputc(char c) {
 				term.esc = 0;
 				break;
 			case 'E': /* NEL -- Next line */
-				tnewline();
+				tnewline(1); /* always go to first col */
 				term.esc = 0;
 				break;
 			case 'M': /* RI -- Reverse index */
@@ -1163,7 +1169,8 @@ tputc(char c) {
 			tmoveto(0, term.c.y);
 			break;
 		case '\n':
-			tnewline();
+			/* go to first col if the mode is set */
+			tnewline(IS_SET(MODE_CRLF));
 			break;
 		case '\a':
 			if(!(xw.state & WIN_FOCUSED))
@@ -1175,7 +1182,7 @@ tputc(char c) {
 			break;
 		default:
 			if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
-				tnewline();
+				tnewline(1); /* always go to first col */
 			tsetchar(c);
 			if(term.c.x+1 < term.col)
 				tmoveto(term.c.x+1, term.c.y);
@@ -1560,15 +1567,12 @@ kpress(XEvent *ev) {
 	meta = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
 	len = XmbLookupString(xw.xic, e, buf, sizeof(buf), &ksym, &status);
-
+	
+	/* 1. custom keys from config.h */
 	if((customkey = kmap(ksym)))
 		ttywrite(customkey, strlen(customkey));
-	else if(len > 0) {
-		buf[sizeof(buf)-1] = '\0';
-		if(meta && len == 1)
-			ttywrite("\033", 1);
-		ttywrite(buf, len);
-	} else
+	/* 2. hardcoded (overrides X lookup) */
+	else
 		switch(ksym) {
 		case XK_Up:
 		case XK_Down:
@@ -1581,8 +1585,21 @@ kpress(XEvent *ev) {
 			if(shift)
 				selpaste();
 			break;
+		case XK_Return:
+			if(IS_SET(MODE_CRLF))
+				ttywrite("\r\n", 2);
+			else
+				ttywrite("\r", 1);
+			break;
+			/* 3. X lookup  */
 		default:
-			fprintf(stderr, "errkey: %d\n", (int)ksym);
+			if(len > 0) {
+				buf[sizeof(buf)-1] = '\0';
+				if(meta && len == 1)
+					ttywrite("\033", 1);
+				ttywrite(buf, len);
+			} else /* 4. nothing to send */
+				fprintf(stderr, "errkey: %d\n", (int)ksym);
 			break;
 		}
 }
