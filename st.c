@@ -1168,6 +1168,8 @@ tputc(char c) {
 		case '\r':
 			tmoveto(0, term.c.y);
 			break;
+		case '\f':
+		case '\v':
 		case '\n':
 			/* go to first col if the mode is set */
 			tnewline(IS_SET(MODE_CRLF));
