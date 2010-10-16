@@ -58,6 +58,7 @@ enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
 enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4, MODE_ALTSCREEN=8 };
 enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
 enum { SCREEN_UPDATE, SCREEN_REDRAW };
+enum { WIN_VISIBLE=1, WIN_REDRAW=2, WIN_FOCUSED=4 };
 
 typedef struct {
 	char c;     /* character code  */
@@ -117,8 +118,7 @@ typedef struct {
 	int bufh; /* pixmap height */
 	int ch; /* char height */
 	int cw; /* char width  */
-	int focus;
-	int vis; /* is visible */
+	char state; /* focus, redraw, visible */
 } XWindow; 
 
 typedef struct {
@@ -1166,7 +1166,7 @@ tputc(char c) {
 			tnewline();
 			break;
 		case '\a':
-			if(!xw.focus)
+			if(!(xw.state & WIN_FOCUSED))
 				xseturgency(1);
 			break;
 		case '\033':
@@ -1418,7 +1418,7 @@ xdrawcursor(void) {
 		xclear(oldx, oldy, oldx, oldy);
 	
 	/* draw the new one */
-	if(!(term.c.state & CURSOR_HIDE) && xw.focus) {
+	if(!(term.c.state & CURSOR_HIDE) && (xw.state & WIN_FOCUSED)) {
 		xdraws(&g.c, g, term.c.x, term.c.y, 1);
 		oldx = term.c.x, oldy = term.c.y;
 	}
@@ -1458,7 +1458,7 @@ draw(int redraw_all) {
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
 
-	if(!xw.vis)
+	if(!(xw.state & WIN_VISIBLE))
 		return;
 
 	xclear(0, 0, term.col-1, term.row-1);
@@ -1487,27 +1487,36 @@ draw(int redraw_all) {
 	}
 	xdrawcursor();
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
-	XFlush(xw.dis);
 }
 
 #endif
 
 void
 expose(XEvent *ev) {
-	draw(SCREEN_REDRAW);
+	XExposeEvent *e = &ev->xexpose;
+	if(xw.state & WIN_REDRAW) {
+		if(!e->count) {
+			xw.state &= ~WIN_REDRAW;
+			draw(SCREEN_REDRAW);
+		}
+	} else
+		XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, e->x-BORDER, e->y-BORDER,
+				e->width, e->height, e->x, e->y);
 }
 
 void
 visibility(XEvent *ev) {
 	XVisibilityEvent *e = &ev->xvisibility;
-	/* XXX if this goes from 0 to 1, need a full redraw for next Expose,
-	 * not just a buf copy */
-	xw.vis = e->state != VisibilityFullyObscured;
+	if(e->state == VisibilityFullyObscured)
+		xw.state &= ~WIN_VISIBLE;
+	else if(!(xw.state & WIN_VISIBLE))
+		/* need a full redraw for next Expose, not just a buf copy */
+		xw.state |= WIN_VISIBLE | WIN_REDRAW;
 }
 
 void
 unmap(XEvent *ev) {
-	xw.vis = 0;
+	xw.state &= ~WIN_VISIBLE;
 }
 
 void
@@ -1520,8 +1529,11 @@ xseturgency(int add) {
 
 void
 focus(XEvent *ev) {
-	if((xw.focus = ev->type == FocusIn))
+	if(ev->type == FocusIn) {
+		xw.state |= WIN_FOCUSED;
 		xseturgency(0);
+	} else
+		xw.state &= ~WIN_FOCUSED;
 	draw(SCREEN_UPDATE);
 }
 
