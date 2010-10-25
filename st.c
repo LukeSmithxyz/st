@@ -1260,10 +1260,24 @@ tresize(int col, int row) {
 
 void
 xresize(int col, int row) {
+	Pixmap newbuf;
+	int oldw, oldh;
+
+	oldw = xw.bufw;
+	oldh = xw.bufh;
 	xw.bufw = MAX(1, col * xw.cw);
 	xw.bufh = MAX(1, row * xw.ch);
+	newbuf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
+	XCopyArea(xw.dis, xw.buf, newbuf, dc.gc, 0, 0, xw.bufw, xw.bufh, 0, 0);
 	XFreePixmap(xw.dis, xw.buf);
-	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
+	XSetForeground(xw.dis, dc.gc, dc.col[DefaultBG]);
+	if(xw.bufw > oldw)
+		XFillRectangle(xw.dis, newbuf, dc.gc, oldw, 0,
+				xw.bufw-oldw, MIN(xw.bufh, oldh));
+	if(xw.bufh > oldh)
+		XFillRectangle(xw.dis, newbuf, dc.gc, 0, oldh,
+				xw.bufw, xw.bufh-oldh);
+	xw.buf = newbuf;
 }
 
 void
