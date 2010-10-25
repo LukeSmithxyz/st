@@ -170,7 +170,7 @@ static void tputtab(void);
 static void tputc(char);
 static void tputs(char*, int);
 static void treset(void);
-static void tresize(int, int);
+static int tresize(int, int);
 static void tscrollup(int, int);
 static void tscrolldown(int, int);
 static void tsetattr(int*, int);
@@ -1202,7 +1202,7 @@ tputs(char *s, int len) {
 		tputc(*s++);
 }
 
-void
+int
 tresize(int col, int row) {
 	int i, x;
 	int minrow = MIN(row, term.row);
@@ -1210,7 +1210,7 @@ tresize(int col, int row) {
 	int slide = term.c.y - row + 1;
 
 	if(col < 1 || row < 1)
-		return;
+		return 0;
 
 	/* free unneeded rows */
 	i = 0;
@@ -1256,6 +1256,7 @@ tresize(int col, int row) {
 	tmoveto(term.c.x, term.c.y);
 	/* reset scrolling region */
 	tsetscroll(0, row-1);
+	return (slide > 0);
 }
 
 void
@@ -1650,7 +1651,8 @@ resize(XEvent *e) {
 	row = (xw.h - 2*BORDER) / xw.ch;
 	if(col == term.col && row == term.row)
 		return;
-	tresize(col, row);
+	if(tresize(col, row))
+		draw(SCREEN_REDRAW);
 	ttyresize(col, row);
 	xresize(col, row);
 }
