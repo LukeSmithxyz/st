@@ -1274,9 +1274,17 @@ xresize(int col, int row) {
 	if(xw.bufw > oldw)
 		XFillRectangle(xw.dis, newbuf, dc.gc, oldw, 0,
 				xw.bufw-oldw, MIN(xw.bufh, oldh));
+	else if(xw.bufw < oldw && (BORDER > 0 || xw.w > xw.bufw))
+		XClearArea(xw.dis, xw.win, BORDER+xw.bufw, BORDER,
+				xw.w-xw.bufh-BORDER, BORDER+MIN(xw.bufh, oldh),
+				False);
 	if(xw.bufh > oldh)
 		XFillRectangle(xw.dis, newbuf, dc.gc, 0, oldh,
 				xw.bufw, xw.bufh-oldh);
+	else if(xw.bufh < oldh && (BORDER > 0 || xw.h > xw.bufh))
+		XClearArea(xw.dis, xw.win, BORDER, BORDER+xw.bufh,
+				xw.w-2*BORDER, xw.h-xw.bufh-BORDER,
+				False);
 	xw.buf = newbuf;
 }
 
