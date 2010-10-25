@@ -190,6 +190,7 @@ static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
 static void xseturgency(int);
+static void xresize(int, int);
 
 static void expose(XEvent *);
 static void visibility(XEvent *);
@@ -1258,6 +1259,14 @@ tresize(int col, int row) {
 }
 
 void
+xresize(int col, int row) {
+	xw.bufw = MAX(1, col * xw.cw);
+	xw.bufh = MAX(1, row * xw.ch);
+	XFreePixmap(xw.dis, xw.buf);
+	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
+}
+
+void
 xloadcols(void) {
 	int i, r, g, b;
 	XColor color;
@@ -1615,16 +1624,13 @@ resize(XEvent *e) {
 	
 	xw.w = e->xconfigure.width;
 	xw.h = e->xconfigure.height;
-	xw.bufw = xw.w - 2*BORDER;
-	xw.bufh = xw.h - 2*BORDER;
-	col = xw.bufw / xw.cw;
-	row = xw.bufh / xw.ch;
+	col = (xw.w - 2*BORDER) / xw.cw;
+	row = (xw.h - 2*BORDER) / xw.ch;
+	if(col == term.col && row == term.row)
+		return;
 	tresize(col, row);
 	ttyresize(col, row);
-	xw.bufh = MAX(1, xw.bufh);
-	xw.bufw = MAX(1, xw.bufw);
-	XFreePixmap(xw.dis, xw.buf);
-	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
+	xresize(col, row);
 }
 
 void
