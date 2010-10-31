@@ -883,10 +883,14 @@ csihandle(void) {
 	case 'J': /* ED -- Clear screen */
 		switch(escseq.arg[0]) {
 		case 0: /* below */
-			tclearregion(term.c.x, term.c.y, term.col-1, term.row-1);
+			tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
+			if(term.c.y < term.row-1)
+				tclearregion(0, term.c.y+1, term.col-1, term.row-1);
 			break;
 		case 1: /* above */
-			tclearregion(0, 0, term.c.x, term.c.y);
+			if(term.c.y > 1)
+				tclearregion(0, 0, term.col-1, term.c.y-1);
+			tclearregion(0, term.c.y, term.c.x, term.c.y);
 			break;
 		case 2: /* all */
 			tclearregion(0, 0, term.col-1, term.row-1);
