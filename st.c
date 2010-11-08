@@ -286,35 +286,24 @@ static char *getseltext() {
 
 static void selection_notify(XEvent *e) {
 	unsigned long nitems;
-	unsigned long length;
-	int format, res;
+	unsigned long ofs, rem;
+	int format;
 	unsigned char *data;
 	Atom type;
 
-	res = XGetWindowProperty(xw.dis, xw.win, XA_PRIMARY, 0, 0, False, 
-				AnyPropertyType, &type, &format, &nitems, &length, &data);
-	switch(res) {
-		case BadAtom:
-		case BadValue:
-		case BadWindow:
-			fprintf(stderr, "Invalid paste, XGetWindowProperty0");
+	ofs = 0;
+	do {
+		if(XGetWindowProperty(xw.dis, xw.win, XA_PRIMARY, ofs, BUFSIZ/4,
+					False, AnyPropertyType, &type, &format,
+					&nitems, &rem, &data)) {
+			fprintf(stderr, "Clipboard allocation failed\n");
 			return;
-	}
-
-	res = XGetWindowProperty(xw.dis, xw.win, XA_PRIMARY, 0, length, False,
-				AnyPropertyType, &type, &format, &nitems, &length, &data);
-	switch(res) {
-		case BadAtom:
-		case BadValue:
-		case BadWindow:
-			fprintf(stderr, "Invalid paste, XGetWindowProperty0");
-			return;
-	}
-
-	if(data) {
+		}
 		ttywrite((const char *) data, nitems * format / 8);
 		XFree(data);
-	}
+		/* number of 32-bit chunks returned */
+		ofs += nitems * format / 32;
+	} while(rem > 0);
 }
 
 static void selpaste() {
@@ -325,7 +314,6 @@ static void selection_request(XEvent *e)
 {
 	XSelectionRequestEvent *xsre;
 	XSelectionEvent xev;
-	int res;
 	Atom xa_targets;
 
 	xsre = (XSelectionRequestEvent *) e;
@@ -341,70 +329,33 @@ static void selection_request(XEvent *e)
 	if(xsre->target == xa_targets) {
 		/* respond with the supported type */
 		Atom string = XA_STRING;
-		res = XChangeProperty(xsre->display, xsre->requestor, xsre->property, XA_ATOM, 32,
-				PropModeReplace, (unsigned char *) &string, 1);
-		switch(res) {
-			case BadAlloc:
-			case BadAtom:
-			case BadMatch:
-			case BadValue:
-			case BadWindow:
-				fprintf(stderr, "Error in selection_request, TARGETS");
-				break;
-			default:
-				xev.property = xsre->property;
-		}
+		XChangeProperty(xsre->display, xsre->requestor, xsre->property,
+				XA_ATOM, 32, PropModeReplace,
+				(unsigned char *) &string, 1);
+		xev.property = xsre->property;
 	} else if(xsre->target == XA_STRING) {
-		res = XChangeProperty(xsre->display, xsre->requestor, xsre->property,
-				xsre->target, 8, PropModeReplace, (unsigned char *) sel.clip,
-				strlen(sel.clip));
-		switch(res) {
-			case BadAlloc:
-			case BadAtom:
-			case BadMatch:
-			case BadValue:
-			case BadWindow:
-				fprintf(stderr, "Error in selection_request, XA_STRING");
-				break;
-			default:
-			 xev.property = xsre->property;
-		}
+		XChangeProperty(xsre->display, xsre->requestor, xsre->property,
+				xsre->target, 8, PropModeReplace,
+				(unsigned char *) sel.clip, strlen(sel.clip));
+		xev.property = xsre->property;
 	}
 
 	/* all done, send a notification to the listener */
-	res = XSendEvent(xsre->display, xsre->requestor, True, 0, (XEvent *) &xev);
-	switch(res) {
-		case 0:
-		case BadValue:
-		case BadWindow:
-			fprintf(stderr, "Error in selection_requested, XSendEvent");
-	}
+	if(!XSendEvent(xsre->display, xsre->requestor, True, 0, (XEvent *) &xev))
+		fprintf(stderr, "Error sending SelectionNotify event\n");
 }
 
 static void selcopy(char *str) {
 	/* register the selection for both the clipboard and the primary */
 	Atom clipboard;
-	int res;
 
 	free(sel.clip);
 	sel.clip = str;
 
-	res = XSetSelectionOwner(xw.dis, XA_PRIMARY, xw.win, CurrentTime);
-	switch(res) {
-		case BadAtom:
-		case BadWindow:
-			fprintf(stderr, "Invalid copy, XSetSelectionOwner");
-			return;
-	}
+	XSetSelectionOwner(xw.dis, XA_PRIMARY, xw.win, CurrentTime);
 
 	clipboard = XInternAtom(xw.dis, "CLIPBOARD", 0);
-	res = XSetSelectionOwner(xw.dis, clipboard, xw.win, CurrentTime);
-	switch(res) {
-		case BadAtom:
-		case BadWindow:
-			fprintf(stderr, "Invalid copy, XSetSelectionOwner");
-			return;
-	}
+	XSetSelectionOwner(xw.dis, clipboard, xw.win, CurrentTime);
 
 	XFlush(xw.dis);
 }
