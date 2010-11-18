@@ -1,7 +1,7 @@
 #define TAB 8
-#define TNAME "st-256color"
-#define FONT "-misc-*-medium-r-semicondensed-*-13-*-*-*-*-*-iso8859-*"
-#define BOLDFONT "-misc-*-bold-r-semicondensed-*-13-*-*-*-*-*-iso8859-*"
+#define TNAME "xterm"
+#define FONT "-*-*-medium-r-*-*-*-120-75-75-*-60-*-*"
+#define BOLDFONT "-*-*-bold-r-*-*-*-120-75-75-*-60-*-*"
 #define BORDER 2
 #define SHELL "/bin/sh"
 
@@ -55,31 +55,8 @@ static Key key[] = {
 
 /* Line drawing characters (sometime specific to each font...) */
 static char gfx[] = {
-	['`'] = 0x01,
-	['a'] = 0x02,
 	['f'] = 'o',
 	['g'] = '+',
 	['i'] = '#',
-	['j'] = 0x0B,
-	['k'] = 0x0C,
-	['l'] = 0x0D,
-	['m'] = 0x0E,
-	['n'] = 0x0F,
-	['o'] = 0x10,
-	['p'] = 0x11,
-	['q'] = 0x12,
-	['r'] = 0x13,
-	['s'] = 0x14,
-	['t'] = 0x15,
-	['u'] = 0x16,
-	['v'] = 0x17,
-	['w'] = 0x18,
-	['x'] = 0x19,
-	['y'] = 0x1A,
-	['z'] = 0x1B,
-	['{'] = 0x1C,
-	['|'] = 0x1D,
-	['}'] = 0x1E,
-	['~'] = 0x1F,
 	[255] = 0,
 };

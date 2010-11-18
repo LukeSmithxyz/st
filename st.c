@@ -38,6 +38,7 @@
 #define ESC_BUF_SIZ   256
 #define ESC_ARG_SIZ   16
 #define DRAW_BUF_SIZ  1024
+#define UTF_SIZ       4
 
 #define SERRNO strerror(errno)
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
@@ -61,8 +62,11 @@ enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
 enum { SCREEN_UPDATE, SCREEN_REDRAW };
 enum { WIN_VISIBLE=1, WIN_REDRAW=2, WIN_FOCUSED=4 };
 
+#undef B0
+enum { B0=1, B1=2, B2=4, B3=8, B4=16, B5=32, B6=64, B7=128 };
+
 typedef struct {
-	char c;     /* character code  */
+	char c[UTF_SIZ];     /* character code */
 	char mode;  /* attribute flags */
 	int fg;     /* foreground      */
 	int bg;     /* background      */
@@ -127,11 +131,19 @@ typedef struct {
 	char s[ESC_BUF_SIZ];
 } Key;
 
+typedef struct {
+	XFontSet fs;
+	short lbearing;
+	short rbearing;
+	int ascent;
+	int descent;
+} FontInfo;
+
 /* Drawing Context */
 typedef struct {
 	unsigned long col[256];
-	XFontStruct* font;
-	XFontStruct* bfont;
+	FontInfo font;
+	FontInfo bfont;
 	GC gc;
 } DC;
 
@@ -167,14 +179,13 @@ static void tmoveto(int, int);
 static void tnew(int, int);
 static void tnewline(int);
 static void tputtab(void);
-static void tputc(char);
-static void tputs(char*, int);
+static void tputc(char*);
 static void treset(void);
 static int tresize(int, int);
 static void tscrollup(int, int);
 static void tscrolldown(int, int);
 static void tsetattr(int*, int);
-static void tsetchar(char);
+static void tsetchar(char*);
 static void tsetscroll(int, int);
 static void tswapscreen(void);
 
@@ -183,7 +194,7 @@ static void ttyread(void);
 static void ttyresize(int, int);
 static void ttywrite(const char *, size_t);
 
-static void xdraws(char *, Glyph, int, int, int);
+static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
 static void xdrawcursor(void);
@@ -204,6 +215,11 @@ static void bpress(XEvent *);
 static void bmotion(XEvent *);
 static void selection_notify(XEvent *);
 static void selection_request(XEvent *);
+
+static int stou(char *, long *);
+static int utos(long *, char *);
+static int slen(char *);
+static int canstou(char *, int);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
@@ -230,6 +246,133 @@ static pid_t pid;
 static Selection sel;
 static char *opt_cmd   = NULL;
 static char *opt_title = NULL;
+
+/* UTF-8 decode */
+static int
+stou(char *s, long *u)
+{
+	unsigned char c;
+	int i, n, rtn;
+
+	rtn = 1;
+	c = *s;
+	if(~c&B7) { /* 0xxxxxxx */
+		*u = c;
+		return rtn;
+	} else if ((c&(B7|B6|B5)) == (B7|B6)) { /* 110xxxxx */
+		*u = c&(B4|B3|B2|B1|B0);
+		n = 1;
+	} else if ((c&(B7|B6|B5|B4)) == (B7|B6|B5)) { /* 1110xxxx */
+		*u = c&(B3|B2|B1|B0);
+		n = 2;
+	} else if ((c&(B7|B6|B5|B4|B3)) == (B7|B6|B5|B4)) { /* 11110xxx */
+		*u = c&(B2|B1|B0);
+		n = 3;
+	} else
+		goto invalid;
+	for (i=n,++s; i>0; --i,++rtn,++s) {
+		c = *s;
+		if ((c&(B7|B6)) != B7) /* 10xxxxxx */
+			goto invalid;
+		*u <<= 6;
+		*u |= c&(B5|B4|B3|B2|B1|B0);
+	}
+	if ((n == 1 && *u < 0x80) ||
+	    (n == 2 && *u < 0x800) ||
+	    (n == 3 && *u < 0x10000) ||
+	    (*u >= 0xD800 && *u <= 0xDFFF))
+		goto invalid;
+	return rtn;
+invalid:
+	*u = 0xFFFD;
+	return rtn;
+}
+
+/* UTF-8 encode */
+static int
+utos(long *u, char *s) 
+{
+	unsigned char *sp;
+	unsigned long uc;
+	int i, n;
+
+	sp = (unsigned char*) s;
+	uc = *u;
+	if (uc < 0x80) {
+		*sp = uc; /* 0xxxxxxx */
+		return 1;
+	} else if (*u < 0x800) {
+		*sp = (uc >> 6) | (B7|B6); /* 110xxxxx */
+		n = 1;
+	} else if (uc < 0x10000) {
+		*sp = (uc >> 12) | (B7|B6|B5); /* 1110xxxx */
+		n = 2;
+	} else if (uc <= 0x10FFFF) {
+		*sp = (uc >> 18) | (B7|B6|B5|B4); /* 11110xxx */
+		n = 3;
+	} else {
+		goto invalid;
+	}
+	for (i=n,++sp; i>0; --i,++sp)
+		*sp = ((uc >> 6*(i-1)) & (B5|B4|B3|B2|B1|B0)) | B7; /* 10xxxxxx */
+	return n+1;
+invalid:
+	/* U+FFFD */
+	*s++ = '\xEF';
+	*s++ = '\xBF';
+	*s = '\xBD';
+	return 3;
+}
+
+/*
+ * use this if your buffer is less than UTF_SIZ, it returns 1 if you can decode UTF-8
+ * otherwise return 0
+ */
+static int
+canstou(char *s, int b)
+{
+	unsigned char c;
+	int n;
+
+	c = *s;
+	if (b < 1)
+		return 0;
+	else if (~c&B7)
+		return 1;
+	else if ((c&(B7|B6|B5)) == (B7|B6))
+		n = 1;
+	else if ((c&(B7|B6|B5|B4)) == (B7|B6|B5))
+		n = 2;
+	else if ((c&(B7|B6|B5|B4|B3)) == (B7|B6|B5|B4))
+		n = 3;
+	else
+		return 1;
+	for (--b,++s; n>0&&b>0; --n,--b,++s) {
+		c = *s;
+		if ((c&(B7|B6)) != B7)
+			break; 
+	}
+	if (n > 0 && b == 0)
+		return 0;
+	else
+		return 1;
+}
+
+static int
+slen(char *s)
+{
+	unsigned char c;
+
+	c = *s;
+	if (~c&B7)
+		return 1;
+	else if ((c&(B7|B6|B5)) == (B7|B6))
+		return 2;
+	else if ((c&(B7|B6|B5|B4)) == (B7|B6|B5))
+		return 3;
+	else 
+		return 4;
+}
 
 void
 selinit(void) {
@@ -268,15 +411,18 @@ static void bpress(XEvent *e) {
 
 static char *getseltext() {
 	char *str, *ptr;
-	int ls, x, y, sz;
+	int ls, x, y, sz, sl;
 	if(sel.bx == -1)
 		return NULL;
-	sz = (term.col+1) * (sel.e.y-sel.b.y+1);
+	sz = (term.col+1) * (sel.e.y-sel.b.y+1) * UTF_SIZ;
 	ptr = str = malloc(sz);
 	for(y = 0; y < term.row; y++) {
 		for(x = 0; x < term.col; x++)
-			if(term.line[y][x].state & GLYPH_SET && (ls = selected(x, y)))
-				*ptr = term.line[y][x].c, ptr++;
+			if(term.line[y][x].state & GLYPH_SET && (ls = selected(x, y))) {
+				sl = slen(term.line[y][x].c);
+				memcpy(ptr, term.line[y][x].c, sl);
+				ptr += sl;
+			}
 		if(ls)
 			*ptr = '\n', ptr++;
 	}
@@ -476,13 +622,24 @@ dump(char c) {
 
 void
 ttyread(void) {
-	char buf[BUFSIZ];
-	int ret;
+	char buf[BUFSIZ], *ptr;
+	char s[UTF_SIZ];
+	int ret, br;
+	static int buflen = 0;
+	long u;
 
-	if((ret = read(cmdfd, buf, LEN(buf))) < 0)
+	if((ret = read(cmdfd, buf+buflen, LEN(buf)-buflen)) < 0)
 		die("Couldn't read from shell: %s\n", SERRNO);
-	else
-		tputs(buf, ret);
+	else {
+		buflen += ret;
+		for(ptr=buf; buflen>=UTF_SIZ||canstou(ptr,buflen); buflen-=br) {
+			br = stou(ptr, &u);
+			utos(&u, s);
+			tputc(s);
+			ptr += br;
+		}
+		memcpy(buf, ptr, buflen);
+	}
 }
 
 void
@@ -622,9 +779,9 @@ tmoveto(int x, int y) {
 }
 
 void
-tsetchar(char c) {
+tsetchar(char *c) {
 	term.line[term.c.y][term.c.x] = term.c.attr;
-	term.line[term.c.y][term.c.x].c = c;
+	memcpy(term.line[term.c.y][term.c.x].c, c, UTF_SIZ);
 	term.line[term.c.y][term.c.x].state |= GLYPH_SET;
 }
 
@@ -1025,30 +1182,31 @@ tputtab(void) {
 }
 
 void
-tputc(char c) {
+tputc(char *c) {
+	char ascii = *c;
 	if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
-			escseq.buf[escseq.len++] = c;
-			if(BETWEEN(c, 0x40, 0x7E) || escseq.len >= ESC_BUF_SIZ) {
+			escseq.buf[escseq.len++] = ascii;
+			if(BETWEEN(ascii, 0x40, 0x7E) || escseq.len >= ESC_BUF_SIZ) {
 				term.esc = 0;
 				csiparse(), csihandle();
 			}
 			/* TODO: handle other OSC */
 		} else if(term.esc & ESC_OSC) { 
-			if(c == ';') {
+			if(ascii == ';') {
 				term.titlelen = 0;
 				term.esc = ESC_START | ESC_TITLE;
 			}
 		} else if(term.esc & ESC_TITLE) {
-			if(c == '\a' || term.titlelen+1 >= ESC_TITLE_SIZ) {
+			if(ascii == '\a' || term.titlelen+1 >= ESC_TITLE_SIZ) {
 				term.esc = 0;
 				term.title[term.titlelen] = '\0';
 				XStoreName(xw.dis, xw.win, term.title);
 			} else {
-				term.title[term.titlelen++] = c;
+				term.title[term.titlelen++] = ascii;
 			}
 		} else if(term.esc & ESC_ALTCHARSET) {
-			switch(c) {
+			switch(ascii) {
 			case '0': /* Line drawing crap */
 				term.c.attr.mode |= ATTR_GFX;
 				break;
@@ -1056,11 +1214,11 @@ tputc(char c) {
 				term.c.attr.mode &= ~ATTR_GFX;
 				break;
 			default:
-				printf("esc unhandled charset: ESC ( %c\n", c);
+				printf("esc unhandled charset: ESC ( %c\n", ascii);
 			}
 			term.esc = 0;
 		} else {
-			switch(c) {
+			switch(ascii) {
 			case '[':
 				term.esc |= ESC_CSI;
 				break;
@@ -1109,12 +1267,13 @@ tputc(char c) {
 				term.esc = 0;
 				break;
 			default:
-				fprintf(stderr, "erresc: unknown sequence ESC 0x%02X '%c'\n", c, isprint(c)?c:'.');
+				fprintf(stderr, "erresc: unknown sequence ESC 0x%02X '%c'\n",
+				    (unsigned char) ascii, isprint(ascii)?ascii:'.');
 				term.esc = 0;
 			}
 		}
 	} else {
-		switch(c) {
+		switch(ascii) {
 		case '\t':
 			tputtab();
 			break;
@@ -1149,12 +1308,6 @@ tputc(char c) {
 			break;
 		}
 	}
-}
-
-void
-tputs(char *s, int len) {
-	for(; len > 0; len--)
-		tputc(*s++);
 }
 
 int
@@ -1309,20 +1462,52 @@ xhints(void)
 }
 
 void
+xsetfontinfo(FontInfo *fi)
+{
+	XFontStruct **xfonts;
+	int fnum;
+	int i;
+	char **fontnames;
+
+	fi->lbearing = 0;
+	fi->rbearing = 0;
+	fi->ascent = 0;
+	fi->descent = 0;
+	fnum = XFontsOfFontSet(fi->fs, &xfonts, &fontnames);
+	for(i=0; i<fnum; i++,xfonts++,fontnames++) {
+		puts(*fontnames);
+		if(fi->ascent < (*xfonts)->ascent)
+			fi->ascent = (*xfonts)->ascent;
+		if(fi->descent < (*xfonts)->descent)
+			fi->descent = (*xfonts)->descent;
+		if(fi->rbearing < (*xfonts)->max_bounds.rbearing)
+			fi->rbearing = (*xfonts)->max_bounds.rbearing;
+		if(fi->lbearing < (*xfonts)->min_bounds.lbearing)
+			fi->lbearing = (*xfonts)->min_bounds.lbearing;
+	}
+}
+
+void
 xinit(void) {
 	XSetWindowAttributes attrs;
+	char **mc;
+	char *ds;
+	int nmc;
 
 	if(!(xw.dis = XOpenDisplay(NULL)))
 		die("Can't open display\n");
 	xw.scr = XDefaultScreen(xw.dis);
 	
 	/* font */
-	if(!(dc.font = XLoadQueryFont(xw.dis, FONT)) || !(dc.bfont = XLoadQueryFont(xw.dis, BOLDFONT)))
-		die("Can't load font %s\n", dc.font ? BOLDFONT : FONT);
+	if ((dc.font.fs = XCreateFontSet(xw.dis, FONT, &mc, &nmc, &ds)) == NULL ||
+	    (dc.bfont.fs = XCreateFontSet(xw.dis, BOLDFONT, &mc, &nmc, &ds)) == NULL)
+		die("Can't load font %s\n", dc.font.fs ? BOLDFONT : FONT); 
+	xsetfontinfo(&dc.font);
+	xsetfontinfo(&dc.bfont);
 
 	/* XXX: Assuming same size for bold font */
-	xw.cw = dc.font->max_bounds.rbearing - dc.font->min_bounds.lbearing;
-	xw.ch = dc.font->ascent + dc.font->descent;
+ 	xw.cw = dc.font.rbearing - dc.font.lbearing;
+	xw.ch = dc.font.ascent + dc.font.descent;
 
 	/* colors */
 	xw.cmap = XDefaultColormap(xw.dis, xw.scr);
@@ -1366,9 +1551,9 @@ xinit(void) {
 }
 
 void
-xdraws(char *s, Glyph base, int x, int y, int len) {
+xdraws(char *s, Glyph base, int x, int y, int cl, int sl) {
 	unsigned long xfg, xbg;
-	int winx = x*xw.cw, winy = y*xw.ch + dc.font->ascent, width = len*xw.cw;
+	int winx = x*xw.cw, winy = y*xw.ch + dc.font.ascent, width = cl*xw.cw;
 	int i;
 
 	if(base.mode & ATTR_REVERSE)
@@ -1378,9 +1563,9 @@ xdraws(char *s, Glyph base, int x, int y, int len) {
 
 	XSetBackground(xw.dis, dc.gc, xbg);
 	XSetForeground(xw.dis, dc.gc, xfg);
-	
+
 	if(base.mode & ATTR_GFX)
-		for(i = 0; i < len; i++) {
+		for(i = 0; i < cl; i++) {
 			char c = gfx[(unsigned int)s[i] % 256];
 			if(c)
 				s[i] = c;
@@ -1388,8 +1573,8 @@ xdraws(char *s, Glyph base, int x, int y, int len) {
 				s[i] -= 0x5f;
 		}
 
-	XSetFont(xw.dis, dc.gc, base.mode & ATTR_BOLD ? dc.bfont->fid : dc.font->fid);
-	XDrawImageString(xw.dis, xw.buf, dc.gc, winx, winy, s, len);
+	XmbDrawImageString(xw.dis, xw.buf, base.mode & ATTR_BOLD ? dc.bfont.fs : dc.font.fs,
+	    dc.gc, winx, winy, s, sl);
 	
 	if(base.mode & ATTR_UNDERLINE)
 		XDrawLine(xw.dis, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
@@ -1399,23 +1584,26 @@ void
 xdrawcursor(void) {
 	static int oldx = 0;
 	static int oldy = 0;
-	Glyph g = {' ', ATTR_NULL, DefaultBG, DefaultCS, 0};
+	int sl;
+	Glyph g = {{' '}, ATTR_NULL, DefaultBG, DefaultCS, 0};
 	
 	LIMIT(oldx, 0, term.col-1);
 	LIMIT(oldy, 0, term.row-1);
 	
 	if(term.line[term.c.y][term.c.x].state & GLYPH_SET)
-		g.c = term.line[term.c.y][term.c.x].c;
-	
+		memcpy(g.c, term.line[term.c.y][term.c.x].c, UTF_SIZ);
+
 	/* remove the old cursor */
-	if(term.line[oldy][oldx].state & GLYPH_SET)
-		xdraws(&term.line[oldy][oldx].c, term.line[oldy][oldx], oldx, oldy, 1);
-	else
+	if(term.line[oldy][oldx].state & GLYPH_SET) {
+		sl = slen(term.line[oldy][oldx].c);
+		xdraws(term.line[oldy][oldx].c, term.line[oldy][oldx], oldx, oldy, 1, sl);
+	} else
 		xclear(oldx, oldy, oldx, oldy);
 	
 	/* draw the new one */
 	if(!(term.c.state & CURSOR_HIDE) && (xw.state & WIN_FOCUSED)) {
-		xdraws(&g.c, g, term.c.x, term.c.y, 1);
+		sl = slen(g.c);
+		xdraws(g.c, g, term.c.x, term.c.y, 1, sl);
 		oldx = term.c.x, oldy = term.c.y;
 	}
 }
@@ -1424,11 +1612,12 @@ xdrawcursor(void) {
 /* basic drawing routines */
 void
 xdrawc(int x, int y, Glyph g) {
+	int sl = slen(g.c);
 	XRectangle r = { x * xw.cw, y * xw.ch, xw.cw, xw.ch };
 	XSetBackground(xw.dis, dc.gc, dc.col[g.bg]);
 	XSetForeground(xw.dis, dc.gc, dc.col[g.fg]);
-	XSetFont(xw.dis, dc.gc, g.mode & ATTR_BOLD ? dc.bfont->fid : dc.font->fid);
-	XDrawImageString(xw.dis, xw.buf, dc.gc, r.x, r.y+dc.font->ascent, &g.c, 1);
+	XmbDrawImageString(xw.dis, xw.buf, g.mode&ATTR_BOLD?dc.bfont.fs:dc.font.fs,
+	    dc.gc, r.x, r.y+dc.font.ascent, g.c, sl);
 }
 
 void
@@ -1450,7 +1639,7 @@ draw(int dummy) {
 /* optimized drawing routine */
 void
 draw(int redraw_all) {
-	int i, x, y, ox;
+	int ic, ib, x, y, ox, sl;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
 
@@ -1460,26 +1649,29 @@ draw(int redraw_all) {
 	xclear(0, 0, term.col-1, term.row-1);
 	for(y = 0; y < term.row; y++) {
 		base = term.line[y][0];
-		i = ox = 0;
+		ic = ib = ox = 0;
 		for(x = 0; x < term.col; x++) {
 			new = term.line[y][x];
-			if(sel.bx!=-1 && new.c && selected(x, y))
+			if(sel.bx!=-1 && *(new.c) && selected(x, y))
 				new.mode ^= ATTR_REVERSE;
-			if(i > 0 && (!(new.state & GLYPH_SET) || ATTRCMP(base, new) ||
-					i >= DRAW_BUF_SIZ)) {
-				xdraws(buf, base, ox, y, i);
-				i = 0;
+			if(ib > 0 && (!(new.state & GLYPH_SET) || ATTRCMP(base, new) ||
+					ib >= DRAW_BUF_SIZ-UTF_SIZ)) {
+				xdraws(buf, base, ox, y, ic, ib);
+				ic = ib = 0;
 			}
 			if(new.state & GLYPH_SET) {
-				if(i == 0) {
+				if(ib == 0) {
 					ox = x;
 					base = new;
 				}
-				buf[i++] = new.c;
+				sl = slen(new.c);
+				memcpy(buf+ib, new.c, sl);
+				ib += sl;
+				++ic;
 			}
 		}
-		if(i > 0)
-			xdraws(buf, base, ox, y, i);
+		if(ib > 0)
+			xdraws(buf, base, ox, y, ic, ib);
 	}
 	xdrawcursor();
 	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
