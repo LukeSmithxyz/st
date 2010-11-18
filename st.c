@@ -201,6 +201,7 @@ static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
 static void xseturgency(int);
+static void xsetsel(char*);
 static void xresize(int, int);
 
 static void expose(XEvent *);
@@ -213,8 +214,13 @@ static void focus(XEvent *);
 static void brelease(XEvent *);
 static void bpress(XEvent *);
 static void bmotion(XEvent *);
-static void selection_notify(XEvent *);
-static void selection_request(XEvent *);
+static void selnotify(XEvent *);
+static void selrequest(XEvent *);
+
+static void selinit(void);
+static inline int selected(int, int);
+static void selcopy(void);
+static void selpaste(void);
 
 static int stou(char *, long *);
 static int utos(long *, char *);
@@ -232,8 +238,8 @@ static void (*handler[LASTEvent])(XEvent *) = {
 	[MotionNotify] = bmotion,
 	[ButtonPress] = bpress,
 	[ButtonRelease] = brelease,
-	[SelectionNotify] = selection_notify,
-	[SelectionRequest] = selection_request,
+	[SelectionNotify] = selnotify,
+	[SelectionRequest] = selrequest,
 };
 
 /* Globals */
@@ -248,9 +254,7 @@ static char *opt_cmd   = NULL;
 static char *opt_title = NULL;
 
 /* UTF-8 decode */
-static int
-stou(char *s, long *u)
-{
+static int stou(char *s, long *u) {
 	unsigned char c;
 	int i, n, rtn;
 
@@ -289,9 +293,7 @@ invalid:
 }
 
 /* UTF-8 encode */
-static int
-utos(long *u, char *s) 
-{
+static int utos(long *u, char *s) {
 	unsigned char *sp;
 	unsigned long uc;
 	int i, n;
@@ -324,17 +326,12 @@ invalid:
 	return 3;
 }
 
-/*
- * use this if your buffer is less than UTF_SIZ, it returns 1 if you can decode UTF-8
- * otherwise return 0
- */
-static int
-canstou(char *s, int b)
-{
-	unsigned char c;
+/* use this if your buffer is less than UTF_SIZ, it returns 1 if you can decode
+   UTF-8 otherwise return 0 */
+static int canstou(char *s, int b) {
+	unsigned char c = *s;
 	int n;
 
-	c = *s;
 	if (b < 1)
 		return 0;
 	else if (~c&B7)
@@ -358,12 +355,9 @@ canstou(char *s, int b)
 		return 1;
 }
 
-static int
-slen(char *s)
-{
-	unsigned char c;
+static int slen(char *s) {
+	unsigned char c = *s;
 
-	c = *s;
 	if (~c&B7)
 		return 1;
 	else if ((c&(B7|B6|B5)) == (B7|B6))
@@ -374,8 +368,7 @@ slen(char *s)
 		return 4;
 }
 
-void
-selinit(void) {
+static void selinit(void) {
 	sel.mode = 0;
 	sel.bx = -1;
 	sel.clip = NULL;
@@ -409,28 +402,31 @@ static void bpress(XEvent *e) {
 	sel.ey = sel.by = e->xbutton.y/xw.ch;
 }
 
-static char *getseltext() {
+static void selcopy() {
 	char *str, *ptr;
 	int ls, x, y, sz, sl;
+
 	if(sel.bx == -1)
-		return NULL;
-	sz = (term.col+1) * (sel.e.y-sel.b.y+1) * UTF_SIZ;
-	ptr = str = malloc(sz);
-	for(y = 0; y < term.row; y++) {
-		for(x = 0; x < term.col; x++)
-			if(term.line[y][x].state & GLYPH_SET && (ls = selected(x, y))) {
-				sl = slen(term.line[y][x].c);
-				memcpy(ptr, term.line[y][x].c, sl);
-				ptr += sl;
-			}
-		if(ls)
-			*ptr = '\n', ptr++;
+		str = NULL;
+	else {
+		sz = (term.col+1) * (sel.e.y-sel.b.y+1) * UTF_SIZ;
+		ptr = str = malloc(sz);
+		for(y = 0; y < term.row; y++) {
+			for(x = 0; x < term.col; x++)
+				if(term.line[y][x].state & GLYPH_SET && (ls = selected(x, y))) {
+					sl = slen(term.line[y][x].c);
+					memcpy(ptr, term.line[y][x].c, sl);
+					ptr += sl;
+				}
+			if(ls)
+				*ptr = '\n', ptr++;
+		}
+		*ptr = 0;
 	}
-	*ptr = 0;
-	return str;
+	xsetsel(str);
 }
 
-static void selection_notify(XEvent *e) {
+static void selnotify(XEvent *e) {
 	unsigned long nitems;
 	unsigned long ofs, rem;
 	int format;
@@ -456,7 +452,7 @@ static void selpaste() {
 	XConvertSelection(xw.dis, XA_PRIMARY, XA_STRING, XA_PRIMARY, xw.win, CurrentTime);
 }
 
-static void selection_request(XEvent *e)
+static void selrequest(XEvent *e)
 {
 	XSelectionRequestEvent *xsre;
 	XSelectionEvent xev;
@@ -491,7 +487,7 @@ static void selection_request(XEvent *e)
 		fprintf(stderr, "Error sending SelectionNotify event\n");
 }
 
-static void selcopy(char *str) {
+static void xsetsel(char *str) {
 	/* register the selection for both the clipboard and the primary */
 	Atom clipboard;
 
@@ -517,7 +513,7 @@ static void brelease(XEvent *e) {
 			selpaste();
 	} else {
 		if(b==1)
-			selcopy(getseltext());
+			selcopy();
 	}
 	draw(1);
 }
@@ -525,7 +521,7 @@ static void brelease(XEvent *e) {
 static void bmotion(XEvent *e) {
 	if (sel.mode) {
 		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
-		draw(1);
+		//	draw(1);
 	}
 }
 
