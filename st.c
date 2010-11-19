@@ -522,7 +522,9 @@ static void brelease(XEvent *e) {
 static void bmotion(XEvent *e) {
 	if (sel.mode) {
 		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
-		//	draw(1);
+		/* XXX: draw() can't keep up, disabled for now.
+		   selection is visible on button release.
+		   draw(1); */
 	}
 }
 
