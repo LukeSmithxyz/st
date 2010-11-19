@@ -4,6 +4,7 @@ st \- simple terminal
 .SH SYNOPSIS
 .B st
 .RB [ \-e " <cmd>"]
+.RB [ \-c " <class>"]
 .RB [ \-t " <title>"]
 .RB [ \-v ]
 .SH DESCRIPTION
@@ -16,6 +17,9 @@ Execute cmd instead of the shell
 .TP
 .B \-t <title>
 Overrides the default title (st)
+.TP
+.B \-c <class>
+Overrides the default class ($TERM)
 .TP
 .BI \-v
 Prints version information to standard output, then exits.

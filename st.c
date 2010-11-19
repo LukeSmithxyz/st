@@ -31,7 +31,7 @@
 
 #define USAGE \
 	"st-" VERSION ", (c) 2010 st engineers\n" \
-	"usage: st [-t title] [-e cmd] [-v]\n"
+	"usage: st [-t title] [-c class] [-e cmd] [-v]\n"
 
 /* Arbitrary sizes */
 #define ESC_TITLE_SIZ 256
@@ -252,6 +252,7 @@ static pid_t pid;
 static Selection sel;
 static char *opt_cmd   = NULL;
 static char *opt_title = NULL;
+static char *opt_class = NULL;
 
 /* UTF-8 decode */
 static int stou(char *s, long *u) {
@@ -1443,7 +1444,7 @@ xclear(int x1, int y1, int x2, int y2) {
 void
 xhints(void)
 {
-	XClassHint class = {TNAME, TNAME};
+	XClassHint class = {opt_class ? opt_class : TNAME, TNAME};
 	XWMHints wm = {.flags = InputHint, .input = 1};
 	XSizeHints size = {
 		.flags = PSize | PResizeInc | PBaseSize,
@@ -1837,6 +1838,9 @@ main(int argc, char *argv[]) {
 		switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
 		case 't':
 			if(++i < argc) opt_title = argv[i];
+			break;
+		case 'c':
+			if(++i < argc) opt_class = argv[i];
 			break;
 		case 'e':
 			if(++i < argc) opt_cmd = argv[i];
