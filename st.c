@@ -131,20 +131,17 @@ typedef struct {
 	char s[ESC_BUF_SIZ];
 } Key;
 
-typedef struct {
-	XFontSet fs;
-	short lbearing;
-	short rbearing;
-	int ascent;
-	int descent;
-} FontInfo;
-
 /* Drawing Context */
 typedef struct {
 	unsigned long col[256];
-	FontInfo font;
-	FontInfo bfont;
 	GC gc;
+	struct {
+		int ascent;
+		int descent;
+		short lbearing;
+		short rbearing;
+		XFontSet set;
+	} font, bfont;
 } DC;
 
 /* TODO: use better name for vars... */
@@ -222,10 +219,10 @@ static inline int selected(int, int);
 static void selcopy(void);
 static void selpaste(void);
 
-static int stou(char *, long *);
-static int utos(long *, char *);
-static int slen(char *);
-static int canstou(char *, int);
+static int utf8decode(char *, long *);
+static int utf8encode(long *, char *);
+static int utf8size(char *);
+static int isfullutf8(char *, int);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
@@ -254,8 +251,8 @@ static char *opt_cmd   = NULL;
 static char *opt_title = NULL;
 static char *opt_class = NULL;
 
-/* UTF-8 decode */
-static int stou(char *s, long *u) {
+int
+utf8decode(char *s, long *u) {
 	unsigned char c;
 	int i, n, rtn;
 
@@ -264,28 +261,28 @@ static int stou(char *s, long *u) {
 	if(~c&B7) { /* 0xxxxxxx */
 		*u = c;
 		return rtn;
-	} else if ((c&(B7|B6|B5)) == (B7|B6)) { /* 110xxxxx */
+	} else if((c&(B7|B6|B5)) == (B7|B6)) { /* 110xxxxx */
 		*u = c&(B4|B3|B2|B1|B0);
 		n = 1;
-	} else if ((c&(B7|B6|B5|B4)) == (B7|B6|B5)) { /* 1110xxxx */
+	} else if((c&(B7|B6|B5|B4)) == (B7|B6|B5)) { /* 1110xxxx */
 		*u = c&(B3|B2|B1|B0);
 		n = 2;
-	} else if ((c&(B7|B6|B5|B4|B3)) == (B7|B6|B5|B4)) { /* 11110xxx */
+	} else if((c&(B7|B6|B5|B4|B3)) == (B7|B6|B5|B4)) { /* 11110xxx */
 		*u = c&(B2|B1|B0);
 		n = 3;
 	} else
 		goto invalid;
-	for (i=n,++s; i>0; --i,++rtn,++s) {
+	for(i=n,++s; i>0; --i,++rtn,++s) {
 		c = *s;
-		if ((c&(B7|B6)) != B7) /* 10xxxxxx */
+		if((c&(B7|B6)) != B7) /* 10xxxxxx */
 			goto invalid;
 		*u <<= 6;
 		*u |= c&(B5|B4|B3|B2|B1|B0);
 	}
-	if ((n == 1 && *u < 0x80) ||
-	    (n == 2 && *u < 0x800) ||
-	    (n == 3 && *u < 0x10000) ||
-	    (*u >= 0xD800 && *u <= 0xDFFF))
+	if((n == 1 && *u < 0x80) ||
+	   (n == 2 && *u < 0x800) ||
+	   (n == 3 && *u < 0x10000) ||
+	   (*u >= 0xD800 && *u <= 0xDFFF))
 		goto invalid;
 	return rtn;
 invalid:
@@ -293,30 +290,30 @@ invalid:
 	return rtn;
 }
 
-/* UTF-8 encode */
-static int utos(long *u, char *s) {
+int
+utf8encode(long *u, char *s) {
 	unsigned char *sp;
 	unsigned long uc;
 	int i, n;
 
 	sp = (unsigned char*) s;
 	uc = *u;
-	if (uc < 0x80) {
+	if(uc < 0x80) {
 		*sp = uc; /* 0xxxxxxx */
 		return 1;
-	} else if (*u < 0x800) {
+	} else if(*u < 0x800) {
 		*sp = (uc >> 6) | (B7|B6); /* 110xxxxx */
 		n = 1;
-	} else if (uc < 0x10000) {
+	} else if(uc < 0x10000) {
 		*sp = (uc >> 12) | (B7|B6|B5); /* 1110xxxx */
 		n = 2;
-	} else if (uc <= 0x10FFFF) {
+	} else if(uc <= 0x10FFFF) {
 		*sp = (uc >> 18) | (B7|B6|B5|B4); /* 11110xxx */
 		n = 3;
 	} else {
 		goto invalid;
 	}
-	for (i=n,++sp; i>0; --i,++sp)
+	for(i=n,++sp; i>0; --i,++sp)
 		*sp = ((uc >> 6*(i-1)) & (B5|B4|B3|B2|B1|B0)) | B7; /* 10xxxxxx */
 	return n+1;
 invalid:
@@ -329,34 +326,32 @@ invalid:
 
 /* use this if your buffer is less than UTF_SIZ, it returns 1 if you can decode
    UTF-8 otherwise return 0 */
-static int canstou(char *s, int b) {
-	unsigned char c = *s;
-	int n;
+int
+isfullutf8(char *s, int b) {
+	unsigned char *c1, *c2, *c3;
 
-	if (b < 1)
+	c1 = (unsigned char *) s;
+	c2 = (unsigned char *) ++s;
+	c3 = (unsigned char *) ++s;
+	if(b < 1)
 		return 0;
-	else if (~c&B7)
-		return 1;
-	else if ((c&(B7|B6|B5)) == (B7|B6))
-		n = 1;
-	else if ((c&(B7|B6|B5|B4)) == (B7|B6|B5))
-		n = 2;
-	else if ((c&(B7|B6|B5|B4|B3)) == (B7|B6|B5|B4))
-		n = 3;
-	else
-		return 1;
-	for (--b,++s; n>0&&b>0; --n,--b,++s) {
-		c = *s;
-		if ((c&(B7|B6)) != B7)
-			break; 
-	}
-	if (n > 0 && b == 0)
+	else if((*c1&(B7|B6|B5)) == (B7|B6) && b == 1)
+		return 0;
+	else if((*c1&(B7|B6|B5|B4)) == (B7|B6|B5) &&
+	    ((b == 1) || 
+	    ((b == 2) && (*c2&(B7|B6)) == B7)))
+		return 0;
+	else if((*c1&(B7|B6|B5|B4|B3)) == (B7|B6|B5|B4) &&
+	    ((b == 1) ||
+	    ((b == 2) && (*c2&(B7|B6)) == B7) ||
+	    ((b == 3) && (*c2&(B7|B6)) == B7 && (*c3&(B7|B6)) == B7)))
 		return 0;
 	else
 		return 1;
 }
 
-static int slen(char *s) {
+int
+utf8size(char *s) {
 	unsigned char c = *s;
 
 	if (~c&B7)
@@ -369,13 +364,15 @@ static int slen(char *s) {
 		return 4;
 }
 
-static void selinit(void) {
+void
+selinit(void) {
 	sel.mode = 0;
 	sel.bx = -1;
 	sel.clip = NULL;
 }
 
-static inline int selected(int x, int y) {
+static inline int 
+selected(int x, int y) {
 	if(sel.ey == y && sel.by == y) {
 		int bx = MIN(sel.bx, sel.ex);
 		int ex = MAX(sel.bx, sel.ex);
@@ -385,7 +382,8 @@ static inline int selected(int x, int y) {
 		|| (y==sel.b.y && x>=sel.b.x && (x<=sel.e.x || sel.b.y!=sel.e.y));
 }
 
-static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
+void
+getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 	if(b) 
 		*b = e->xbutton.button;
 
@@ -397,13 +395,15 @@ static void getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 	sel.e.y = MAX(sel.by, sel.ey);
 }
 
-static void bpress(XEvent *e) {
+void
+bpress(XEvent *e) {
 	sel.mode = 1;
 	sel.ex = sel.bx = e->xbutton.x/xw.cw;
 	sel.ey = sel.by = e->xbutton.y/xw.ch;
 }
 
-static void selcopy() {
+void
+selcopy(void) {
 	char *str, *ptr;
 	int ls, x, y, sz, sl;
 
@@ -415,7 +415,7 @@ static void selcopy() {
 		for(y = 0; y < term.row; y++) {
 			for(x = 0; x < term.col; x++)
 				if(term.line[y][x].state & GLYPH_SET && (ls = selected(x, y))) {
-					sl = slen(term.line[y][x].c);
+					sl = utf8size(term.line[y][x].c);
 					memcpy(ptr, term.line[y][x].c, sl);
 					ptr += sl;
 				}
@@ -427,7 +427,8 @@ static void selcopy() {
 	xsetsel(str);
 }
 
-static void selnotify(XEvent *e) {
+void
+selnotify(XEvent *e) {
 	unsigned long nitems;
 	unsigned long ofs, rem;
 	int format;
@@ -449,12 +450,13 @@ static void selnotify(XEvent *e) {
 	} while(rem > 0);
 }
 
-static void selpaste() {
+void
+selpaste() {
 	XConvertSelection(xw.dis, XA_PRIMARY, XA_STRING, XA_PRIMARY, xw.win, CurrentTime);
 }
 
-static void selrequest(XEvent *e)
-{
+void
+selrequest(XEvent *e) {
 	XSelectionRequestEvent *xsre;
 	XSelectionEvent xev;
 	Atom xa_targets;
@@ -488,7 +490,8 @@ static void selrequest(XEvent *e)
 		fprintf(stderr, "Error sending SelectionNotify event\n");
 }
 
-static void xsetsel(char *str) {
+void
+xsetsel(char *str) {
 	/* register the selection for both the clipboard and the primary */
 	Atom clipboard;
 
@@ -504,7 +507,8 @@ static void xsetsel(char *str) {
 }
 
 /* TODO: doubleclick to select word */
-static void brelease(XEvent *e) {
+void
+brelease(XEvent *e) {
 	int b;
 	sel.mode = 0;
 	getbuttoninfo(e, &b, &sel.ex, &sel.ey);
@@ -519,7 +523,8 @@ static void brelease(XEvent *e) {
 	draw(1);
 }
 
-static void bmotion(XEvent *e) {
+void
+bmotion(XEvent *e) {
 	if (sel.mode) {
 		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
 		/* XXX: draw() can't keep up, disabled for now.
@@ -527,26 +532,6 @@ static void bmotion(XEvent *e) {
 		   draw(1); */
 	}
 }
-
-#ifdef DEBUG
-void
-tdump(void) {
-	int row, col;
-	Glyph c;
-
-	for(row = 0; row < term.row; row++) {
-		for(col = 0; col < term.col; col++) {
-			if(col == term.c.x && row == term.c.y)
-				putchar('#');
-			else {
-				c = term.line[row][col];
-				putchar(c.state & GLYPH_SET ? c.c : '.');
-			}
-		}
-		putchar('\n');
-	}
-}
-#endif
 
 void
 die(const char *errstr, ...) {
@@ -631,9 +616,9 @@ ttyread(void) {
 		die("Couldn't read from shell: %s\n", SERRNO);
 	else {
 		buflen += ret;
-		for(ptr=buf; buflen>=UTF_SIZ||canstou(ptr,buflen); buflen-=br) {
-			br = stou(ptr, &u);
-			utos(&u, s);
+		for(ptr=buf; buflen>=UTF_SIZ||isfullutf8(ptr,buflen); buflen-=br) {
+			br = utf8decode(ptr, &u);
+			utf8encode(&u, s);
 			tputc(s);
 			ptr += br;
 		}
@@ -1460,49 +1445,63 @@ xhints(void)
 	XSetWMProperties(xw.dis, xw.win, NULL, NULL, NULL, 0, &size, &wm, &class);
 }
 
+XFontSet
+xinitfont(char *fontstr)
+{
+	XFontSet set;
+	char *def, **missing;
+	int n;
+
+	missing = NULL;
+	set = XCreateFontSet(xw.dis, fontstr, &missing, &n, &def);
+	if(missing) {
+		while(n--)
+			fprintf(stderr, "st: missing fontset: %s\n", missing[n]);
+		XFreeStringList(missing);
+	}
+	return set;
+}
+
 void
-xsetfontinfo(FontInfo *fi)
+xgetfontinfo(XFontSet set, int *ascent, int *descent, short *lbearing, short *rbearing)
 {
 	XFontStruct **xfonts;
-	int fnum;
-	int i;
-	char **fontnames;
+	char **font_names;
+	int i, n;
 
-	fi->lbearing = 0;
-	fi->rbearing = 0;
-	fi->ascent = 0;
-	fi->descent = 0;
-	fnum = XFontsOfFontSet(fi->fs, &xfonts, &fontnames);
-	for(i=0; i<fnum; i++,xfonts++,fontnames++) {
-		puts(*fontnames);
-		if(fi->ascent < (*xfonts)->ascent)
-			fi->ascent = (*xfonts)->ascent;
-		if(fi->descent < (*xfonts)->descent)
-			fi->descent = (*xfonts)->descent;
-		if(fi->rbearing < (*xfonts)->max_bounds.rbearing)
-			fi->rbearing = (*xfonts)->max_bounds.rbearing;
-		if(fi->lbearing < (*xfonts)->min_bounds.lbearing)
-			fi->lbearing = (*xfonts)->min_bounds.lbearing;
+	*ascent = *descent = *lbearing = *rbearing = 0;
+	n = XFontsOfFontSet(set, &xfonts, &font_names);
+	for(i = 0; i < n; i++) {
+		*ascent = MAX(*ascent, (*xfonts)->ascent);
+		*descent = MAX(*descent, (*xfonts)->descent);
+		*lbearing = MAX(*lbearing, (*xfonts)->min_bounds.lbearing);
+		*rbearing = MAX(*rbearing, (*xfonts)->max_bounds.rbearing);
+		xfonts++;
 	}
+}
+
+void
+initfonts(char *fontstr, char *bfontstr)
+{
+	if((dc.font.set = xinitfont(fontstr)) == NULL ||
+	   (dc.bfont.set = xinitfont(bfontstr)) == NULL)
+		die("Can't load font %s\n", dc.font.set ? BOLDFONT : FONT);
+	xgetfontinfo(dc.font.set, &dc.font.ascent, &dc.font.descent,
+	    &dc.font.lbearing, &dc.font.rbearing);
+	xgetfontinfo(dc.bfont.set, &dc.bfont.ascent, &dc.bfont.descent,
+	    &dc.bfont.lbearing, &dc.bfont.rbearing);
 }
 
 void
 xinit(void) {
 	XSetWindowAttributes attrs;
-	char **mc;
-	char *ds;
-	int nmc;
 
 	if(!(xw.dis = XOpenDisplay(NULL)))
 		die("Can't open display\n");
 	xw.scr = XDefaultScreen(xw.dis);
 	
 	/* font */
-	if ((dc.font.fs = XCreateFontSet(xw.dis, FONT, &mc, &nmc, &ds)) == NULL ||
-	    (dc.bfont.fs = XCreateFontSet(xw.dis, BOLDFONT, &mc, &nmc, &ds)) == NULL)
-		die("Can't load font %s\n", dc.font.fs ? BOLDFONT : FONT); 
-	xsetfontinfo(&dc.font);
-	xsetfontinfo(&dc.bfont);
+	initfonts(FONT, BOLDFONT);
 
 	/* XXX: Assuming same size for bold font */
  	xw.cw = dc.font.rbearing - dc.font.lbearing;
@@ -1550,9 +1549,9 @@ xinit(void) {
 }
 
 void
-xdraws(char *s, Glyph base, int x, int y, int cl, int sl) {
+xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	unsigned long xfg, xbg;
-	int winx = x*xw.cw, winy = y*xw.ch + dc.font.ascent, width = cl*xw.cw;
+	int winx = x*xw.cw, winy = y*xw.ch + dc.font.ascent, width = charlen*xw.cw;
 	int i;
 
 	if(base.mode & ATTR_REVERSE)
@@ -1564,7 +1563,7 @@ xdraws(char *s, Glyph base, int x, int y, int cl, int sl) {
 	XSetForeground(xw.dis, dc.gc, xfg);
 
 	if(base.mode & ATTR_GFX)
-		for(i = 0; i < cl; i++) {
+		for(i = 0; i < bytelen; i++) {
 			char c = gfx[(unsigned int)s[i] % 256];
 			if(c)
 				s[i] = c;
@@ -1572,8 +1571,8 @@ xdraws(char *s, Glyph base, int x, int y, int cl, int sl) {
 				s[i] -= 0x5f;
 		}
 
-	XmbDrawImageString(xw.dis, xw.buf, base.mode & ATTR_BOLD ? dc.bfont.fs : dc.font.fs,
-	    dc.gc, winx, winy, s, sl);
+	XmbDrawImageString(xw.dis, xw.buf, base.mode & ATTR_BOLD ? dc.bfont.set : dc.font.set,
+	    dc.gc, winx, winy, s, bytelen);
 	
 	if(base.mode & ATTR_UNDERLINE)
 		XDrawLine(xw.dis, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
@@ -1594,14 +1593,14 @@ xdrawcursor(void) {
 
 	/* remove the old cursor */
 	if(term.line[oldy][oldx].state & GLYPH_SET) {
-		sl = slen(term.line[oldy][oldx].c);
+		sl = utf8size(term.line[oldy][oldx].c);
 		xdraws(term.line[oldy][oldx].c, term.line[oldy][oldx], oldx, oldy, 1, sl);
 	} else
 		xclear(oldx, oldy, oldx, oldy);
 	
 	/* draw the new one */
 	if(!(term.c.state & CURSOR_HIDE) && (xw.state & WIN_FOCUSED)) {
-		sl = slen(g.c);
+		sl = utf8size(g.c);
 		xdraws(g.c, g, term.c.x, term.c.y, 1, sl);
 		oldx = term.c.x, oldy = term.c.y;
 	}
@@ -1611,7 +1610,7 @@ xdrawcursor(void) {
 /* basic drawing routines */
 void
 xdrawc(int x, int y, Glyph g) {
-	int sl = slen(g.c);
+	int sl = utf8size(g.c);
 	XRectangle r = { x * xw.cw, y * xw.ch, xw.cw, xw.ch };
 	XSetBackground(xw.dis, dc.gc, dc.col[g.bg]);
 	XSetForeground(xw.dis, dc.gc, dc.col[g.fg]);
@@ -1663,7 +1662,7 @@ draw(int redraw_all) {
 					ox = x;
 					base = new;
 				}
-				sl = slen(new.c);
+				sl = utf8size(new.c);
 				memcpy(buf+ib, new.c, sl);
 				ib += sl;
 				++ic;
