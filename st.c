@@ -23,7 +23,7 @@
 
 #if   defined(__linux)
  #include <pty.h>
-#elif defined(__OpenBSD__) || defined(__NetBSD__)
+#elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
  #include <util.h>
 #elif defined(__FreeBSD__) || defined(__DragonFly__)
  #include <libutil.h>
@@ -405,7 +405,7 @@ bpress(XEvent *e) {
 void
 selcopy(void) {
 	char *str, *ptr;
-	int ls, x, y, sz, sl;
+	int x, y, sz, sl, ls = 0;
 
 	if(sel.bx == -1)
 		str = NULL;
