@@ -110,7 +110,7 @@ typedef struct {
 
 /* Purely graphic info */
 typedef struct {
-	Display* dis;
+	Display* dpy;
 	Colormap cmap;
 	Window win;
 	Pixmap buf;
@@ -437,7 +437,7 @@ selnotify(XEvent *e) {
 
 	ofs = 0;
 	do {
-		if(XGetWindowProperty(xw.dis, xw.win, XA_PRIMARY, ofs, BUFSIZ/4,
+		if(XGetWindowProperty(xw.dpy, xw.win, XA_PRIMARY, ofs, BUFSIZ/4,
 					False, AnyPropertyType, &type, &format,
 					&nitems, &rem, &data)) {
 			fprintf(stderr, "Clipboard allocation failed\n");
@@ -452,7 +452,7 @@ selnotify(XEvent *e) {
 
 void
 selpaste() {
-	XConvertSelection(xw.dis, XA_PRIMARY, XA_STRING, XA_PRIMARY, xw.win, CurrentTime);
+	XConvertSelection(xw.dpy, XA_PRIMARY, XA_STRING, XA_PRIMARY, xw.win, CurrentTime);
 }
 
 void
@@ -470,7 +470,7 @@ selrequest(XEvent *e) {
 	/* reject */
 	xev.property = None;
 
-	xa_targets = XInternAtom(xw.dis, "TARGETS", 0);
+	xa_targets = XInternAtom(xw.dpy, "TARGETS", 0);
 	if(xsre->target == xa_targets) {
 		/* respond with the supported type */
 		Atom string = XA_STRING;
@@ -498,12 +498,12 @@ xsetsel(char *str) {
 	free(sel.clip);
 	sel.clip = str;
 
-	XSetSelectionOwner(xw.dis, XA_PRIMARY, xw.win, CurrentTime);
+	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, CurrentTime);
 
-	clipboard = XInternAtom(xw.dis, "CLIPBOARD", 0);
-	XSetSelectionOwner(xw.dis, clipboard, xw.win, CurrentTime);
+	clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
+	XSetSelectionOwner(xw.dpy, clipboard, xw.win, CurrentTime);
 
-	XFlush(xw.dis);
+	XFlush(xw.dpy);
 }
 
 /* TODO: doubleclick to select word */
@@ -1185,7 +1185,7 @@ tputc(char *c) {
 			if(ascii == '\a' || term.titlelen+1 >= ESC_TITLE_SIZ) {
 				term.esc = 0;
 				term.title[term.titlelen] = '\0';
-				XStoreName(xw.dis, xw.win, term.title);
+				XStoreName(xw.dpy, xw.win, term.title);
 			} else {
 				term.title[term.titlelen++] = ascii;
 			}
@@ -1360,22 +1360,22 @@ xresize(int col, int row) {
 	oldh = xw.bufh;
 	xw.bufw = MAX(1, col * xw.cw);
 	xw.bufh = MAX(1, row * xw.ch);
-	newbuf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
-	XCopyArea(xw.dis, xw.buf, newbuf, dc.gc, 0, 0, xw.bufw, xw.bufh, 0, 0);
-	XFreePixmap(xw.dis, xw.buf);
-	XSetForeground(xw.dis, dc.gc, dc.col[DefaultBG]);
+	newbuf = XCreatePixmap(xw.dpy, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dpy, xw.scr));
+	XCopyArea(xw.dpy, xw.buf, newbuf, dc.gc, 0, 0, xw.bufw, xw.bufh, 0, 0);
+	XFreePixmap(xw.dpy, xw.buf);
+	XSetForeground(xw.dpy, dc.gc, dc.col[DefaultBG]);
 	if(xw.bufw > oldw)
-		XFillRectangle(xw.dis, newbuf, dc.gc, oldw, 0,
+		XFillRectangle(xw.dpy, newbuf, dc.gc, oldw, 0,
 				xw.bufw-oldw, MIN(xw.bufh, oldh));
 	else if(xw.bufw < oldw && (BORDER > 0 || xw.w > xw.bufw))
-		XClearArea(xw.dis, xw.win, BORDER+xw.bufw, BORDER,
+		XClearArea(xw.dpy, xw.win, BORDER+xw.bufw, BORDER,
 				xw.w-xw.bufh-BORDER, BORDER+MIN(xw.bufh, oldh),
 				False);
 	if(xw.bufh > oldh)
-		XFillRectangle(xw.dis, newbuf, dc.gc, 0, oldh,
+		XFillRectangle(xw.dpy, newbuf, dc.gc, 0, oldh,
 				xw.bufw, xw.bufh-oldh);
 	else if(xw.bufh < oldh && (BORDER > 0 || xw.h > xw.bufh))
-		XClearArea(xw.dis, xw.win, BORDER, BORDER+xw.bufh,
+		XClearArea(xw.dpy, xw.win, BORDER, BORDER+xw.bufh,
 				xw.w-2*BORDER, xw.h-xw.bufh-BORDER,
 				False);
 	xw.buf = newbuf;
@@ -1385,10 +1385,10 @@ void
 xloadcols(void) {
 	int i, r, g, b;
 	XColor color;
-	unsigned long white = WhitePixel(xw.dis, xw.scr);
+	unsigned long white = WhitePixel(xw.dpy, xw.scr);
 
 	for(i = 0; i < 16; i++) {
-		if (!XAllocNamedColor(xw.dis, xw.cmap, colorname[i], &color, &color)) {
+		if (!XAllocNamedColor(xw.dpy, xw.cmap, colorname[i], &color, &color)) {
 			dc.col[i] = white;
 			fprintf(stderr, "Could not allocate color '%s'\n", colorname[i]);
 		} else
@@ -1402,7 +1402,7 @@ xloadcols(void) {
 				color.red = r == 0 ? 0 : 0x3737 + 0x2828 * r;
 				color.green = g == 0 ? 0 : 0x3737 + 0x2828 * g;
 				color.blue = b == 0 ? 0 : 0x3737 + 0x2828 * b;
-				if (!XAllocColor(xw.dis, xw.cmap, &color)) {
+				if (!XAllocColor(xw.dpy, xw.cmap, &color)) {
 					dc.col[i] = white;
 					fprintf(stderr, "Could not allocate color %d\n", i);
 				} else
@@ -1412,7 +1412,7 @@ xloadcols(void) {
 
 	for(r = 0; r < 24; r++, i++) {
 		color.red = color.green = color.blue = 0x0808 + 0x0a0a * r;
-		if (!XAllocColor(xw.dis, xw.cmap, &color)) {
+		if (!XAllocColor(xw.dpy, xw.cmap, &color)) {
 			dc.col[i] = white;
 			fprintf(stderr, "Could not allocate color %d\n", i);
 		} else
@@ -1422,8 +1422,8 @@ xloadcols(void) {
 
 void
 xclear(int x1, int y1, int x2, int y2) {
-	XSetForeground(xw.dis, dc.gc, dc.col[DefaultBG]);
-	XFillRectangle(xw.dis, xw.buf, dc.gc,
+	XSetForeground(xw.dpy, dc.gc, dc.col[DefaultBG]);
+	XFillRectangle(xw.dpy, xw.buf, dc.gc,
 	               x1 * xw.cw, y1 * xw.ch,
 	               (x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch);
 }
@@ -1442,7 +1442,7 @@ xhints(void)
 		.base_height = 2*BORDER,
 		.base_width = 2*BORDER,
 	};
-	XSetWMProperties(xw.dis, xw.win, NULL, NULL, NULL, 0, &size, &wm, &class);
+	XSetWMProperties(xw.dpy, xw.win, NULL, NULL, NULL, 0, &size, &wm, &class);
 }
 
 XFontSet
@@ -1453,7 +1453,7 @@ xinitfont(char *fontstr)
 	int n;
 
 	missing = NULL;
-	set = XCreateFontSet(xw.dis, fontstr, &missing, &n, &def);
+	set = XCreateFontSet(xw.dpy, fontstr, &missing, &n, &def);
 	if(missing) {
 		while(n--)
 			fprintf(stderr, "st: missing fontset: %s\n", missing[n]);
@@ -1496,9 +1496,9 @@ void
 xinit(void) {
 	XSetWindowAttributes attrs;
 
-	if(!(xw.dis = XOpenDisplay(NULL)))
+	if(!(xw.dpy = XOpenDisplay(NULL)))
 		die("Can't open display\n");
-	xw.scr = XDefaultScreen(xw.dis);
+	xw.scr = XDefaultScreen(xw.dpy);
 	
 	/* font */
 	initfonts(FONT, BOLDFONT);
@@ -1508,7 +1508,7 @@ xinit(void) {
 	xw.ch = dc.font.ascent + dc.font.descent;
 
 	/* colors */
-	xw.cmap = XDefaultColormap(xw.dis, xw.scr);
+	xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
 	xloadcols();
 
 	/* window - default size */
@@ -1525,27 +1525,27 @@ xinit(void) {
 		| PointerMotionMask | ButtonPressMask | ButtonReleaseMask;
 	attrs.colormap = xw.cmap;
 
-	xw.win = XCreateWindow(xw.dis, XRootWindow(xw.dis, xw.scr), 0, 0,
-			xw.w, xw.h, 0, XDefaultDepth(xw.dis, xw.scr), InputOutput,
-			XDefaultVisual(xw.dis, xw.scr),
+	xw.win = XCreateWindow(xw.dpy, XRootWindow(xw.dpy, xw.scr), 0, 0,
+			xw.w, xw.h, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
+			XDefaultVisual(xw.dpy, xw.scr),
 			CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask
 			| CWColormap,
 			&attrs);
-	xw.buf = XCreatePixmap(xw.dis, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dis, xw.scr));
+	xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dpy, xw.scr));
 
 
 	/* input methods */
-	xw.xim = XOpenIM(xw.dis, NULL, NULL, NULL);
+	xw.xim = XOpenIM(xw.dpy, NULL, NULL, NULL);
 	xw.xic = XCreateIC(xw.xim, XNInputStyle, XIMPreeditNothing 
 					   | XIMStatusNothing, XNClientWindow, xw.win, 
 					   XNFocusWindow, xw.win, NULL);
 	/* gc */
-	dc.gc = XCreateGC(xw.dis, xw.win, 0, NULL);
+	dc.gc = XCreateGC(xw.dpy, xw.win, 0, NULL);
 	
-	XMapWindow(xw.dis, xw.win);
+	XMapWindow(xw.dpy, xw.win);
 	xhints();
-	XStoreName(xw.dis, xw.win, opt_title ? opt_title : "st");
-	XSync(xw.dis, 0);
+	XStoreName(xw.dpy, xw.win, opt_title ? opt_title : "st");
+	XSync(xw.dpy, 0);
 }
 
 void
@@ -1559,10 +1559,10 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	else
 		xfg = dc.col[base.fg], xbg = dc.col[base.bg];
 
-	XSetBackground(xw.dis, dc.gc, xbg);
-	XSetForeground(xw.dis, dc.gc, xfg);
+	XSetBackground(xw.dpy, dc.gc, xbg);
+	XSetForeground(xw.dpy, dc.gc, xfg);
 
-	if(base.mode & ATTR_GFX)
+	if(base.mode & ATTR_GFX) {
 		for(i = 0; i < bytelen; i++) {
 			char c = gfx[(unsigned int)s[i] % 256];
 			if(c)
@@ -1570,12 +1570,13 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			else if(s[i] > 0x5f)
 				s[i] -= 0x5f;
 		}
+	}
 
-	XmbDrawImageString(xw.dis, xw.buf, base.mode & ATTR_BOLD ? dc.bfont.set : dc.font.set,
+	XmbDrawImageString(xw.dpy, xw.buf, base.mode & ATTR_BOLD ? dc.bfont.set : dc.font.set,
 	    dc.gc, winx, winy, s, bytelen);
 	
 	if(base.mode & ATTR_UNDERLINE)
-		XDrawLine(xw.dis, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
+		XDrawLine(xw.dpy, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
 }
 
 void
@@ -1612,9 +1613,9 @@ void
 xdrawc(int x, int y, Glyph g) {
 	int sl = utf8size(g.c);
 	XRectangle r = { x * xw.cw, y * xw.ch, xw.cw, xw.ch };
-	XSetBackground(xw.dis, dc.gc, dc.col[g.bg]);
-	XSetForeground(xw.dis, dc.gc, dc.col[g.fg]);
-	XmbDrawImageString(xw.dis, xw.buf, g.mode&ATTR_BOLD?dc.bfont.fs:dc.font.fs,
+	XSetBackground(xw.dpy, dc.gc, dc.col[g.bg]);
+	XSetForeground(xw.dpy, dc.gc, dc.col[g.fg]);
+	XmbDrawImageString(xw.dpy, xw.buf, g.mode&ATTR_BOLD?dc.bfont.fs:dc.font.fs,
 	    dc.gc, r.x, r.y+dc.font.ascent, g.c, sl);
 }
 
@@ -1629,8 +1630,8 @@ draw(int dummy) {
 				xdrawc(x, y, term.line[y][x]);
 
 	xdrawcursor();
-	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
-	XFlush(xw.dis);
+	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
+	XFlush(xw.dpy);
 }
 
 #else
@@ -1672,7 +1673,7 @@ draw(int redraw_all) {
 			xdraws(buf, base, ox, y, ic, ib);
 	}
 	xdrawcursor();
-	XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
+	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 }
 
 #endif
@@ -1686,7 +1687,7 @@ expose(XEvent *ev) {
 			draw(SCREEN_REDRAW);
 		}
 	} else
-		XCopyArea(xw.dis, xw.buf, xw.win, dc.gc, e->x-BORDER, e->y-BORDER,
+		XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, e->x-BORDER, e->y-BORDER,
 				e->width, e->height, e->x, e->y);
 }
 
@@ -1707,9 +1708,9 @@ unmap(XEvent *ev) {
 
 void
 xseturgency(int add) {
-	XWMHints *h = XGetWMHints(xw.dis, xw.win);
+	XWMHints *h = XGetWMHints(xw.dpy, xw.win);
 	h->flags = add ? (h->flags | XUrgencyHint) : (h->flags & ~XUrgencyHint);
-	XSetWMHints(xw.dis, xw.win, h);
+	XSetWMHints(xw.dpy, xw.win, h);
 	XFree(h);
 }
 
@@ -1806,7 +1807,7 @@ void
 run(void) {
 	XEvent ev;
 	fd_set rfd;
-	int xfd = XConnectionNumber(xw.dis);
+	int xfd = XConnectionNumber(xw.dpy);
 
 	for(;;) {
 		FD_ZERO(&rfd);
@@ -1821,8 +1822,8 @@ run(void) {
 			ttyread();
 			draw(SCREEN_UPDATE); 
 		}
-		while(XPending(xw.dis)) {
-			XNextEvent(xw.dis, &ev);
+		while(XPending(xw.dpy)) {
+			XNextEvent(xw.dpy, &ev);
 			if (XFilterEvent(&ev, xw.win))
 				continue;
 			if(handler[ev.type])
