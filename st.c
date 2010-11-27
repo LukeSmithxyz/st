@@ -606,24 +606,31 @@ dump(char c) {
 
 void
 ttyread(void) {
-	char buf[BUFSIZ], *ptr;
+	static char buf[BUFSIZ];
+	static int buflen = 0; 
+	char *ptr;
 	char s[UTF_SIZ];
-	int ret, br;
-	static int buflen = 0;
-	long u;
+	int charsize; /* size of utf8 char in bytes */
+	long utf8c;
+	int ret;
 
+	/* append read bytes to unprocessed bytes */
 	if((ret = read(cmdfd, buf+buflen, LEN(buf)-buflen)) < 0)
 		die("Couldn't read from shell: %s\n", SERRNO);
-	else {
-		buflen += ret;
-		for(ptr=buf; buflen>=UTF_SIZ||isfullutf8(ptr,buflen); buflen-=br) {
-			br = utf8decode(ptr, &u);
-			utf8encode(&u, s);
-			tputc(s);
-			ptr += br;
-		}
-		memcpy(buf, ptr, buflen);
+
+	/* process every complete utf8 char */
+	buflen += ret;
+	ptr = buf;
+	while(buflen >= UTF_SIZ || isfullutf8(ptr,buflen)) {
+		charsize = utf8decode(ptr, &utf8c);
+		utf8encode(&utf8c, s);
+		tputc(s);
+		ptr    += charsize;
+		buflen -= charsize;
 	}
+
+	/* keep any uncomplete utf8 char for the next call */
+	memcpy(buf, ptr, buflen);
 }
 
 void
@@ -1774,7 +1781,6 @@ kpress(XEvent *ev) {
 			/* 3. X lookup  */
 		default:
 			if(len > 0) {
-				buf[sizeof(buf)-1] = '\0';
 				if(meta && len == 1)
 					ttywrite("\033", 1);
 				ttywrite(buf, len);
