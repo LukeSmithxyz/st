@@ -545,11 +545,15 @@ die(const char *errstr, ...) {
 
 void
 execsh(void) {
-	char *args[] = {getenv("SHELL"), "-i", NULL};
+	char **args;
+	char *envshell = getenv("SHELL");
+	DEFAULT(envshell, "sh");
+
 	if(opt_cmd)
-		args[0] = opt_cmd, args[1] = NULL;
+		args = (char*[]){"sh", "-c", opt_cmd, NULL};
 	else
-		DEFAULT(args[0], SHELL);
+		args = (char*[]){envshell, "-i", NULL};
+	
 	putenv("TERM="TNAME);
 	execvp(args[0], args);
 }
