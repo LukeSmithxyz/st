@@ -630,7 +630,7 @@ ttyread(void) {
 	}
 
 	/* keep any uncomplete utf8 char for the next call */
-	memcpy(buf, ptr, buflen);
+	memmove(buf, ptr, buflen);
 }
 
 void
