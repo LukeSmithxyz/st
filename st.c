@@ -247,7 +247,7 @@ static CSIEscape escseq;
 static int cmdfd;
 static pid_t pid;
 static Selection sel;
-static char *opt_cmd   = NULL;
+static char **opt_cmd  = NULL;
 static char *opt_title = NULL;
 static char *opt_class = NULL;
 
@@ -547,15 +547,12 @@ void
 execsh(void) {
 	char **args;
 	char *envshell = getenv("SHELL");
-	DEFAULT(envshell, "sh");
 
-	if(opt_cmd)
-		args = (char*[]){"sh", "-c", opt_cmd, NULL};
-	else
-		args = (char*[]){envshell, "-i", NULL};
-	
+	DEFAULT(envshell, "sh");
 	putenv("TERM="TNAME);
+	args = opt_cmd ? opt_cmd : (char*[]){envshell, "-i", NULL};
 	execvp(args[0], args);
+	exit(EXIT_FAILURE);
 }
 
 void 
@@ -1855,12 +1852,15 @@ main(int argc, char *argv[]) {
 			if(++i < argc) opt_class = argv[i];
 			break;
 		case 'e':
-			if(++i < argc) opt_cmd = argv[i];
+			if(++i < argc) opt_cmd = &argv[i];
 			break;
 		case 'v':
 		default:
 			die(USAGE);
 		}
+		/* -e eats every remaining arguments */
+		if(opt_cmd)
+			break;
 	}
 	setlocale(LC_CTYPE, "");
 	tnew(80, 24);

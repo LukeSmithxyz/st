@@ -3,23 +3,30 @@
 st \- simple terminal
 .SH SYNOPSIS
 .B st
-.RB [ \-e " <cmd>"]
-.RB [ \-c " <class>"]
-.RB [ \-t " <title>"]
+.RB [ \-c
+.IR class ]
+.RB [ \-t 
+.IR title ]
 .RB [ \-v ]
+.RB [ \-e
+.IR cmd ]
 .SH DESCRIPTION
 .B st
 is a simple terminal emulator.
 .SH OPTIONS
 .TP
-.B \-e <cmd>
-Execute cmd instead of the shell
-.TP
-.B \-t <title>
+.B \-t title
 Overrides the default title (st)
 .TP
-.B \-c <class>
+.B \-c class
 Overrides the default class ($TERM)
 .TP
-.BI \-v
+.B \-v
 Prints version information to standard output, then exits.
+.TP
+.B \-e cmd [arguments]
+Execute cmd instead of the shell. Type your command as you would on your
+shell. If this option is used, it
+.BI "must be the last"
+on the command-line. This is the same behaviour as xterm/rxvt.
+
