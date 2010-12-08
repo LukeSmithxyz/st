@@ -81,6 +81,7 @@ st| simpleterm,
 	smul=\E[4m,
 	tbc=\E[2g,
 	ul,
+	xenl,
 
 st-256color| simpleterm with 256 colors,
 	colors#256,
