@@ -16,10 +16,11 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <X11/Xlib.h>
 #include <X11/Xatom.h>
-#include <X11/keysym.h>
+#include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/cursorfont.h>
+#include <X11/keysym.h>
 
 #if   defined(__linux)
  #include <pty.h>
@@ -1503,6 +1504,7 @@ initfonts(char *fontstr, char *bfontstr)
 void
 xinit(void) {
 	XSetWindowAttributes attrs;
+	Cursor cursor;
 
 	if(!(xw.dpy = XOpenDisplay(NULL)))
 		die("Can't open display\n");
@@ -1550,6 +1552,13 @@ xinit(void) {
 	/* gc */
 	dc.gc = XCreateGC(xw.dpy, xw.win, 0, NULL);
 	
+	/* white cursor, black outline */
+	cursor = XCreateFontCursor(xw.dpy, XC_xterm);
+	XDefineCursor(xw.dpy, xw.win, cursor);
+	XRecolorCursor(xw.dpy, cursor, 
+		&(XColor){.red = 0xffff, .green = 0xffff, .blue = 0xffff},
+		&(XColor){.red = 0x0000, .green = 0x0000, .blue = 0x0000});
+
 	XMapWindow(xw.dpy, xw.win);
 	xhints();
 	XStoreName(xw.dpy, xw.win, opt_title ? opt_title : "st");
