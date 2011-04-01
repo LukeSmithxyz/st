@@ -935,7 +935,7 @@ csihandle(void) {
 	switch(escseq.mode) {
 	default:
 	unknown:
-		printf("erresc: unknown csi ");
+		fprintf(stderr, "erresc: unknown csi ");
 		csidump();
 		/* die(""); */
 		break;
@@ -1207,7 +1207,7 @@ tputc(char *c) {
 				term.c.attr.mode &= ~ATTR_GFX;
 				break;
 			default:
-				printf("esc unhandled charset: ESC ( %c\n", ascii);
+				fprintf(stderr, "esc unhandled charset: ESC ( %c\n", ascii);
 			}
 			term.esc = 0;
 		} else {
