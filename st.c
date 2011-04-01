@@ -420,8 +420,8 @@ selcopy(void) {
 					memcpy(ptr, term.line[y][x].c, sl);
 					ptr += sl;
 				}
-			if(ls)
-				*ptr = '\n', ptr++;
+			if(ls && y < sel.e.y)
+				*ptr++ = '\n';
 		}
 		*ptr = 0;
 	}
