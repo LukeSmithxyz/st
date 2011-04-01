@@ -1794,8 +1794,7 @@ kpress(XEvent *ev) {
 				if(meta && len == 1)
 					ttywrite("\033", 1);
 				ttywrite(buf, len);
-			} else /* 4. nothing to send */
-				fprintf(stderr, "errkey: %d\n", (int)ksym);
+			}
 			break;
 		}
 }
