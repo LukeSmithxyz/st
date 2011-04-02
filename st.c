@@ -32,7 +32,7 @@
 
 #define USAGE \
 	"st-" VERSION ", (c) 2010 st engineers\n" \
-	"usage: st [-t title] [-c class] [-e cmd] [-v]\n"
+	"usage: st [-t title] [-c class] [-v] [-e cmd]\n"
 
 /* Arbitrary sizes */
 #define ESC_TITLE_SIZ 256
@@ -152,6 +152,7 @@ typedef struct {
 	int ex, ey;
 	struct {int x, y;}  b, e;
 	char *clip;
+	Atom xtarget;
 } Selection;
 
 #include "config.h"
@@ -370,6 +371,9 @@ selinit(void) {
 	sel.mode = 0;
 	sel.bx = -1;
 	sel.clip = NULL;
+	sel.xtarget = XInternAtom(xw.dpy, "UTF8_STRING", 0);
+	if(sel.xtarget == None)
+		sel.xtarget = XA_STRING;
 }
 
 static inline int 
@@ -453,7 +457,7 @@ selnotify(XEvent *e) {
 
 void
 selpaste() {
-	XConvertSelection(xw.dpy, XA_PRIMARY, XA_STRING, XA_PRIMARY, xw.win, CurrentTime);
+	XConvertSelection(xw.dpy, XA_PRIMARY, sel.xtarget, XA_PRIMARY, xw.win, CurrentTime);
 }
 
 void
@@ -474,7 +478,7 @@ selrequest(XEvent *e) {
 	xa_targets = XInternAtom(xw.dpy, "TARGETS", 0);
 	if(xsre->target == xa_targets) {
 		/* respond with the supported type */
-		Atom string = XA_STRING;
+		Atom string = sel.xtarget;
 		XChangeProperty(xsre->display, xsre->requestor, xsre->property,
 				XA_ATOM, 32, PropModeReplace,
 				(unsigned char *) &string, 1);
