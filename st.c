@@ -483,7 +483,7 @@ selrequest(XEvent *e) {
 				XA_ATOM, 32, PropModeReplace,
 				(unsigned char *) &string, 1);
 		xev.property = xsre->property;
-	} else if(xsre->target == XA_STRING) {
+	} else if(xsre->target == sel.xtarget) {
 		XChangeProperty(xsre->display, xsre->requestor, xsre->property,
 				xsre->target, 8, PropModeReplace,
 				(unsigned char *) sel.clip, strlen(sel.clip));
