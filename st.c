@@ -392,8 +392,8 @@ getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 	if(b) 
 		*b = e->xbutton.button;
 
-	*x = e->xbutton.x/xw.cw;
-	*y = e->xbutton.y/xw.ch;
+	*x = (e->xbutton.x - BORDER)/xw.cw;
+	*y = (e->xbutton.y - BORDER)/xw.ch;
 	sel.b.x = sel.by < sel.ey ? sel.bx : sel.ex;
 	sel.b.y = MIN(sel.by, sel.ey);
 	sel.e.x = sel.by < sel.ey ? sel.ex : sel.bx;
@@ -403,8 +403,8 @@ getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 void
 bpress(XEvent *e) {
 	sel.mode = 1;
-	sel.ex = sel.bx = e->xbutton.x/xw.cw;
-	sel.ey = sel.by = e->xbutton.y/xw.ch;
+	sel.ex = sel.bx = (e->xbutton.x - BORDER)/xw.cw;
+	sel.ey = sel.by = (e->xbutton.y - BORDER)/xw.ch;
 }
 
 void
