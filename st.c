@@ -1835,6 +1835,7 @@ kpress(XEvent *ev) {
 		case XK_Down:
 		case XK_Left:
 		case XK_Right:
+			/* XXX: shift up/down doesn't work */
 			sprintf(buf, "\033%c%c", IS_SET(MODE_APPKEYPAD) ? 'O' : '[', (shift ? "dacb":"DACB")[ksym - XK_Left]);
 			ttywrite(buf, 3);
 			break;

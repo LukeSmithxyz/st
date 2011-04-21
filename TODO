@@ -9,7 +9,12 @@ code & interface
 ----------------
 
 * clean selection code
-* use the real x11 clipboard
-* clean terminfo entry
-* utf8
+* clean and complete terminfo entry
+* fix shift up/down (shift selection in emacs)
 * ...
+
+misc
+----
+
+    $ grep -nE 'XXX|TODO' st.c
+
