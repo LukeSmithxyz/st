@@ -22,6 +22,9 @@
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 
+#include <sys/time.h>
+#include <time.h>
+
 #if   defined(__linux)
  #include <pty.h>
 #elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__)
@@ -45,11 +48,12 @@
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
 #define MAX(a, b)  ((a) < (b) ? (b) : (a))
 #define LEN(a)     (sizeof(a) / sizeof(a[0]))
-#define DEFAULT(a, b)     (a) = (a) ? (a) : (b)    
+#define DEFAULT(a, b)     (a) = (a) ? (a) : (b)
 #define BETWEEN(x, a, b)  ((a) <= (x) && (x) <= (b))
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) (term.mode & (flag))
+#define TIMEDIFFERENCE(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_usec-t2.tv_usec)/1000)
 
 /* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
 enum { ATTR_NULL=0 , ATTR_REVERSE=1 , ATTR_UNDERLINE=2, ATTR_BOLD=4, ATTR_GFX=8 };
@@ -57,10 +61,9 @@ enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
        CURSOR_SAVE, CURSOR_LOAD };
 enum { CURSOR_DEFAULT = 0, CURSOR_HIDE = 1, CURSOR_WRAPNEXT = 2 };
 enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
-enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4, MODE_ALTSCREEN=8, 
+enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4, MODE_ALTSCREEN=8,
        MODE_CRLF=16 };
 enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
-enum { SCREEN_UPDATE, SCREEN_REDRAW };
 enum { WIN_VISIBLE=1, WIN_REDRAW=2, WIN_FOCUSED=4 };
 
 #undef B0
@@ -87,21 +90,21 @@ typedef struct {
 /* ESC '[' [[ [<priv>] <arg> [;]] <mode>] */
 typedef struct {
 	char buf[ESC_BUF_SIZ]; /* raw string */
-	int len;			   /* raw string length */
+	int len;               /* raw string length */
 	char priv;
 	int arg[ESC_ARG_SIZ];
-	int narg;			   /* nb of args */
+	int narg;              /* nb of args */
 	char mode;
 } CSIEscape;
 
 /* Internal representation of the screen */
 typedef struct {
-	int row;	/* nb row */  
+	int row;	/* nb row */
 	int col;	/* nb col */
 	Line* line;	/* screen */
 	Line* alt;	/* alternate screen */
 	TCursor c;	/* cursor */
-	int top;	/* top	  scroll limit */
+	int top;	/* top    scroll limit */
 	int bot;	/* bottom scroll limit */
 	int mode;	/* terminal mode flags */
 	int esc;	/* escape state flags */
@@ -118,17 +121,18 @@ typedef struct {
 	XIM xim;
 	XIC xic;
 	int scr;
-	int w;	/* window width	 */
+	int w;	/* window width */
 	int h;	/* window height */
 	int bufw; /* pixmap width  */
 	int bufh; /* pixmap height */
 	int ch; /* char height */
 	int cw; /* char width  */
 	char state; /* focus, redraw, visible */
-} XWindow; 
+} XWindow;
 
 typedef struct {
 	KeySym k;
+	unsigned int mask;
 	char s[ESC_BUF_SIZ];
 } Key;
 
@@ -150,15 +154,18 @@ typedef struct {
 	int mode;
 	int bx, by;
 	int ex, ey;
-	struct {int x, y;}  b, e;
+	struct {int x, y;} b, e;
 	char *clip;
 	Atom xtarget;
+	struct timeval tclick1;
+	struct timeval tclick2;
 } Selection;
 
 #include "config.h"
 
 static void die(const char *errstr, ...);
-static void draw(int);
+static void draw();
+static void drawregion(int, int, int, int);
 static void execsh(void);
 static void sigchld(int);
 static void run(void);
@@ -206,7 +213,7 @@ static void xresize(int, int);
 static void expose(XEvent *);
 static void visibility(XEvent *);
 static void unmap(XEvent *);
-static char* kmap(KeySym);
+static char* kmap(KeySym, unsigned int state);
 static void kpress(XEvent *);
 static void resize(XEvent *);
 static void focus(XEvent *);
@@ -219,7 +226,7 @@ static void selrequest(XEvent *);
 static void selinit(void);
 static inline int selected(int, int);
 static void selcopy(void);
-static void selpaste(void);
+static void selpaste();
 
 static int utf8decode(char *, long *);
 static int utf8encode(long *, char *);
@@ -340,7 +347,7 @@ isfullutf8(char *s, int b) {
 	else if((*c1&(B7|B6|B5)) == (B7|B6) && b == 1)
 		return 0;
 	else if((*c1&(B7|B6|B5|B4)) == (B7|B6|B5) &&
-	    ((b == 1) || 
+	    ((b == 1) ||
 	    ((b == 2) && (*c2&(B7|B6)) == B7)))
 		return 0;
 	else if((*c1&(B7|B6|B5|B4|B3)) == (B7|B6|B5|B4) &&
@@ -362,12 +369,14 @@ utf8size(char *s) {
 		return 2;
 	else if ((c&(B7|B6|B5|B4)) == (B7|B6|B5))
 		return 3;
-	else 
+	else
 		return 4;
 }
 
 void
 selinit(void) {
+	sel.tclick1.tv_sec = 0;
+	sel.tclick1.tv_usec = 0;
 	sel.mode = 0;
 	sel.bx = -1;
 	sel.clip = NULL;
@@ -376,14 +385,14 @@ selinit(void) {
 		sel.xtarget = XA_STRING;
 }
 
-static inline int 
+static inline int
 selected(int x, int y) {
 	if(sel.ey == y && sel.by == y) {
 		int bx = MIN(sel.bx, sel.ex);
 		int ex = MAX(sel.bx, sel.ex);
 		return BETWEEN(x, bx, ex);
 	}
-	return ((sel.b.y < y&&y < sel.e.y) || (y==sel.e.y && x<=sel.e.x)) 
+	return ((sel.b.y < y&&y < sel.e.y) || (y==sel.e.y && x<=sel.e.x))
 		|| (y==sel.b.y && x>=sel.b.x && (x<=sel.e.x || sel.b.y!=sel.e.y));
 }
 
@@ -511,30 +520,63 @@ xsetsel(char *str) {
 	XFlush(xw.dpy);
 }
 
-/* TODO: doubleclick to select word */
 void
 brelease(XEvent *e) {
 	int b;
 	sel.mode = 0;
 	getbuttoninfo(e, &b, &sel.ex, &sel.ey);
-	if(sel.bx==sel.ex && sel.by==sel.ey) {
+	
+	if(sel.bx == sel.ex && sel.by == sel.ey) {
 		sel.bx = -1;
-		if(b==2)
+		if(b == 2)
 			selpaste();
+
+		else if(b == 1) {
+			/* double click to select word */
+			struct timeval now;
+			gettimeofday(&now, NULL);
+
+			if(TIMEDIFFERENCE(now, sel.tclick1) <= DOUBLECLICK_TIMEOUT) {
+				sel.bx = sel.ex;
+				while(term.line[sel.ey][sel.bx-1].state & GLYPH_SET && 
+					  term.line[sel.ey][sel.bx-1].c[0] != ' ') sel.bx--;
+				sel.b.x = sel.bx;
+				while(term.line[sel.ey][sel.ex+1].state & GLYPH_SET && 
+					  term.line[sel.ey][sel.ex+1].c[0] != ' ') sel.ex++;
+				sel.e.x = sel.ex;
+				sel.b.y = sel.e.y = sel.ey;
+				selcopy();
+			}
+
+			/* triple click on the line */
+			if(TIMEDIFFERENCE(now, sel.tclick2) <= TRIPLECLICK_TIMEOUT) {
+				sel.b.x = sel.bx = 0;
+				sel.e.x = sel.ex = term.col;
+				sel.b.y = sel.e.y = sel.ey;
+				selcopy();
+			}
+		}
 	} else {
-		if(b==1)
+		if(b == 1) 
 			selcopy();
 	}
-	draw(1);
+	memcpy(&sel.tclick2, &sel.tclick1, sizeof(struct timeval));
+	gettimeofday(&sel.tclick1, NULL);
+	draw();
 }
 
 void
 bmotion(XEvent *e) {
-	if (sel.mode) {
+	if(sel.mode) {
+		int oldey = sel.ey, 
+			oldex = sel.ex;
 		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
-		/* XXX: draw() can't keep up, disabled for now.
-		   selection is visible on button release.
-		   draw(1); */
+
+		if(oldey != sel.ey || oldex != sel.ex) {
+			int starty = MIN(oldey, sel.ey);
+			int endy = MAX(oldey, sel.ey);
+			drawregion(0, (starty > 0 ? starty : 0), term.col, (sel.ey < term.row ? endy+1 : term.row));
+		}
 	}
 }
 
@@ -641,6 +683,10 @@ ttyread(void) {
 
 void
 ttywrite(const char *s, size_t n) {
+	{size_t nn;
+		for(nn = 0; nn < n; nn++)
+			dump(s[nn]);
+	}
 	if(write(cmdfd, s, n) == -1)
 		die("write error on tty: %s\n", SERRNO);
 }
@@ -1640,8 +1686,13 @@ xdrawc(int x, int y, Glyph g) {
 	    dc.gc, r.x, r.y+dc.font.ascent, g.c, sl);
 }
 
+void 
+drawregion(int x0, int x1, int y0, int y1) {
+	draw();
+}
+
 void
-draw(int dummy) {
+draw() {
 	int x, y;
 
 	xclear(0, 0, term.col-1, term.row-1);
@@ -1657,8 +1708,13 @@ draw(int dummy) {
 
 #else
 /* optimized drawing routine */
+void 
+draw() {
+	drawregion(0, 0, term.col, term.row);
+}
+
 void
-draw(int redraw_all) {
+drawregion(int x1, int y1, int x2, int y2) {
 	int ic, ib, x, y, ox, sl;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
@@ -1666,13 +1722,13 @@ draw(int redraw_all) {
 	if(!(xw.state & WIN_VISIBLE))
 		return;
 
-	xclear(0, 0, term.col-1, term.row-1);
-	for(y = 0; y < term.row; y++) {
+	xclear(x1, y1, x2-1, y2-1);
+	for(y = y1; y < y2; y++) {
 		base = term.line[y][0];
 		ic = ib = ox = 0;
-		for(x = 0; x < term.col; x++) {
+		for(x = x1; x < x2; x++) {
 			new = term.line[y][x];
-			if(sel.bx!=-1 && *(new.c) && selected(x, y))
+			if(sel.bx != -1 && *(new.c) && selected(x, y))
 				new.mode ^= ATTR_REVERSE;
 			if(ib > 0 && (!(new.state & GLYPH_SET) || ATTRCMP(base, new) ||
 					ib >= DRAW_BUF_SIZ-UTF_SIZ)) {
@@ -1705,7 +1761,7 @@ expose(XEvent *ev) {
 	if(xw.state & WIN_REDRAW) {
 		if(!e->count) {
 			xw.state &= ~WIN_REDRAW;
-			draw(SCREEN_REDRAW);
+			draw();
 		}
 	} else
 		XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, e->x-BORDER, e->y-BORDER,
@@ -1742,14 +1798,14 @@ focus(XEvent *ev) {
 		xseturgency(0);
 	} else
 		xw.state &= ~WIN_FOCUSED;
-	draw(SCREEN_UPDATE);
+	draw();
 }
 
 char*
-kmap(KeySym k) {
+kmap(KeySym k, unsigned int state) {
 	int i;
 	for(i = 0; i < LEN(key); i++)
-		if(key[i].k == k)
+		if(key[i].k == k && (key[i].mask == 0 || key[i].mask & state))
 			return (char*)key[i].s;
 	return NULL;
 }
@@ -1770,7 +1826,7 @@ kpress(XEvent *ev) {
 	len = XmbLookupString(xw.xic, e, buf, sizeof(buf), &ksym, &status);
 	
 	/* 1. custom keys from config.h */
-	if((customkey = kmap(ksym)))
+	if((customkey = kmap(ksym, e->state)))
 		ttywrite(customkey, strlen(customkey));
 	/* 2. hardcoded (overrides X lookup) */
 	else
@@ -1779,7 +1835,7 @@ kpress(XEvent *ev) {
 		case XK_Down:
 		case XK_Left:
 		case XK_Right:
-			sprintf(buf, "\033%c%c", IS_SET(MODE_APPKEYPAD) ? 'O' : '[', "DACB"[ksym - XK_Left]);
+			sprintf(buf, "\033%c%c", IS_SET(MODE_APPKEYPAD) ? 'O' : '[', (shift ? "dacb":"DACB")[ksym - XK_Left]);
 			ttywrite(buf, 3);
 			break;
 		case XK_Insert:
@@ -1817,7 +1873,7 @@ resize(XEvent *e) {
 	if(col == term.col && row == term.row)
 		return;
 	if(tresize(col, row))
-		draw(SCREEN_REDRAW);
+		draw();
 	ttyresize(col, row);
 	xresize(col, row);
 }
@@ -1839,7 +1895,7 @@ run(void) {
 		}
 		if(FD_ISSET(cmdfd, &rfd)) {
 			ttyread();
-			draw(SCREEN_UPDATE); 
+			draw(); 
 		}
 		while(XPending(xw.dpy)) {
 			XNextEvent(xw.dpy, &ev);
