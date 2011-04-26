@@ -398,7 +398,7 @@ selected(int x, int y) {
 
 void
 getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
-	if(b) 
+	if(b)
 		*b = e->xbutton.button;
 
 	*x = (e->xbutton.x - BORDER)/xw.cw;
@@ -543,17 +543,17 @@ brelease(XEvent *e) {
 			} else if(TIMEDIFFERENCE(now, sel.tclick1) <= DOUBLECLICK_TIMEOUT) {
 				/* double click to select word */
 				sel.bx = sel.ex;
-				while(term.line[sel.ey][sel.bx-1].state & GLYPH_SET && 
+				while(term.line[sel.ey][sel.bx-1].state & GLYPH_SET &&
 					  term.line[sel.ey][sel.bx-1].c[0] != ' ') sel.bx--;
 				sel.b.x = sel.bx;
-				while(term.line[sel.ey][sel.ex+1].state & GLYPH_SET && 
+				while(term.line[sel.ey][sel.ex+1].state & GLYPH_SET &&
 					  term.line[sel.ey][sel.ex+1].c[0] != ' ') sel.ex++;
 				sel.e.x = sel.ex;
 				sel.b.y = sel.e.y = sel.ey;
 				selcopy();
 			}
 		}
-	} else if(b == 1) 
+	} else if(b == 1)
 		selcopy();
 	memcpy(&sel.tclick2, &sel.tclick1, sizeof(struct timeval));
 	gettimeofday(&sel.tclick1, NULL);
@@ -563,7 +563,7 @@ brelease(XEvent *e) {
 void
 bmotion(XEvent *e) {
 	if(sel.mode) {
-		int oldey = sel.ey, 
+		int oldey = sel.ey,
 			oldex = sel.ex;
 		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
 
@@ -597,7 +597,7 @@ execsh(void) {
 	exit(EXIT_FAILURE);
 }
 
-void 
+void
 sigchld(int a) {
 	int stat = 0;
 	if(waitpid(pid, &stat, 0) < 0)
@@ -650,7 +650,7 @@ dump(char c) {
 void
 ttyread(void) {
 	static char buf[BUFSIZ];
-	static int buflen = 0; 
+	static int buflen = 0;
 	char *ptr;
 	char s[UTF_SIZ];
 	int charsize; /* size of utf8 char in bytes */
@@ -706,8 +706,8 @@ tcursor(int mode) {
 void
 treset(void) {
 	term.c = (TCursor){{
-		.mode = ATTR_NULL, 
-		.fg = DefaultFG, 
+		.mode = ATTR_NULL,
+		.fg = DefaultFG,
 		.bg = DefaultBG
 	}, .x = 0, .y = 0, .state = CURSOR_DEFAULT};
 	
@@ -762,9 +762,9 @@ tscrollup(int orig, int n) {
 	
 	tclearregion(0, orig, term.col-1, orig+n-1);
 	
-	for(i = orig; i <= term.bot-n; i++) { 
+	for(i = orig; i <= term.bot-n; i++) {
 		 temp = term.line[i];
-		 term.line[i] = term.line[i+n]; 
+		 term.line[i] = term.line[i+n];
 		 term.line[i+n] = temp;
 	}
 }
@@ -894,22 +894,22 @@ tsetattr(int *attr, int l) {
 			term.c.attr.bg = DefaultBG;
 			break;
 		case 1:
-			term.c.attr.mode |= ATTR_BOLD;	 
+			term.c.attr.mode |= ATTR_BOLD;
 			break;
-		case 4: 
+		case 4:
 			term.c.attr.mode |= ATTR_UNDERLINE;
 			break;
-		case 7: 
-			term.c.attr.mode |= ATTR_REVERSE;	
+		case 7:
+			term.c.attr.mode |= ATTR_REVERSE;
 			break;
-		case 22: 
-			term.c.attr.mode &= ~ATTR_BOLD;	 
+		case 22:
+			term.c.attr.mode &= ~ATTR_BOLD;
 			break;
-		case 24: 
+		case 24:
 			term.c.attr.mode &= ~ATTR_UNDERLINE;
 			break;
-		case 27: 
-			term.c.attr.mode &= ~ATTR_REVERSE;	 
+		case 27:
+			term.c.attr.mode &= ~ATTR_REVERSE;
 			break;
 		case 38:
 			if(i + 2 < l && attr[i + 1] == 5) {
@@ -920,7 +920,7 @@ tsetattr(int *attr, int l) {
 					fprintf(stderr, "erresc: bad fgcolor %d\n", attr[i]);
 			}
 			else
-				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]); 
+				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]);
 			break;
 		case 39:
 			term.c.attr.fg = DefaultFG;
@@ -934,7 +934,7 @@ tsetattr(int *attr, int l) {
 					fprintf(stderr, "erresc: bad bgcolor %d\n", attr[i]);
 			}
 			else
-				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]); 
+				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]);
 			break;
 		case 49:
 			term.c.attr.bg = DefaultBG;
@@ -948,7 +948,7 @@ tsetattr(int *attr, int l) {
 				term.c.attr.fg = attr[i] - 90 + 8;
 			else if(BETWEEN(attr[i], 100, 107))
 				term.c.attr.fg = attr[i] - 100 + 8;
-			else 
+			else
 				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]), csidump();
 			
 			break;
@@ -968,7 +968,7 @@ tsetscroll(int t, int b) {
 		b = temp;
 	}
 	term.top = t;
-	term.bot = b;	 
+	term.bot = b;
 }
 
 void
@@ -1193,7 +1193,7 @@ csihandle(void) {
 }
 
 void
-csidump(void) { 
+csidump(void) {
 	int i;
 	printf("ESC [ %s", escseq.priv ? "? " : "");
 	if(escseq.narg)
@@ -1226,7 +1226,7 @@ tputc(char *c) {
 				csiparse(), csihandle();
 			}
 			/* TODO: handle other OSC */
-		} else if(term.esc & ESC_OSC) { 
+		} else if(term.esc & ESC_OSC) {
 			if(ascii == ';') {
 				term.titlelen = 0;
 				term.esc = ESC_START | ESC_TITLE;
@@ -1550,7 +1550,7 @@ xinit(void) {
 	initfonts(FONT, BOLDFONT);
 
 	/* XXX: Assuming same size for bold font */
- 	xw.cw = dc.font.rbearing - dc.font.lbearing;
+	xw.cw = dc.font.rbearing - dc.font.lbearing;
 	xw.ch = dc.font.ascent + dc.font.descent;
 
 	/* colors */
@@ -1582,8 +1582,8 @@ xinit(void) {
 
 	/* input methods */
 	xw.xim = XOpenIM(xw.dpy, NULL, NULL, NULL);
-	xw.xic = XCreateIC(xw.xim, XNInputStyle, XIMPreeditNothing 
-					   | XIMStatusNothing, XNClientWindow, xw.win, 
+	xw.xic = XCreateIC(xw.xim, XNInputStyle, XIMPreeditNothing
+					   | XIMStatusNothing, XNClientWindow, xw.win,
 					   XNFocusWindow, xw.win, NULL);
 	/* gc */
 	dc.gc = XCreateGC(xw.dpy, xw.win, 0, NULL);
@@ -1591,7 +1591,7 @@ xinit(void) {
 	/* white cursor, black outline */
 	cursor = XCreateFontCursor(xw.dpy, XC_xterm);
 	XDefineCursor(xw.dpy, xw.win, cursor);
-	XRecolorCursor(xw.dpy, cursor, 
+	XRecolorCursor(xw.dpy, cursor,
 		&(XColor){.red = 0xffff, .green = 0xffff, .blue = 0xffff},
 		&(XColor){.red = 0x0000, .green = 0x0000, .blue = 0x0000});
 
@@ -1626,7 +1626,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	}
 
 	XmbDrawImageString(xw.dpy, xw.buf, base.mode & ATTR_BOLD ? dc.bfont.set : dc.font.set,
-	    dc.gc, winx, winy, s, bytelen);
+		dc.gc, winx, winy, s, bytelen);
 	
 	if(base.mode & ATTR_UNDERLINE)
 		XDrawLine(xw.dpy, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
@@ -1660,7 +1660,7 @@ xdrawcursor(void) {
 	}
 }
 
-void 
+void
 draw() {
 	drawregion(0, 0, term.col, term.row);
 }
@@ -1846,7 +1846,7 @@ run(void) {
 		}
 		if(FD_ISSET(cmdfd, &rfd)) {
 			ttyread();
-			draw(); 
+			draw();
 		}
 		while(XPending(xw.dpy)) {
 			XNextEvent(xw.dpy, &ev);
