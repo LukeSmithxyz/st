@@ -163,8 +163,8 @@ typedef struct {
 
 #include "config.h"
 
-static void die(const char *errstr, ...);
-static void draw();
+static void die(const char*, ...);
+static void draw(void);
 static void drawregion(int, int, int, int);
 static void execsh(void);
 static void sigchld(int);
@@ -363,11 +363,11 @@ int
 utf8size(char *s) {
 	unsigned char c = *s;
 
-	if (~c&B7)
+	if(~c&B7)
 		return 1;
-	else if ((c&(B7|B6|B5)) == (B7|B6))
+	else if((c&(B7|B6|B5)) == (B7|B6))
 		return 2;
-	else if ((c&(B7|B6|B5|B4)) == (B7|B6|B5))
+	else if((c&(B7|B6|B5|B4)) == (B7|B6|B5))
 		return 3;
 	else
 		return 4;
@@ -523,20 +523,25 @@ xsetsel(char *str) {
 void
 brelease(XEvent *e) {
 	int b;
+
 	sel.mode = 0;
 	getbuttoninfo(e, &b, &sel.ex, &sel.ey);
-	
 	if(sel.bx == sel.ex && sel.by == sel.ey) {
 		sel.bx = -1;
 		if(b == 2)
 			selpaste();
-
 		else if(b == 1) {
-			/* double click to select word */
 			struct timeval now;
 			gettimeofday(&now, NULL);
 
-			if(TIMEDIFFERENCE(now, sel.tclick1) <= DOUBLECLICK_TIMEOUT) {
+			if(TIMEDIFFERENCE(now, sel.tclick2) <= TRIPLECLICK_TIMEOUT) {
+				/* triple click on the line */
+				sel.b.x = sel.bx = 0;
+				sel.e.x = sel.ex = term.col;
+				sel.b.y = sel.e.y = sel.ey;
+				selcopy();
+			} else if(TIMEDIFFERENCE(now, sel.tclick1) <= DOUBLECLICK_TIMEOUT) {
+				/* double click to select word */
 				sel.bx = sel.ex;
 				while(term.line[sel.ey][sel.bx-1].state & GLYPH_SET && 
 					  term.line[sel.ey][sel.bx-1].c[0] != ' ') sel.bx--;
@@ -547,19 +552,9 @@ brelease(XEvent *e) {
 				sel.b.y = sel.e.y = sel.ey;
 				selcopy();
 			}
-
-			/* triple click on the line */
-			if(TIMEDIFFERENCE(now, sel.tclick2) <= TRIPLECLICK_TIMEOUT) {
-				sel.b.x = sel.bx = 0;
-				sel.e.x = sel.ex = term.col;
-				sel.b.y = sel.e.y = sel.ey;
-				selcopy();
-			}
 		}
-	} else {
-		if(b == 1) 
-			selcopy();
-	}
+	} else if(b == 1) 
+		selcopy();
 	memcpy(&sel.tclick2, &sel.tclick1, sizeof(struct timeval));
 	gettimeofday(&sel.tclick1, NULL);
 	draw();
@@ -683,10 +678,6 @@ ttyread(void) {
 
 void
 ttywrite(const char *s, size_t n) {
-	{size_t nn;
-		for(nn = 0; nn < n; nn++)
-			dump(s[nn]);
-	}
 	if(write(cmdfd, s, n) == -1)
 		die("write error on tty: %s\n", SERRNO);
 }
@@ -921,9 +912,9 @@ tsetattr(int *attr, int l) {
 			term.c.attr.mode &= ~ATTR_REVERSE;	 
 			break;
 		case 38:
-			if (i + 2 < l && attr[i + 1] == 5) {
+			if(i + 2 < l && attr[i + 1] == 5) {
 				i += 2;
-				if (BETWEEN(attr[i], 0, 255))
+				if(BETWEEN(attr[i], 0, 255))
 					term.c.attr.fg = attr[i];
 				else
 					fprintf(stderr, "erresc: bad fgcolor %d\n", attr[i]);
@@ -935,9 +926,9 @@ tsetattr(int *attr, int l) {
 			term.c.attr.fg = DefaultFG;
 			break;
 		case 48:
-			if (i + 2 < l && attr[i + 1] == 5) {
+			if(i + 2 < l && attr[i + 1] == 5) {
 				i += 2;
-				if (BETWEEN(attr[i], 0, 255))
+				if(BETWEEN(attr[i], 0, 255))
 					term.c.attr.bg = attr[i];
 				else
 					fprintf(stderr, "erresc: bad bgcolor %d\n", attr[i]);
@@ -1348,7 +1339,6 @@ tputc(char *c) {
 				tmoveto(term.c.x+1, term.c.y);
 			else
 				term.c.state |= CURSOR_WRAPNEXT;
-			break;
 		}
 	}
 }
@@ -1447,7 +1437,7 @@ xloadcols(void) {
 	unsigned long white = WhitePixel(xw.dpy, xw.scr);
 
 	for(i = 0; i < 16; i++) {
-		if (!XAllocNamedColor(xw.dpy, xw.cmap, colorname[i], &color, &color)) {
+		if(!XAllocNamedColor(xw.dpy, xw.cmap, colorname[i], &color, &color)) {
 			dc.col[i] = white;
 			fprintf(stderr, "Could not allocate color '%s'\n", colorname[i]);
 		} else
@@ -1461,7 +1451,7 @@ xloadcols(void) {
 				color.red = r == 0 ? 0 : 0x3737 + 0x2828 * r;
 				color.green = g == 0 ? 0 : 0x3737 + 0x2828 * g;
 				color.blue = b == 0 ? 0 : 0x3737 + 0x2828 * b;
-				if (!XAllocColor(xw.dpy, xw.cmap, &color)) {
+				if(!XAllocColor(xw.dpy, xw.cmap, &color)) {
 					dc.col[i] = white;
 					fprintf(stderr, "Could not allocate color %d\n", i);
 				} else
@@ -1488,8 +1478,7 @@ xclear(int x1, int y1, int x2, int y2) {
 }
 
 void
-xhints(void)
-{
+xhints(void) {
 	XClassHint class = {opt_class ? opt_class : TNAME, TNAME};
 	XWMHints wm = {.flags = InputHint, .input = 1};
 	XSizeHints size = {
@@ -1505,8 +1494,7 @@ xhints(void)
 }
 
 XFontSet
-xinitfont(char *fontstr)
-{
+xinitfont(char *fontstr) {
 	XFontSet set;
 	char *def, **missing;
 	int n;
@@ -1522,8 +1510,7 @@ xinitfont(char *fontstr)
 }
 
 void
-xgetfontinfo(XFontSet set, int *ascent, int *descent, short *lbearing, short *rbearing)
-{
+xgetfontinfo(XFontSet set, int *ascent, int *descent, short *lbearing, short *rbearing) {
 	XFontStruct **xfonts;
 	char **font_names;
 	int i, n;
@@ -1540,8 +1527,7 @@ xgetfontinfo(XFontSet set, int *ascent, int *descent, short *lbearing, short *rb
 }
 
 void
-initfonts(char *fontstr, char *bfontstr)
-{
+initfonts(char *fontstr, char *bfontstr) {
 	if((dc.font.set = xinitfont(fontstr)) == NULL ||
 	   (dc.bfont.set = xinitfont(bfontstr)) == NULL)
 		die("Can't load font %s\n", dc.font.set ? BOLDFONT : FONT);
@@ -1674,40 +1660,6 @@ xdrawcursor(void) {
 	}
 }
 
-#ifdef DEBUG
-/* basic drawing routines */
-void
-xdrawc(int x, int y, Glyph g) {
-	int sl = utf8size(g.c);
-	XRectangle r = { x * xw.cw, y * xw.ch, xw.cw, xw.ch };
-	XSetBackground(xw.dpy, dc.gc, dc.col[g.bg]);
-	XSetForeground(xw.dpy, dc.gc, dc.col[g.fg]);
-	XmbDrawImageString(xw.dpy, xw.buf, g.mode&ATTR_BOLD?dc.bfont.fs:dc.font.fs,
-	    dc.gc, r.x, r.y+dc.font.ascent, g.c, sl);
-}
-
-void 
-drawregion(int x0, int x1, int y0, int y1) {
-	draw();
-}
-
-void
-draw() {
-	int x, y;
-
-	xclear(0, 0, term.col-1, term.row-1);
-	for(y = 0; y < term.row; y++)
-		for(x = 0; x < term.col; x++)
-			if(term.line[y][x].state & GLYPH_SET)
-				xdrawc(x, y, term.line[y][x]);
-
-	xdrawcursor();
-	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
-	XFlush(xw.dpy);
-}
-
-#else
-/* optimized drawing routine */
 void 
 draw() {
 	drawregion(0, 0, term.col, term.row);
@@ -1752,8 +1704,6 @@ drawregion(int x1, int y1, int x2, int y2) {
 	xdrawcursor();
 	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
 }
-
-#endif
 
 void
 expose(XEvent *ev) {
@@ -1900,7 +1850,7 @@ run(void) {
 		}
 		while(XPending(xw.dpy)) {
 			XNextEvent(xw.dpy, &ev);
-			if (XFilterEvent(&ev, xw.win))
+			if(XFilterEvent(&ev, xw.win))
 				continue;
 			if(handler[ev.type])
 				(handler[ev.type])(&ev);
