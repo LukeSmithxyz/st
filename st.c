@@ -53,7 +53,9 @@
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) (term.mode & (flag))
-#define TIMEDIFFERENCE(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_usec-t2.tv_usec)/1000)
+#define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_usec-t2.tv_usec)/1000)
+#define X2COL(x) (((x) - BORDER)/xw.cw)
+#define Y2ROW(y) (((y) - BORDER)/xw.ch)
 
 /* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
 enum { ATTR_NULL=0 , ATTR_REVERSE=1 , ATTR_UNDERLINE=2, ATTR_BOLD=4, ATTR_GFX=8 };
@@ -401,8 +403,8 @@ getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 	if(b)
 		*b = e->xbutton.button;
 
-	*x = (e->xbutton.x - BORDER)/xw.cw;
-	*y = (e->xbutton.y - BORDER)/xw.ch;
+	*x = X2COL(e->xbutton.x);
+	*y = Y2ROW(e->xbutton.y);
 	sel.b.x = sel.by < sel.ey ? sel.bx : sel.ex;
 	sel.b.y = MIN(sel.by, sel.ey);
 	sel.e.x = sel.by < sel.ey ? sel.ex : sel.bx;
@@ -411,8 +413,8 @@ getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 
 void
 mousereport(XEvent *e) {
-	int x = (e->xbutton.x - BORDER)/xw.cw;
-	int y = (e->xbutton.y - BORDER)/xw.ch;
+	int x = X2COL(e->xbutton.x);
+	int y = Y2ROW(e->xbutton.y);
 	int button = e->xbutton.button;
 	int state = e->xbutton.state;
 	char buf[] = { '\033', '[', 'M', 0, 32+x+1, 32+y+1 };
@@ -440,8 +442,8 @@ void
 bpress(XEvent *e) {
 	mousereport(e);
 	sel.mode = 1;
-	sel.ex = sel.bx = (e->xbutton.x - BORDER)/xw.cw;
-	sel.ey = sel.by = (e->xbutton.y - BORDER)/xw.ch;
+	sel.ex = sel.bx = X2COL(e->xbutton.x);
+	sel.ey = sel.by = Y2ROW(e->xbutton.y);
 }
 
 void
@@ -563,13 +565,13 @@ brelease(XEvent *e) {
 			struct timeval now;
 			gettimeofday(&now, NULL);
 
-			if(TIMEDIFFERENCE(now, sel.tclick2) <= TRIPLECLICK_TIMEOUT) {
+			if(TIMEDIFF(now, sel.tclick2) <= TRIPLECLICK_TIMEOUT) {
 				/* triple click on the line */
 				sel.b.x = sel.bx = 0;
 				sel.e.x = sel.ex = term.col;
 				sel.b.y = sel.e.y = sel.ey;
 				selcopy();
-			} else if(TIMEDIFFERENCE(now, sel.tclick1) <= DOUBLECLICK_TIMEOUT) {
+			} else if(TIMEDIFF(now, sel.tclick1) <= DOUBLECLICK_TIMEOUT) {
 				/* double click to select word */
 				sel.bx = sel.ex;
 				while(term.line[sel.ey][sel.bx-1].state & GLYPH_SET &&
