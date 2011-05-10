@@ -62,7 +62,7 @@ enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
 enum { CURSOR_DEFAULT = 0, CURSOR_HIDE = 1, CURSOR_WRAPNEXT = 2 };
 enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
 enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4, MODE_ALTSCREEN=8,
-       MODE_CRLF=16 };
+       MODE_CRLF=16, MODE_MOUSE=32 };
 enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
 enum { WIN_VISIBLE=1, WIN_REDRAW=2, WIN_FOCUSED=4 };
 
@@ -410,7 +410,35 @@ getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 }
 
 void
+mousereport(XEvent *e) {
+	int x = (e->xbutton.x - BORDER)/xw.cw;
+	int y = (e->xbutton.y - BORDER)/xw.ch;
+	int button = e->xbutton.button;
+	int state = e->xbutton.state;
+	char buf[] = { '\033', '[', 'M', 0, 32+x+1, 32+y+1 };
+	
+	if(!IS_SET(MODE_MOUSE))
+		return;
+	
+	/* from urxvt */
+	if(e->xbutton.type == ButtonRelease || button == AnyButton)
+		button = 3;
+	else {
+		button -= Button1;
+		if(button >= 3)
+			button += 64 - 3;
+	}
+	
+	buf[3] = 32 + button + (state & ShiftMask ? 4 : 0)
+		+ (state & Mod4Mask    ? 8  : 0)
+		+ (state & ControlMask ? 16 : 0);
+	
+	ttywrite(buf, sizeof(buf));
+}
+
+void
 bpress(XEvent *e) {
+	mousereport(e);
 	sel.mode = 1;
 	sel.ex = sel.bx = (e->xbutton.x - BORDER)/xw.cw;
 	sel.ey = sel.by = (e->xbutton.y - BORDER)/xw.ch;
@@ -526,6 +554,7 @@ brelease(XEvent *e) {
 
 	sel.mode = 0;
 	getbuttoninfo(e, &b, &sel.ex, &sel.ey);
+	mousereport(e);
 	if(sel.bx == sel.ex && sel.by == sel.ey) {
 		sel.bx = -1;
 		if(b == 2)
@@ -1085,6 +1114,9 @@ csihandle(void) {
 			case 25:
 				term.c.state |= CURSOR_HIDE;
 				break;
+			case 1000: /* disable X11 xterm mouse reporting */
+				term.mode &= ~MODE_MOUSE;
+				break;
 			case 1049: /* = 1047 and 1048 */
 			case 1047:
 				if(IS_SET(MODE_ALTSCREEN)) {
@@ -1147,6 +1179,9 @@ csihandle(void) {
 					break;
 			case 25:
 				term.c.state &= ~CURSOR_HIDE;
+				break;
+			case 1000: /* enable X11 xterm mouse reporting */
+				term.mode |= MODE_MOUSE;
 				break;
 			case 1049: /* = 1047 and 1048 */
 			case 1047:
