@@ -1,4 +1,4 @@
-.TH ST 1 st-VERSION
+.TH ST 1 st\-VERSION
 .SH NAME
 st \- simple terminal
 .SH SYNOPSIS
@@ -9,24 +9,24 @@ st \- simple terminal
 .IR title ]
 .RB [ \-v ]
 .RB [ \-e
-.IR cmd ]
+.IR command ...]
 .SH DESCRIPTION
 .B st
 is a simple terminal emulator.
 .SH OPTIONS
 .TP
-.B \-t title
-Overrides the default title (st)
+.BI \-t " title"
+defines the window title (default 'st').
 .TP
-.B \-c class
-Overrides the default class ($TERM)
+.BI \-c " class"
+defines the window class (default $TERM).
 .TP
 .B \-v
-Prints version information to standard output, then exits.
+prints version information to stderr, then exits.
 .TP
-.B \-e cmd [arguments]
-Execute cmd instead of the shell. Type your command as you would on your
-shell. If this option is used, it
-.BI "must be the last"
-on the command-line. This is the same behaviour as xterm/rxvt.
-
+.BI \-e " program " [ " arguments " "... ]"
+st executes
+.I program
+instead of the shell.  If this is used it
+.B must be the last option
+on the command line, as in xterm / rxvt.

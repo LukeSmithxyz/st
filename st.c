@@ -34,8 +34,8 @@
 #endif
 
 #define USAGE \
-	"st-" VERSION ", (c) 2010 st engineers\n" \
-	"usage: st [-t title] [-c class] [-v] [-e cmd]\n"
+	"st-" VERSION ", (c) 2010-2011 st engineers\n" \
+	"usage: st [-t title] [-c class] [-v] [-e command...]\n"
 
 /* Arbitrary sizes */
 #define ESC_TITLE_SIZ 256
@@ -1907,17 +1907,17 @@ main(int argc, char *argv[]) {
 		case 'c':
 			if(++i < argc) opt_class = argv[i];
 			break;
-		case 'e':
+		case 'e': 
+			/* eat every remaining arguments */
 			if(++i < argc) opt_cmd = &argv[i];
-			break;
+			goto run;
 		case 'v':
 		default:
 			die(USAGE);
 		}
-		/* -e eats every remaining arguments */
-		if(opt_cmd)
-			break;
 	}
+
+ run:
 	setlocale(LC_CTYPE, "");
 	tnew(80, 24);
 	ttynew();
