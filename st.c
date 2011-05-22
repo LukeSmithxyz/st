@@ -1632,9 +1632,9 @@ xinit(void) {
 		&(XColor){.red = 0xffff, .green = 0xffff, .blue = 0xffff},
 		&(XColor){.red = 0x0000, .green = 0x0000, .blue = 0x0000});
 
+	XStoreName(xw.dpy, xw.win, opt_title ? opt_title : "st");
 	XMapWindow(xw.dpy, xw.win);
 	xhints();
-	XStoreName(xw.dpy, xw.win, opt_title ? opt_title : "st");
 	XSync(xw.dpy, 0);
 }
 
