@@ -483,8 +483,7 @@ selcopy(void) {
 
 void
 selnotify(XEvent *e) {
-	unsigned long nitems;
-	unsigned long ofs, rem;
+	unsigned long nitems, ofs, rem;
 	int format;
 	unsigned char *data;
 	Atom type;
@@ -767,7 +766,7 @@ tnew(int col, int row) {
 	term.row = row, term.col = col;
 	term.line = malloc(term.row * sizeof(Line));
 	term.alt  = malloc(term.row * sizeof(Line));
-	for(row = 0 ; row < term.row; row++) {
+	for(row = 0; row < term.row; row++) {
 		term.line[row] = malloc(term.col * sizeof(Glyph));
 		term.alt [row] = malloc(term.col * sizeof(Glyph));
 	}
