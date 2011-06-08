@@ -7,6 +7,8 @@ st \- simple terminal
 .IR class ]
 .RB [ \-t 
 .IR title ]
+.RB [ \-w 
+.IR windowid ]
 .RB [ \-v ]
 .RB [ \-e
 .IR command ...]
@@ -20,6 +22,10 @@ defines the window title (default 'st').
 .TP
 .BI \-c " class"
 defines the window class (default $TERM).
+.TP
+.BI \-w " windowid"
+embeds st within the window identified by 
+.I windowid
 .TP
 .B \-v
 prints version information to stderr, then exits.

@@ -35,7 +35,7 @@
 
 #define USAGE \
 	"st-" VERSION ", (c) 2010-2011 st engineers\n" \
-	"usage: st [-t title] [-c class] [-v] [-e command...]\n"
+	"usage: st [-t title] [-c class] [-w windowid] [-v] [-e command...]\n"
 
 /* Arbitrary sizes */
 #define ESC_TITLE_SIZ 256
@@ -260,6 +260,7 @@ static pid_t pid;
 static Selection sel;
 static char **opt_cmd  = NULL;
 static char *opt_title = NULL;
+static char *opt_embed = NULL;
 static char *opt_class = NULL;
 
 int
@@ -1606,6 +1607,7 @@ void
 xinit(void) {
 	XSetWindowAttributes attrs;
 	Cursor cursor;
+	Window parent;
 
 	if(!(xw.dpy = XOpenDisplay(NULL)))
 		die("Can't open display\n");
@@ -1636,7 +1638,8 @@ xinit(void) {
 		| ButtonMotionMask | ButtonPressMask | ButtonReleaseMask;
 	attrs.colormap = xw.cmap;
 
-	xw.win = XCreateWindow(xw.dpy, XRootWindow(xw.dpy, xw.scr), 0, 0,
+	parent = opt_embed ? strtol(opt_embed, NULL, 0) : XRootWindow(xw.dpy, xw.scr);
+	xw.win = XCreateWindow(xw.dpy, parent, 0, 0,
 			xw.w, xw.h, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
 			XDefaultVisual(xw.dpy, xw.scr),
 			CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask
@@ -1942,6 +1945,9 @@ main(int argc, char *argv[]) {
 			break;
 		case 'c':
 			if(++i < argc) opt_class = argv[i];
+			break;
+		case 'w':
+			if(++i < argc) opt_embed = argv[i];
 			break;
 		case 'e': 
 			/* eat every remaining arguments */
