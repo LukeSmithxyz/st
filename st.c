@@ -64,7 +64,7 @@ enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
 enum { CURSOR_DEFAULT = 0, CURSOR_HIDE = 1, CURSOR_WRAPNEXT = 2 };
 enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
 enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4, MODE_ALTSCREEN=8,
-       MODE_CRLF=16, MODE_MOUSE=32, MODE_REVERSE=64 };
+       MODE_CRLF=16, MODE_MOUSEBTN=32, MODE_MOUSEMOTION=64, MODE_MOUSE=32|64, MODE_REVERSE=128 };
 enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
 enum { WIN_VISIBLE=1, WIN_REDRAW=2, WIN_FOCUSED=4 };
 
@@ -418,17 +418,24 @@ mousereport(XEvent *e) {
 	int button = e->xbutton.button;
 	int state = e->xbutton.state;
 	char buf[] = { '\033', '[', 'M', 0, 32+x+1, 32+y+1 };
-	
-	if(!IS_SET(MODE_MOUSE))
-		return;
+	static int ob, ox, oy;
 	
 	/* from urxvt */
-	if(e->xbutton.type == ButtonRelease || button == AnyButton)
+	if(e->xbutton.type == MotionNotify) {
+		if(!IS_SET(MODE_MOUSEMOTION) || (x == ox && y == oy))
+			return;
+		button = ob + 32;
+		ox = x, oy = y;
+	} else if(e->xbutton.type == ButtonRelease || button == AnyButton) {
 		button = 3;
-	else {
+	} else {
 		button -= Button1;
 		if(button >= 3)
 			button += 64 - 3;
+		if(e->xbutton.type == ButtonPress) {
+			ob = button;
+			ox = x, oy = y;
+		}
 	}
 	
 	buf[3] = 32 + button + (state & ShiftMask ? 4 : 0)
@@ -440,10 +447,13 @@ mousereport(XEvent *e) {
 
 void
 bpress(XEvent *e) {
-	mousereport(e);
-	sel.mode = 1;
-	sel.ex = sel.bx = X2COL(e->xbutton.x);
-	sel.ey = sel.by = Y2ROW(e->xbutton.y);
+	if(IS_SET(MODE_MOUSE))
+		mousereport(e);
+	else if(e->xbutton.button == Button1) {
+		sel.mode = 1;
+		sel.ex = sel.bx = X2COL(e->xbutton.x);
+		sel.ey = sel.by = Y2ROW(e->xbutton.y);
+	}
 }
 
 void
@@ -552,17 +562,18 @@ xsetsel(char *str) {
 
 void
 brelease(XEvent *e) {
-	int b;
-
-	sel.mode = 0;
-	getbuttoninfo(e, &b, &sel.ex, &sel.ey);
-	mousereport(e);
-	if(sel.bx == sel.ex && sel.by == sel.ey) {
-		sel.bx = -1;
-		if(b == 2)
-			selpaste();
-		else if(b == 1) {
+	if(IS_SET(MODE_MOUSE)) {
+		mousereport(e);
+		return;
+	}
+	if(e->xbutton.button == Button2)
+		selpaste();
+	else if(e->xbutton.button == Button1) {
+		sel.mode = 0;
+		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
+		if(sel.bx == sel.ex && sel.by == sel.ey) {
 			struct timeval now;
+			sel.bx = -1;
 			gettimeofday(&now, NULL);
 
 			if(TIMEDIFF(now, sel.tclick2) <= TRIPLECLICK_TIMEOUT) {
@@ -574,18 +585,18 @@ brelease(XEvent *e) {
 			} else if(TIMEDIFF(now, sel.tclick1) <= DOUBLECLICK_TIMEOUT) {
 				/* double click to select word */
 				sel.bx = sel.ex;
-				while(term.line[sel.ey][sel.bx-1].state & GLYPH_SET &&
+				while(sel.bx > 0 && term.line[sel.ey][sel.bx-1].state & GLYPH_SET &&
 					  term.line[sel.ey][sel.bx-1].c[0] != ' ') sel.bx--;
 				sel.b.x = sel.bx;
-				while(term.line[sel.ey][sel.ex+1].state & GLYPH_SET &&
+				while(sel.ex < term.col-1 && term.line[sel.ey][sel.ex+1].state & GLYPH_SET &&
 					  term.line[sel.ey][sel.ex+1].c[0] != ' ') sel.ex++;
 				sel.e.x = sel.ex;
 				sel.b.y = sel.e.y = sel.ey;
 				selcopy();
 			}
-		}
-	} else if(b == 1)
-		selcopy();
+		} else
+			selcopy();
+	}
 	memcpy(&sel.tclick2, &sel.tclick1, sizeof(struct timeval));
 	gettimeofday(&sel.tclick1, NULL);
 	draw();
@@ -593,9 +604,12 @@ brelease(XEvent *e) {
 
 void
 bmotion(XEvent *e) {
+	if(IS_SET(MODE_MOUSE)) {
+		mousereport(e);
+		return;
+	}
 	if(sel.mode) {
-		int oldey = sel.ey,
-			oldex = sel.ex;
+		int oldey = sel.ey, oldex = sel.ex;
 		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
 
 		if(oldey != sel.ey || oldex != sel.ex) {
@@ -1121,7 +1135,10 @@ csihandle(void) {
 				term.c.state |= CURSOR_HIDE;
 				break;
 			case 1000: /* disable X11 xterm mouse reporting */
-				term.mode &= ~MODE_MOUSE;
+				term.mode &= ~MODE_MOUSEBTN;
+				break;
+			case 1002:
+				term.mode &= ~MODE_MOUSEMOTION;
 				break;
 			case 1049: /* = 1047 and 1048 */
 			case 1047:
@@ -1189,8 +1206,11 @@ csihandle(void) {
 			case 25:
 				term.c.state &= ~CURSOR_HIDE;
 				break;
-			case 1000: /* enable X11 xterm mouse reporting */
-				term.mode |= MODE_MOUSE;
+			case 1000: /* 1000,1002: enable xterm mouse report */
+				term.mode |= MODE_MOUSEBTN;
+				break;
+			case 1002:
+				term.mode |= MODE_MOUSEMOTION;
 				break;
 			case 1049: /* = 1047 and 1048 */
 			case 1047:
@@ -1612,7 +1632,7 @@ xinit(void) {
 	attrs.bit_gravity = NorthWestGravity;
 	attrs.event_mask = FocusChangeMask | KeyPressMask
 		| ExposureMask | VisibilityChangeMask | StructureNotifyMask
-		| PointerMotionMask | ButtonPressMask | ButtonReleaseMask;
+		| ButtonMotionMask | ButtonPressMask | ButtonReleaseMask;
 	attrs.colormap = xw.cmap;
 
 	xw.win = XCreateWindow(xw.dpy, XRootWindow(xw.dpy, xw.scr), 0, 0,
