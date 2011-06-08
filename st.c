@@ -1141,12 +1141,13 @@ csihandle(void) {
 				term.mode &= ~MODE_MOUSEMOTION;
 				break;
 			case 1049: /* = 1047 and 1048 */
+			case 47:
 			case 1047:
 				if(IS_SET(MODE_ALTSCREEN)) {
 					tclearregion(0, 0, term.col-1, term.row-1);
 					tswapscreen();
 				}
-				if(escseq.arg[0] == 1047)
+				if(escseq.arg[0] != 1049)
 					break;
 			case 1048:
 				tcursor(CURSOR_LOAD);
@@ -1213,12 +1214,13 @@ csihandle(void) {
 				term.mode |= MODE_MOUSEMOTION;
 				break;
 			case 1049: /* = 1047 and 1048 */
+			case 47:
 			case 1047:
 				if(IS_SET(MODE_ALTSCREEN))
 					tclearregion(0, 0, term.col-1, term.row-1);
 				else
 					tswapscreen();
-				if(escseq.arg[0] == 1047)
+				if(escseq.arg[0] != 1049)
 					break;
 			case 1048:
 				tcursor(CURSOR_SAVE);
