@@ -64,7 +64,7 @@ enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
 enum { CURSOR_DEFAULT = 0, CURSOR_HIDE = 1, CURSOR_WRAPNEXT = 2 };
 enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
 enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4, MODE_ALTSCREEN=8,
-       MODE_CRLF=16, MODE_MOUSE=32 };
+       MODE_CRLF=16, MODE_MOUSE=32, MODE_REVERSE=64 };
 enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
 enum { WIN_VISIBLE=1, WIN_REDRAW=2, WIN_FOCUSED=4 };
 
@@ -1103,7 +1103,11 @@ csihandle(void) {
 			case 1:
 				term.mode &= ~MODE_APPKEYPAD;
 				break;
-			case 5: /* TODO: DECSCNM -- Remove reverse video */
+			case 5: /* DECSCNM -- Remove reverse video */
+				if(IS_SET(MODE_REVERSE)) {
+					term.mode &= ~MODE_REVERSE;
+					draw();
+				}
 				break;
 			case 7:
 				term.mode &= ~MODE_WRAP;
@@ -1167,7 +1171,10 @@ csihandle(void) {
 				term.mode |= MODE_APPKEYPAD;
 				break;
 			case 5: /* DECSCNM -- Reverve video */
-				/* TODO: set REVERSE on the whole screen (f) */
+				if(!IS_SET(MODE_REVERSE)) {
+					term.mode |= MODE_REVERSE;
+					draw();
+				}
 				break;
 			case 7:
 				term.mode |= MODE_WRAP;
@@ -1508,7 +1515,7 @@ xloadcols(void) {
 
 void
 xclear(int x1, int y1, int x2, int y2) {
-	XSetForeground(xw.dpy, dc.gc, dc.col[DefaultBG]);
+	XSetForeground(xw.dpy, dc.gc, dc.col[IS_SET(MODE_REVERSE) ? DefaultFG : DefaultBG]);
 	XFillRectangle(xw.dpy, xw.buf, dc.gc,
 	               x1 * xw.cw, y1 * xw.ch,
 	               (x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch);
@@ -1640,14 +1647,20 @@ xinit(void) {
 
 void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
-	unsigned long xfg, xbg;
+	unsigned long xfg = dc.col[base.fg], xbg = dc.col[base.bg], temp;
 	int winx = x*xw.cw, winy = y*xw.ch + dc.font.ascent, width = charlen*xw.cw;
 	int i;
+	
+	/* only switch default fg/bg if term is in RV mode */
+	if(IS_SET(MODE_REVERSE)) {
+		if(base.fg == DefaultFG)
+			xfg = dc.col[DefaultBG];
+		if(base.bg == DefaultBG)
+			xbg = dc.col[DefaultFG];
+	}
 
 	if(base.mode & ATTR_REVERSE)
-		xfg = dc.col[base.bg], xbg = dc.col[base.fg];
-	else
-		xfg = dc.col[base.fg], xbg = dc.col[base.bg];
+		temp = xfg, xfg = xbg, xbg = temp;
 
 	XSetBackground(xw.dpy, dc.gc, xbg);
 	XSetForeground(xw.dpy, dc.gc, xfg);
@@ -1692,6 +1705,8 @@ xdrawcursor(void) {
 	/* draw the new one */
 	if(!(term.c.state & CURSOR_HIDE) && (xw.state & WIN_FOCUSED)) {
 		sl = utf8size(g.c);
+		if(IS_SET(MODE_REVERSE))
+			g.mode |= ATTR_REVERSE, g.fg = DefaultCS, g.bg = DefaultFG;
 		xdraws(g.c, g, term.c.x, term.c.y, 1, sl);
 		oldx = term.c.x, oldy = term.c.y;
 	}
