@@ -615,7 +615,7 @@ bmotion(XEvent *e) {
 		if(oldey != sel.ey || oldex != sel.ex) {
 			int starty = MIN(oldey, sel.ey);
 			int endy = MAX(oldey, sel.ey);
-			drawregion(0, (starty > 0 ? starty : 0), term.col, (sel.ey < term.row ? endy+1 : term.row));
+			drawregion(0, (starty > 0 ? starty : 0), term.col, (endy < term.row ? endy+1 : term.row));
 		}
 	}
 }
