@@ -241,6 +241,8 @@ static void (*handler[LASTEvent])(XEvent *) = {
 	[VisibilityNotify] = visibility,
 	[UnmapNotify] = unmap,
 	[Expose] = expose,
+	[EnterNotify] = focus,
+	[LeaveNotify] = focus,
 	[FocusIn] = focus,
 	[FocusOut] = focus,
 	[MotionNotify] = bmotion,
@@ -1635,7 +1637,8 @@ xinit(void) {
 	attrs.bit_gravity = NorthWestGravity;
 	attrs.event_mask = FocusChangeMask | KeyPressMask
 		| ExposureMask | VisibilityChangeMask | StructureNotifyMask
-		| ButtonMotionMask | ButtonPressMask | ButtonReleaseMask;
+		| ButtonMotionMask | ButtonPressMask | ButtonReleaseMask
+		| EnterWindowMask | LeaveWindowMask;
 	attrs.colormap = xw.cmap;
 
 	parent = opt_embed ? strtol(opt_embed, NULL, 0) : XRootWindow(xw.dpy, xw.scr);
@@ -1819,7 +1822,7 @@ xseturgency(int add) {
 
 void
 focus(XEvent *ev) {
-	if(ev->type == FocusIn) {
+	if(ev->type == FocusIn || ev->type == EnterNotify) {
 		xw.state |= WIN_FOCUSED;
 		xseturgency(0);
 	} else
