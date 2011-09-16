@@ -11,6 +11,7 @@ code & interface
 * clean selection code
 * clean and complete terminfo entry
 * fix shift up/down (shift selection in emacs)
+* fast drawing
 * ...
 
 misc

@@ -1627,8 +1627,8 @@ xinit(void) {
 	xloadcols();
 
 	/* window - default size */
-	xw.bufh = 24 * xw.ch;
-	xw.bufw = 80 * xw.cw;
+	xw.bufh = term.row * xw.ch;
+	xw.bufw = term.col * xw.cw;
 	xw.h = xw.bufh + 2*BORDER;
 	xw.w = xw.bufw + 2*BORDER;
 
