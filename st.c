@@ -124,6 +124,7 @@ typedef struct {
 	Colormap cmap;
 	Window win;
 	Pixmap buf;
+	Atom xembed;
 	XIM xim;
 	XIC xic;
 	int scr;
@@ -268,7 +269,6 @@ static char **opt_cmd  = NULL;
 static char *opt_title = NULL;
 static char *opt_embed = NULL;
 static char *opt_class = NULL;
-static Atom xembedatom;
 
 int
 utf8decode(char *s, long *u) {
@@ -1671,7 +1671,7 @@ xinit(void) {
 		&(XColor){.red = 0xffff, .green = 0xffff, .blue = 0xffff},
 		&(XColor){.red = 0x0000, .green = 0x0000, .blue = 0x0000});
 
-	xembedatom = XInternAtom(xw.dpy, "_XEMBED", False);
+	xw.xembed = XInternAtom(xw.dpy, "_XEMBED", False);
 
 	XStoreName(xw.dpy, xw.win, opt_title ? opt_title : "st");
 	XMapWindow(xw.dpy, xw.win);
@@ -1898,7 +1898,9 @@ kpress(XEvent *ev) {
 
 void
 cmessage(XEvent *e) {
-	if (e->xclient.message_type == xembedatom && e->xclient.format == 32) {
+	/* See xembed specs
+	   http://standards.freedesktop.org/xembed-spec/xembed-spec-latest.html */
+	if (e->xclient.message_type == xw.xembed && e->xclient.format == 32) {
 		if (e->xclient.data.l[1] == XEMBED_FOCUS_IN) {
 			xw.state |= WIN_FOCUSED;
 			xseturgency(0);
