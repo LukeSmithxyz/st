@@ -37,6 +37,10 @@
 	"st-" VERSION ", (c) 2010-2011 st engineers\n" \
 	"usage: st [-t title] [-c class] [-w windowid] [-v] [-e command...]\n"
 
+/* XEMBED messages */
+#define XEMBED_FOCUS_IN  4
+#define XEMBED_FOCUS_OUT 5
+
 /* Arbitrary sizes */
 #define ESC_TITLE_SIZ 256
 #define ESC_BUF_SIZ   256
@@ -217,6 +221,7 @@ static void visibility(XEvent *);
 static void unmap(XEvent *);
 static char* kmap(KeySym, unsigned int state);
 static void kpress(XEvent *);
+static void cmessage(XEvent *);
 static void resize(XEvent *);
 static void focus(XEvent *);
 static void brelease(XEvent *);
@@ -237,12 +242,11 @@ static int isfullutf8(char *, int);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
+	[ClientMessage] = cmessage,
 	[ConfigureNotify] = resize,
 	[VisibilityNotify] = visibility,
 	[UnmapNotify] = unmap,
 	[Expose] = expose,
-	[EnterNotify] = focus,
-	[LeaveNotify] = focus,
 	[FocusIn] = focus,
 	[FocusOut] = focus,
 	[MotionNotify] = bmotion,
@@ -264,6 +268,7 @@ static char **opt_cmd  = NULL;
 static char *opt_title = NULL;
 static char *opt_embed = NULL;
 static char *opt_class = NULL;
+static Atom xembedatom;
 
 int
 utf8decode(char *s, long *u) {
@@ -1666,6 +1671,8 @@ xinit(void) {
 		&(XColor){.red = 0xffff, .green = 0xffff, .blue = 0xffff},
 		&(XColor){.red = 0x0000, .green = 0x0000, .blue = 0x0000});
 
+	xembedatom = XInternAtom(xw.dpy, "_XEMBED", False);
+
 	XStoreName(xw.dpy, xw.win, opt_title ? opt_title : "st");
 	XMapWindow(xw.dpy, xw.win);
 	xhints();
@@ -1822,7 +1829,7 @@ xseturgency(int add) {
 
 void
 focus(XEvent *ev) {
-	if(ev->type == FocusIn || ev->type == EnterNotify) {
+	if(ev->type == FocusIn) {
 		xw.state |= WIN_FOCUSED;
 		xseturgency(0);
 	} else
@@ -1887,6 +1894,19 @@ kpress(XEvent *ev) {
 			}
 			break;
 		}
+}
+
+void
+cmessage(XEvent *e) {
+	if (e->xclient.message_type == xembedatom && e->xclient.format == 32) {
+		if (e->xclient.data.l[1] == XEMBED_FOCUS_IN) {
+			xw.state |= WIN_FOCUSED;
+			xseturgency(0);
+		} else if (e->xclient.data.l[1] == XEMBED_FOCUS_OUT) {
+			xw.state &= ~WIN_FOCUSED;
+		}
+		draw();
+	}
 }
 
 void
