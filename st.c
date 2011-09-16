@@ -237,6 +237,7 @@ static void selinit(void);
 static inline int selected(int, int);
 static void selcopy(void);
 static void selpaste();
+static void selscroll(int, int);
 
 static int utf8decode(char *, long *);
 static int utf8encode(long *, char *);
@@ -806,6 +807,8 @@ tscrolldown(int orig, int n) {
 		term.line[i] = term.line[i-n];
 		term.line[i-n] = temp;
 	}
+
+	selscroll(orig, n);
 }
 
 void
@@ -820,6 +823,31 @@ tscrollup(int orig, int n) {
 		 temp = term.line[i];
 		 term.line[i] = term.line[i+n];
 		 term.line[i+n] = temp;
+	}
+
+	selscroll(orig, -n);
+}
+
+void
+selscroll(int orig, int n) {
+	if(sel.bx == -1)
+		return;
+	
+	if(BETWEEN(sel.by, orig, term.bot) || BETWEEN(sel.ey, orig, term.bot)) {
+		if((sel.by += n) > term.bot || (sel.ey += n) < term.top) {
+			sel.bx = -1;
+			return;
+		}
+		if(sel.by < term.top) {
+			sel.by = term.top;
+			sel.bx = 0;
+		}
+		if(sel.ey > term.bot) {
+			sel.ey = term.bot;
+			sel.ex = term.col;
+		}
+		sel.b.y = sel.by, sel.b.x = sel.bx;
+		sel.e.y = sel.ey, sel.e.x = sel.ex;
 	}
 }
 
@@ -1077,6 +1105,7 @@ csihandle(void) {
 		break;
 	/* XXX: (CSI n I) CHT -- Cursor Forward Tabulation <n> tab stops */
 	case 'J': /* ED -- Clear screen */
+		sel.bx = -1;
 		switch(escseq.arg[0]) {
 		case 0: /* below */
 			tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
@@ -1382,6 +1411,7 @@ tputc(char *c) {
 			}
 		}
 	} else {
+		if(sel.bx != -1 && BETWEEN(term.c.y, sel.by, sel.ey)) sel.bx = -1;
 		switch(ascii) {
 		case '\t':
 			tputtab();
