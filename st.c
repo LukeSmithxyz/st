@@ -47,6 +47,8 @@
 #define ESC_ARG_SIZ   16
 #define DRAW_BUF_SIZ  1024
 #define UTF_SIZ       4
+#define XK_NO_MOD     UINT_MAX
+#define XK_ANY_MOD    0
 
 #define SERRNO strerror(errno)
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
@@ -1840,9 +1842,12 @@ focus(XEvent *ev) {
 char*
 kmap(KeySym k, unsigned int state) {
 	int i;
-	for(i = 0; i < LEN(key); i++)
-		if(key[i].k == k && (key[i].mask == 0 || key[i].mask & state))
+	state &= ~Mod2Mask;
+	for(i = 0; i < LEN(key); i++) {
+		unsigned int mask = key[i].mask;
+		if(key[i].k == k && ((state & mask) == mask || (mask == XK_NO_MOD && !state)))
 			return (char*)key[i].s;
+	}
 	return NULL;
 }
 
