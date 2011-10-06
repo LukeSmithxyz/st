@@ -5,7 +5,7 @@
 #define BORDER 2
 #define SHELL "/bin/sh"
 
-/* Terminal colors */
+/* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
 	"black",
 	"red3",

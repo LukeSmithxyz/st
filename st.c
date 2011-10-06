@@ -1541,7 +1541,7 @@ xloadcols(void) {
 	XColor color;
 	unsigned long white = WhitePixel(xw.dpy, xw.scr);
 
-	for(i = 0; i < 16; i++) {
+	for(i = 0; i < LEN(colorname); i++) {
 		if(!XAllocNamedColor(xw.dpy, xw.cmap, colorname[i], &color, &color)) {
 			dc.col[i] = white;
 			fprintf(stderr, "Could not allocate color '%s'\n", colorname[i]);
