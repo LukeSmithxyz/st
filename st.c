@@ -111,6 +111,7 @@ typedef struct {
 	int col;	/* nb col */
 	Line* line;	/* screen */
 	Line* alt;	/* alternate screen */
+	char* dirty; /* dirtyness of lines */
 	TCursor c;	/* cursor */
 	int top;	/* top    scroll limit */
 	int bot;	/* bottom scroll limit */
@@ -203,6 +204,7 @@ static void tsetattr(int*, int);
 static void tsetchar(char*);
 static void tsetscroll(int, int);
 static void tswapscreen(void);
+static void tfulldirt(void);
 
 static void ttynew(void);
 static void ttyread(void);
@@ -749,6 +751,14 @@ ttyresize(int x, int y) {
 }
 
 void
+tfulldirt(void)
+{
+	int i;
+	for(i = 0; i < term.row; i++)
+		term.dirty[i] = 1;
+}
+
+void
 tcursor(int mode) {
 	static TCursor c;
 
@@ -777,9 +787,12 @@ tnew(int col, int row) {
 	term.row = row, term.col = col;
 	term.line = malloc(term.row * sizeof(Line));
 	term.alt  = malloc(term.row * sizeof(Line));
+	term.dirty = malloc(term.row * sizeof(*term.dirty));
+
 	for(row = 0; row < term.row; row++) {
 		term.line[row] = malloc(term.col * sizeof(Glyph));
 		term.alt [row] = malloc(term.col * sizeof(Glyph));
+		term.dirty[row] = 0;
 	}
 	/* setup screen */
 	treset();
@@ -791,6 +804,7 @@ tswapscreen(void) {
 	term.line = term.alt;
 	term.alt = tmp;
 	term.mode ^= MODE_ALTSCREEN;
+	tfulldirt();
 }
 
 void
@@ -806,6 +820,9 @@ tscrolldown(int orig, int n) {
 		temp = term.line[i];
 		term.line[i] = term.line[i-n];
 		term.line[i-n] = temp;
+
+		term.dirty[i] = 1;
+		term.dirty[i-n] = 1;
 	}
 
 	selscroll(orig, n);
@@ -823,6 +840,9 @@ tscrollup(int orig, int n) {
 		 temp = term.line[i];
 		 term.line[i] = term.line[i+n];
 		 term.line[i+n] = temp;
+
+		 term.dirty[i] = 1;
+		 term.dirty[i+n] = 1;
 	}
 
 	selscroll(orig, -n);
@@ -896,6 +916,7 @@ tmoveto(int x, int y) {
 
 void
 tsetchar(char *c) {
+	term.dirty[term.c.y] = 1;
 	term.line[term.c.y][term.c.x] = term.c.attr;
 	memcpy(term.line[term.c.y][term.c.x].c, c, UTF_SIZ);
 	term.line[term.c.y][term.c.x].state |= GLYPH_SET;
@@ -915,9 +936,11 @@ tclearregion(int x1, int y1, int x2, int y2) {
 	LIMIT(y1, 0, term.row-1);
 	LIMIT(y2, 0, term.row-1);
 
-	for(y = y1; y <= y2; y++)
+	for(y = y1; y <= y2; y++) {
+		term.dirty[y] = 1;
 		for(x = x1; x <= x2; x++)
 			term.line[y][x].state = 0;
+	}
 }
 
 void
@@ -925,6 +948,8 @@ tdeletechar(int n) {
 	int src = term.c.x + n;
 	int dst = term.c.x;
 	int size = term.col - src;
+	
+	term.dirty[term.c.y] = 1;
 
 	if(src >= term.col) {
 		tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
@@ -939,6 +964,8 @@ tinsertblank(int n) {
 	int src = term.c.x;
 	int dst = src + n;
 	int size = term.col - dst;
+
+	term.dirty[term.c.y] = 1;
 
 	if(dst >= term.col) {
 		tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
@@ -1411,7 +1438,8 @@ tputc(char *c) {
 			}
 		}
 	} else {
-		if(sel.bx != -1 && BETWEEN(term.c.y, sel.by, sel.ey)) sel.bx = -1;
+		if(sel.bx != -1 && BETWEEN(term.c.y, sel.by, sel.ey))
+			sel.bx = -1;
 		switch(ascii) {
 		case '\t':
 			tputtab();
@@ -1479,9 +1507,11 @@ tresize(int col, int row) {
 	/* resize to new height */
 	term.line = realloc(term.line, row * sizeof(Line));
 	term.alt  = realloc(term.alt,  row * sizeof(Line));
+	term.dirty = realloc(term.dirty, row * sizeof(*term.dirty));
 
 	/* resize each row to new width, zero-pad if needed */
 	for(i = 0; i < minrow; i++) {
+		term.dirty[i] = 1;
 		term.line[i] = realloc(term.line[i], col * sizeof(Glyph));
 		term.alt[i]  = realloc(term.alt[i],  col * sizeof(Glyph));
 		for(x = mincol; x < col; x++) {
@@ -1492,6 +1522,7 @@ tresize(int col, int row) {
 
 	/* allocate any new rows */
 	for(/* i == minrow */; i < row; i++) {
+		term.dirty[i] = 1;
 		term.line[i] = calloc(col, sizeof(Glyph));
 		term.alt [i] = calloc(col, sizeof(Glyph));
 	}
@@ -1502,6 +1533,7 @@ tresize(int col, int row) {
 	tmoveto(term.c.x, term.c.y);
 	/* reset scrolling region */
 	tsetscroll(0, row-1);
+
 	return (slide > 0);
 }
 
@@ -1792,8 +1824,11 @@ drawregion(int x1, int y1, int x2, int y2) {
 	if(!(xw.state & WIN_VISIBLE))
 		return;
 
-	xclear(x1, y1, x2-1, y2-1);
 	for(y = y1; y < y2; y++) {
+		if(!term.dirty[y])
+			continue;
+		xclear(0, y, term.col, y);
+		term.dirty[y] = 0;
 		base = term.line[y][0];
 		ic = ib = ox = 0;
 		for(x = x1; x < x2; x++) {
@@ -1801,7 +1836,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 			if(sel.bx != -1 && *(new.c) && selected(x, y))
 				new.mode ^= ATTR_REVERSE;
 			if(ib > 0 && (!(new.state & GLYPH_SET) || ATTRCMP(base, new) ||
-					ib >= DRAW_BUF_SIZ-UTF_SIZ)) {
+						  ib >= DRAW_BUF_SIZ-UTF_SIZ)) {
 				xdraws(buf, base, ox, y, ic, ib);
 				ic = ib = 0;
 			}
