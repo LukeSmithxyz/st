@@ -1855,7 +1855,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 			xdraws(buf, base, ox, y, ic, ib);
 	}
 	xdrawcursor();
-	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.bufw, xw.bufh, BORDER, BORDER);
+	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, x1*xw.cw, y1*xw.ch, (x2-1)*xw.cw, (y2-1)*xw.ch, BORDER, BORDER);
 }
 
 void
