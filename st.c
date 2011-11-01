@@ -463,6 +463,9 @@ bpress(XEvent *e) {
 	if(IS_SET(MODE_MOUSE))
 		mousereport(e);
 	else if(e->xbutton.button == Button1) {
+		if(sel.bx != -1)
+			for(int i=sel.b.y; i<=sel.e.y; i++)
+				term.dirty[i] = 1;
 		sel.mode = 1;
 		sel.ex = sel.bx = X2COL(e->xbutton.x);
 		sel.ey = sel.by = Y2ROW(e->xbutton.y);
@@ -583,6 +586,7 @@ brelease(XEvent *e) {
 	else if(e->xbutton.button == Button1) {
 		sel.mode = 0;
 		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
+		term.dirty[sel.ey] = 1;
 		if(sel.bx == sel.ex && sel.by == sel.ey) {
 			struct timeval now;
 			sel.bx = -1;
@@ -627,7 +631,9 @@ bmotion(XEvent *e) {
 		if(oldey != sel.ey || oldex != sel.ex) {
 			int starty = MIN(oldey, sel.ey);
 			int endy = MAX(oldey, sel.ey);
-			drawregion(0, (starty > 0 ? starty : 0), term.col, (endy < term.row ? endy+1 : term.row));
+			for(int i=starty; i<=endy; i++)
+				term.dirty[i] = 1;
+			draw();
 		}
 	}
 }
