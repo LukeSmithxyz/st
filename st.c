@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <locale.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -79,6 +80,10 @@ enum { WIN_VISIBLE=1, WIN_REDRAW=2, WIN_FOCUSED=4 };
 #undef B0
 enum { B0=1, B1=2, B2=4, B3=8, B4=16, B5=32, B6=64, B7=128 };
 
+typedef unsigned char uchar;
+typedef unsigned int uint;
+typedef unsigned long ulong;
+
 typedef struct {
 	char c[UTF_SIZ];     /* character code */
 	char mode;  /* attribute flags */
@@ -113,7 +118,7 @@ typedef struct {
 	int col;	/* nb col */
 	Line* line;	/* screen */
 	Line* alt;	/* alternate screen */
-	char* dirty; /* dirtyness of lines */
+	bool* dirty; /* dirtyness of lines */
 	TCursor c;	/* cursor */
 	int top;	/* top    scroll limit */
 	int bot;	/* bottom scroll limit */
@@ -145,13 +150,13 @@ typedef struct {
 
 typedef struct {
 	KeySym k;
-	unsigned int mask;
+	uint mask;
 	char s[ESC_BUF_SIZ];
 } Key;
 
 /* Drawing Context */
 typedef struct {
-	unsigned long col[256];
+	ulong col[256];
 	GC gc;
 	struct {
 		int ascent;
@@ -182,7 +187,7 @@ static void drawregion(int, int, int, int);
 static void execsh(void);
 static void sigchld(int);
 static void run(void);
-static int last_draw_too_old(void);
+static bool last_draw_too_old(void);
 
 static void csidump(void);
 static void csihandle(void);
@@ -229,7 +234,7 @@ static void xresize(int, int);
 static void expose(XEvent *);
 static void visibility(XEvent *);
 static void unmap(XEvent *);
-static char* kmap(KeySym, unsigned int);
+static char* kmap(KeySym, uint);
 static void kpress(XEvent *);
 static void cmessage(XEvent *);
 static void resize(XEvent *);
@@ -241,7 +246,7 @@ static void selnotify(XEvent *);
 static void selrequest(XEvent *);
 
 static void selinit(void);
-static inline int selected(int, int);
+static inline bool selected(int, int);
 static void selcopy(void);
 static void selpaste();
 static void selscroll(int, int);
@@ -282,31 +287,31 @@ static char *opt_class = NULL;
 
 int
 utf8decode(char *s, long *u) {
-	unsigned char c;
+	uchar c;
 	int i, n, rtn;
 
 	rtn = 1;
 	c = *s;
-	if(~c&B7) { /* 0xxxxxxx */
+	if(~c & B7) { /* 0xxxxxxx */
 		*u = c;
 		return rtn;
-	} else if((c&(B7|B6|B5)) == (B7|B6)) { /* 110xxxxx */
+	} else if((c & (B7|B6|B5)) == (B7|B6)) { /* 110xxxxx */
 		*u = c&(B4|B3|B2|B1|B0);
 		n = 1;
-	} else if((c&(B7|B6|B5|B4)) == (B7|B6|B5)) { /* 1110xxxx */
+	} else if((c & (B7|B6|B5|B4)) == (B7|B6|B5)) { /* 1110xxxx */
 		*u = c&(B3|B2|B1|B0);
 		n = 2;
-	} else if((c&(B7|B6|B5|B4|B3)) == (B7|B6|B5|B4)) { /* 11110xxx */
-		*u = c&(B2|B1|B0);
+	} else if((c & (B7|B6|B5|B4|B3)) == (B7|B6|B5|B4)) { /* 11110xxx */
+		*u = c & (B2|B1|B0);
 		n = 3;
 	} else
 		goto invalid;
-	for(i=n,++s; i>0; --i,++rtn,++s) {
+	for(i = n, ++s; i > 0; --i, ++rtn, ++s) {
 		c = *s;
-		if((c&(B7|B6)) != B7) /* 10xxxxxx */
+		if((c & (B7|B6)) != B7) /* 10xxxxxx */
 			goto invalid;
 		*u <<= 6;
-		*u |= c&(B5|B4|B3|B2|B1|B0);
+		*u |= c & (B5|B4|B3|B2|B1|B0);
 	}
 	if((n == 1 && *u < 0x80) ||
 	   (n == 2 && *u < 0x800) ||
@@ -321,11 +326,11 @@ invalid:
 
 int
 utf8encode(long *u, char *s) {
-	unsigned char *sp;
-	unsigned long uc;
+	uchar *sp;
+	ulong uc;
 	int i, n;
 
-	sp = (unsigned char*) s;
+	sp = (uchar*) s;
 	uc = *u;
 	if(uc < 0x80) {
 		*sp = uc; /* 0xxxxxxx */
@@ -357,11 +362,11 @@ invalid:
    UTF-8 otherwise return 0 */
 int
 isfullutf8(char *s, int b) {
-	unsigned char *c1, *c2, *c3;
+	uchar *c1, *c2, *c3;
 
-	c1 = (unsigned char *) s;
-	c2 = (unsigned char *) ++s;
-	c3 = (unsigned char *) ++s;
+	c1 = (uchar *) s;
+	c2 = (uchar *) ++s;
+	c3 = (uchar *) ++s;
 	if(b < 1)
 		return 0;
 	else if((*c1&(B7|B6|B5)) == (B7|B6) && b == 1)
@@ -381,7 +386,7 @@ isfullutf8(char *s, int b) {
 
 int
 utf8size(char *s) {
-	unsigned char c = *s;
+	uchar c = *s;
 
 	if(~c&B7)
 		return 1;
@@ -405,7 +410,7 @@ selinit(void) {
 		sel.xtarget = XA_STRING;
 }
 
-static inline int
+static inline bool
 selected(int x, int y) {
 	if(sel.ey == y && sel.by == y) {
 		int bx = MIN(sel.bx, sel.ex);
@@ -504,9 +509,9 @@ selcopy(void) {
 
 void
 selnotify(XEvent *e) {
-	unsigned long nitems, ofs, rem;
+	ulong nitems, ofs, rem;
 	int format;
-	unsigned char *data;
+	uchar *data;
 	Atom type;
 
 	ofs = 0;
@@ -550,12 +555,12 @@ selrequest(XEvent *e) {
 		Atom string = sel.xtarget;
 		XChangeProperty(xsre->display, xsre->requestor, xsre->property,
 				XA_ATOM, 32, PropModeReplace,
-				(unsigned char *) &string, 1);
+				(uchar *) &string, 1);
 		xev.property = xsre->property;
 	} else if(xsre->target == sel.xtarget && sel.clip != NULL) {
 		XChangeProperty(xsre->display, xsre->requestor, xsre->property,
 				xsre->target, 8, PropModeReplace,
-				(unsigned char *) sel.clip, strlen(sel.clip));
+				(uchar *) sel.clip, strlen(sel.clip));
 		xev.property = xsre->property;
 	}
 
@@ -636,7 +641,7 @@ bmotion(XEvent *e) {
 		if(oldey != sel.ey || oldex != sel.ex) {
 			int starty = MIN(oldey, sel.ey);
 			int endy = MAX(oldey, sel.ey);
-			for(int i=starty; i<=endy; i++)
+			for(int i = starty; i <= endy; i++)
 				term.dirty[i] = 1;
 			draw();
 		}
@@ -1444,7 +1449,7 @@ tputc(char *c) {
 				break;
 			default:
 				fprintf(stderr, "erresc: unknown sequence ESC 0x%02X '%c'\n",
-				    (unsigned char) ascii, isprint(ascii)?ascii:'.');
+				    (uchar) ascii, isprint(ascii)?ascii:'.');
 				term.esc = 0;
 			}
 		}
@@ -1582,7 +1587,7 @@ void
 xloadcols(void) {
 	int i, r, g, b;
 	XColor color;
-	unsigned long white = WhitePixel(xw.dpy, xw.scr);
+	ulong white = WhitePixel(xw.dpy, xw.scr);
 
 	for(i = 0; i < LEN(colorname); i++) {
 		if(!XAllocNamedColor(xw.dpy, xw.cmap, colorname[i], &color, &color)) {
@@ -1756,7 +1761,7 @@ xinit(void) {
 
 void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
-	unsigned long xfg = dc.col[base.fg], xbg = dc.col[base.bg], temp;
+	ulong xfg = dc.col[base.fg], xbg = dc.col[base.bg], temp;
 	int winx = x*xw.cw, winy = y*xw.ch + dc.font.ascent, width = charlen*xw.cw;
 	int i;
 	
@@ -1776,7 +1781,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	if(base.mode & ATTR_GFX) {
 		for(i = 0; i < bytelen; i++) {
-			char c = gfx[(unsigned int)s[i] % 256];
+			char c = gfx[(uint)s[i] % 256];
 			if(c)
 				s[i] = c;
 			else if(s[i] > 0x5f)
@@ -1929,11 +1934,11 @@ focus(XEvent *ev) {
 }
 
 char*
-kmap(KeySym k, unsigned int state) {
+kmap(KeySym k, uint state) {
 	int i;
 	state &= ~Mod2Mask;
 	for(i = 0; i < LEN(key); i++) {
-		unsigned int mask = key[i].mask;
+		uint mask = key[i].mask;
 		if(key[i].k == k && ((state & mask) == mask || (mask == XK_NO_MOD && !state)))
 			return (char*)key[i].s;
 	}
@@ -2024,7 +2029,7 @@ resize(XEvent *e) {
 	xresize(col, row);
 }
 
-int
+bool
 last_draw_too_old(void) {
 	struct timeval now;
 	gettimeofday(&now, NULL);
@@ -2037,7 +2042,7 @@ run(void) {
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dpy);
 	struct timeval timeout = {0};
-	int stuff_to_print = 0;
+	bool stuff_to_print = 0;
 	
 	for(;;) {
 		FD_ZERO(&rfd);
