@@ -13,17 +13,16 @@
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
-
-#include <sys/time.h>
-#include <time.h>
 
 #if   defined(__linux)
  #include <pty.h>
@@ -49,6 +48,9 @@
 #define UTF_SIZ       4
 #define XK_NO_MOD     UINT_MAX
 #define XK_ANY_MOD    0
+
+#define SELECT_TIMEOUT (20*1000) /* 20 ms */
+#define DRAW_TIMEOUT  (20*1000) /* 20 ms */
 
 #define SERRNO strerror(errno)
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
@@ -138,6 +140,7 @@ typedef struct {
 	int ch; /* char height */
 	int cw; /* char width  */
 	char state; /* focus, redraw, visible */
+	struct timeval lastdraw;
 } XWindow;
 
 typedef struct {
@@ -179,6 +182,7 @@ static void drawregion(int, int, int, int);
 static void execsh(void);
 static void sigchld(int);
 static void run(void);
+static int last_draw_too_old(void);
 
 static void csidump(void);
 static void csihandle(void);
@@ -214,6 +218,7 @@ static void ttywrite(const char *, size_t);
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
+static void xcopy(int, int, int, int);
 static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
@@ -224,7 +229,7 @@ static void xresize(int, int);
 static void expose(XEvent *);
 static void visibility(XEvent *);
 static void unmap(XEvent *);
-static char* kmap(KeySym, unsigned int state);
+static char* kmap(KeySym, unsigned int);
 static void kpress(XEvent *);
 static void cmessage(XEvent *);
 static void resize(XEvent *);
@@ -1786,6 +1791,14 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		XDrawLine(xw.dpy, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
 }
 
+/* copy buffer pixmap to screen pixmap */
+void
+xcopy(int x, int y, int cols, int rows) {
+	int src_x = x*xw.cw, src_y = y*xw.ch, src_w = cols*xw.cw, src_h = rows*xw.ch;
+	int dst_x = BORDER+src_x, dst_y = BORDER+src_y;
+	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, src_x, src_y, src_w, src_h, dst_x, dst_y);
+}
+
 void
 xdrawcursor(void) {
 	static int oldx = 0;
@@ -1805,7 +1818,9 @@ xdrawcursor(void) {
 		xdraws(term.line[oldy][oldx].c, term.line[oldy][oldx], oldx, oldy, 1, sl);
 	} else
 		xclear(oldx, oldy, oldx, oldy);
-	
+
+	xcopy(oldx, oldy, 1, 1);
+
 	/* draw the new one */
 	if(!(term.c.state & CURSOR_HIDE) && (xw.state & WIN_FOCUSED)) {
 		sl = utf8size(g.c);
@@ -1814,11 +1829,14 @@ xdrawcursor(void) {
 		xdraws(g.c, g, term.c.x, term.c.y, 1, sl);
 		oldx = term.c.x, oldy = term.c.y;
 	}
+
+	xcopy(term.c.x, term.c.y, 1, 1);
 }
 
 void
 draw() {
 	drawregion(0, 0, term.col, term.row);
+	gettimeofday(&xw.lastdraw, NULL);
 }
 
 void
@@ -1859,9 +1877,9 @@ drawregion(int x1, int y1, int x2, int y2) {
 		}
 		if(ib > 0)
 			xdraws(buf, base, ox, y, ic, ib);
+		xcopy(0, y, term.col, 1);
 	}
 	xdrawcursor();
-	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, x1*xw.cw, y1*xw.ch, x2*xw.cw, y2*xw.ch, BORDER, BORDER);
 }
 
 void
@@ -2006,25 +2024,42 @@ resize(XEvent *e) {
 	xresize(col, row);
 }
 
+int
+last_draw_too_old(void) {
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	return TIMEDIFF(now, xw.lastdraw) >= PRINT_TIMEOUT/1000;
+}
+
 void
 run(void) {
 	XEvent ev;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dpy);
-
+	struct timeval timeout = {0};
+	int stuff_to_print = 0;
+	
 	for(;;) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
-		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, NULL) < 0) {
+		timeout.tv_sec  = 0;
+		timeout.tv_usec = SELECT_TIMEOUT;
+		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, &timeout) < 0) {
 			if(errno == EINTR)
 				continue;
 			die("select failed: %s\n", SERRNO);
 		}
 		if(FD_ISSET(cmdfd, &rfd)) {
 			ttyread();
+			stuff_to_print = 1;
+		}
+
+		if(stuff_to_print && last_draw_too_old()) {
+			stuff_to_print = 0;
 			draw();
 		}
+
 		while(XPending(xw.dpy)) {
 			XNextEvent(xw.dpy, &ev);
 			if(XFilterEvent(&ev, xw.win))
@@ -2050,7 +2085,7 @@ main(int argc, char *argv[]) {
 		case 'w':
 			if(++i < argc) opt_embed = argv[i];
 			break;
-		case 'e': 
+		case 'e':
 			/* eat every remaining arguments */
 			if(++i < argc) opt_cmd = &argv[i];
 			goto run;
