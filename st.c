@@ -1888,7 +1888,7 @@ expose(XEvent *ev) {
 	if(xw.state & WIN_REDRAW) {
 		if(!e->count) {
 			xw.state &= ~WIN_REDRAW;
-			draw();
+			xcopy(0, 0, term.col, term.row);
 		}
 	} else
 		XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, e->x-BORDER, e->y-BORDER,
@@ -2028,7 +2028,7 @@ int
 last_draw_too_old(void) {
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	return TIMEDIFF(now, xw.lastdraw) >= PRINT_TIMEOUT/1000;
+	return TIMEDIFF(now, xw.lastdraw) >= DRAW_TIMEOUT/1000;
 }
 
 void
