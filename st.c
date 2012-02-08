@@ -86,10 +86,10 @@ typedef unsigned long ulong;
 
 typedef struct {
 	char c[UTF_SIZ];     /* character code */
-	char mode;  /* attribute flags */
-	int fg;     /* foreground      */
-	int bg;     /* background      */
-	char state; /* state flags     */
+	uchar mode;  /* attribute flags */
+	uchar fg;     /* foreground      */
+	uchar bg;     /* background      */
+	uchar state; /* state flags     */
 } Glyph;
 
 typedef Glyph* Line;
