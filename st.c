@@ -34,7 +34,7 @@
 #endif
 
 #define USAGE \
-	"st " VERSION " (c) 2010-2011 st engineers\n" \
+	"st " VERSION " (c) 2010-2012 st engineers\n" \
 	"usage: st [-t title] [-c class] [-w windowid] [-v] [-e command...]\n"
 
 /* XEMBED messages */
