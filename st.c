@@ -1387,8 +1387,17 @@ csihandle(void) {
 
 void
 csidump(void) {
-	fwrite("\033[", 1, 2, stdout);
-	fwrite(escseq.buf, 1, escseq.len, stdout);
+	int i;
+	fwrite("ESC[", 1, 4, stdout);
+	for(i = 0; i < escseq.len; i++) {
+		uint c = escseq.buf[i] & 0xff;
+		if(isprint(c)) putchar(c);
+		else if(c == '\n') printf("(\\n)");
+		else if(c == '\r') printf("(\\r)");
+		else if(c == 0x1b) printf("(\\e)");
+		else printf("(%02x)", c);
+	}
+	putchar('\n');
 }
 
 void
