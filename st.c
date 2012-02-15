@@ -66,17 +66,61 @@
 #define X2COL(x) (((x) - BORDER)/xw.cw)
 #define Y2ROW(y) (((y) - BORDER)/xw.ch)
 
-/* Attribute, Cursor, Character state, Terminal mode, Screen draw mode */
-enum { ATTR_NULL=0 , ATTR_REVERSE=1 , ATTR_UNDERLINE=2, ATTR_BOLD=4, ATTR_GFX=8 };
-enum { CURSOR_UP, CURSOR_DOWN, CURSOR_LEFT, CURSOR_RIGHT,
-       CURSOR_SAVE, CURSOR_LOAD };
-enum { CURSOR_DEFAULT = 0, CURSOR_HIDE = 1, CURSOR_WRAPNEXT = 2 };
-enum { GLYPH_SET=1, GLYPH_DIRTY=2 };
-enum { MODE_WRAP=1, MODE_INSERT=2, MODE_APPKEYPAD=4, MODE_ALTSCREEN=8,
-       MODE_CRLF=16, MODE_MOUSEBTN=32, MODE_MOUSEMOTION=64, MODE_MOUSE=32|64, MODE_REVERSE=128 };
-enum { ESC_START=1, ESC_CSI=2, ESC_OSC=4, ESC_TITLE=8, ESC_ALTCHARSET=16 };
-enum { WIN_VISIBLE=1, WIN_REDRAW=2, WIN_FOCUSED=4 };
+enum glyph_attribute {
+	ATTR_NULL      = 0,
+	ATTR_REVERSE   = 1,
+	ATTR_UNDERLINE = 2,
+	ATTR_BOLD      = 4,
+	ATTR_GFX       = 8,
+};
 
+enum cursor_movement {
+	CURSOR_UP,
+	CURSOR_DOWN,
+	CURSOR_LEFT,
+	CURSOR_RIGHT,
+	CURSOR_SAVE,
+	CURSOR_LOAD
+};
+
+enum cursor_state {
+	CURSOR_DEFAULT  = 0,
+	CURSOR_HIDE     = 1,
+	CURSOR_WRAPNEXT = 2
+};
+
+enum glyph_state {
+	GLYPH_SET   = 1,
+	GLYPH_DIRTY = 2
+};
+
+enum term_mode {
+	MODE_WRAP        = 1,
+	MODE_INSERT      = 2,
+	MODE_APPKEYPAD   = 4,
+	MODE_ALTSCREEN   = 8,
+	MODE_CRLF        = 16,
+	MODE_MOUSEBTN    = 32,
+	MODE_MOUSEMOTION = 64,
+	MODE_MOUSE       = 32|64,
+	MODE_REVERSE     = 128
+};
+
+enum escape_state {
+	ESC_START      = 1,
+	ESC_CSI        = 2,
+	ESC_OSC        = 4,
+	ESC_TITLE      = 8,
+	ESC_ALTCHARSET = 16
+};
+
+enum window_state {
+	WIN_VISIBLE = 1,
+	WIN_REDRAW  = 2,
+	WIN_FOCUSED = 4
+};
+
+/* bit macro */
 #undef B0
 enum { B0=1, B1=2, B2=4, B3=8, B4=16, B5=32, B6=64, B7=128 };
 
