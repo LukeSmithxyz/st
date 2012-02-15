@@ -1388,7 +1388,7 @@ csihandle(void) {
 void
 csidump(void) {
 	int i;
-	fwrite("ESC[", 1, 4, stdout);
+	printf("ESC[");
 	for(i = 0; i < escseq.len; i++) {
 		uint c = escseq.buf[i] & 0xff;
 		if(isprint(c)) putchar(c);
