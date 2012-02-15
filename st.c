@@ -83,13 +83,14 @@ enum { B0=1, B1=2, B2=4, B3=8, B4=16, B5=32, B6=64, B7=128 };
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long ulong;
+typedef unsigned short ushort;
 
 typedef struct {
 	char c[UTF_SIZ];     /* character code */
 	uchar mode;  /* attribute flags */
-	uchar fg;     /* foreground      */
-	uchar bg;     /* background      */
-	uchar state; /* state flags     */
+	ushort fg;   /* foreground  */
+	ushort bg;   /* background  */
+	uchar state; /* state flags    */
 } Glyph;
 
 typedef Glyph* Line;
@@ -154,18 +155,6 @@ typedef struct {
 	char s[ESC_BUF_SIZ];
 } Key;
 
-/* Drawing Context */
-typedef struct {
-	ulong col[256];
-	GC gc;
-	struct {
-		int ascent;
-		int descent;
-		short lbearing;
-		short rbearing;
-		XFontSet set;
-	} font, bfont;
-} DC;
 
 /* TODO: use better name for vars... */
 typedef struct {
@@ -180,6 +169,19 @@ typedef struct {
 } Selection;
 
 #include "config.h"
+
+/* Drawing Context */
+typedef struct {
+	ulong col[LEN(colorname) < 256 ? 256 : LEN(colorname)];
+	GC gc;
+	struct {
+		int ascent;
+		int descent;
+		short lbearing;
+		short rbearing;
+		XFontSet set;
+	} font, bfont;
+} DC;
 
 static void die(const char*, ...);
 static void draw(void);
@@ -1583,16 +1585,19 @@ xloadcols(void) {
 	XColor color;
 	ulong white = WhitePixel(xw.dpy, xw.scr);
 
+	/* load colors [0-15] colors and [256-LEN(colorname)[ (config.h) */
 	for(i = 0; i < LEN(colorname); i++) {
+		if(!colorname[i])
+			continue;
 		if(!XAllocNamedColor(xw.dpy, xw.cmap, colorname[i], &color, &color)) {
 			dc.col[i] = white;
 			fprintf(stderr, "Could not allocate color '%s'\n", colorname[i]);
 		} else
 			dc.col[i] = color.pixel;
 	}
-
-	/* same colors as xterm */
-	for(r = 0; r < 6; r++)
+	
+	/* load colors [16-255] ; same colors as xterm */
+	for(i = 16, r = 0; r < 6; r++)
 		for(g = 0; g < 6; g++)
 			for(b = 0; b < 6; b++) {
 				color.red = r == 0 ? 0 : 0x3737 + 0x2828 * r;

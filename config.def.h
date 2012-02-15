@@ -30,7 +30,9 @@ static const char *colorname[] = {
 	"cyan",
 	"white",
 	
-	/* more colors can be added to use with DefaultXX */
+	[255] = 0,
+	
+	/* more colors can be added after 255 to use with DefaultXX */
 	"#cccccc",
 	"#333333",
 };
@@ -39,8 +41,8 @@ static const char *colorname[] = {
    foreground, background, cursor, unfocused cursor */
 #define DefaultFG  7
 #define DefaultBG  0
-#define DefaultCS  16
-#define DefaultUCS 17
+#define DefaultCS  256
+#define DefaultUCS 257
 
 /* Special keys (change & recompile st.info accordingly)
    Keep in mind that kpress() in st.c hardcodes some keys.
