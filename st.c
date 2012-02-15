@@ -1826,10 +1826,14 @@ xdrawcursor(void) {
 	xcopy(oldx, oldy, 1, 1);
 
 	/* draw the new one */
-	if(!(term.c.state & CURSOR_HIDE) && (xw.state & WIN_FOCUSED)) {
-		sl = utf8size(g.c);
+	if(!(term.c.state & CURSOR_HIDE)) {
+		if(!(xw.state & WIN_FOCUSED))
+			g.bg = DefaultUCS;
+
 		if(IS_SET(MODE_REVERSE))
 			g.mode |= ATTR_REVERSE, g.fg = DefaultCS, g.bg = DefaultFG;
+
+		sl = utf8size(g.c);
 		xdraws(g.c, g, term.c.x, term.c.y, 1, sl);
 		oldx = term.c.x, oldy = term.c.y;
 	}

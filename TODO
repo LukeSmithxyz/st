@@ -10,9 +10,14 @@ code & interface
 
 * clean selection code
 * clean and complete terminfo entry
-* fix shift up/down (shift selection in emacs)
 * fast drawing
 * ...
+
+bugs
+----
+
+* handle XOpenMI() errors
+* fix shift up/down (shift selection in emacs)
 
 misc
 ----
