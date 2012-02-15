@@ -1341,14 +1341,8 @@ csihandle(void) {
 
 void
 csidump(void) {
-	int i;
-	printf("ESC [ %s", escseq.priv ? "? " : "");
-	if(escseq.narg)
-		for(i = 0; i < escseq.narg; i++)
-			printf("%d ", escseq.arg[i]);
-	if(escseq.mode)
-		putchar(escseq.mode);
-	putchar('\n');
+	fwrite("\033[", 1, 2, stdout);
+	fwrite(escseq.buf, 1, escseq.len, stdout);
 }
 
 void
@@ -1761,23 +1755,29 @@ xinit(void) {
 
 void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
-	ulong xfg = dc.col[base.fg], xbg = dc.col[base.bg], temp;
+	int fg = base.fg, bg = base.bg, temp;
 	int winx = x*xw.cw, winy = y*xw.ch + dc.font.ascent, width = charlen*xw.cw;
+	XFontSet fontset = dc.font.set;
 	int i;
 	
 	/* only switch default fg/bg if term is in RV mode */
 	if(IS_SET(MODE_REVERSE)) {
-		if(base.fg == DefaultFG)
-			xfg = dc.col[DefaultBG];
-		if(base.bg == DefaultBG)
-			xbg = dc.col[DefaultFG];
+		if(fg == DefaultFG)
+			fg = DefaultBG;
+		if(bg == DefaultBG)
+			bg = DefaultFG;
 	}
 
 	if(base.mode & ATTR_REVERSE)
-		temp = xfg, xfg = xbg, xbg = temp;
+		temp = fg, fg = bg, bg = temp;
 
-	XSetBackground(xw.dpy, dc.gc, xbg);
-	XSetForeground(xw.dpy, dc.gc, xfg);
+	if(base.mode & ATTR_BOLD) {
+		fg += 8;
+		fontset = dc.bfont.set;
+	}
+
+	XSetBackground(xw.dpy, dc.gc, dc.col[bg]);
+	XSetForeground(xw.dpy, dc.gc, dc.col[fg]);
 
 	if(base.mode & ATTR_GFX) {
 		for(i = 0; i < bytelen; i++) {
@@ -1789,8 +1789,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		}
 	}
 
-	XmbDrawImageString(xw.dpy, xw.buf, base.mode & ATTR_BOLD ? dc.bfont.set : dc.font.set,
-		dc.gc, winx, winy, s, bytelen);
+	XmbDrawImageString(xw.dpy, xw.buf, fontset, dc.gc, winx, winy, s, bytelen);
 	
 	if(base.mode & ATTR_UNDERLINE)
 		XDrawLine(xw.dpy, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
