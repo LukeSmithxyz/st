@@ -709,7 +709,7 @@ execsh(void) {
 	char **args;
 	char *envshell = getenv("SHELL");
 
-	DEFAULT(envshell, "sh");
+	DEFAULT(envshell, SHELL);
 	putenv("TERM="TNAME);
 	args = opt_cmd ? opt_cmd : (char*[]){envshell, "-i", NULL};
 	execvp(args[0], args);
