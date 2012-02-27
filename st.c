@@ -259,6 +259,7 @@ static void tsetattr(int*, int);
 static void tsetchar(char*);
 static void tsetscroll(int, int);
 static void tswapscreen(void);
+static void tsetdirt(int, int);
 static void tfulldirt(void);
 
 static void ttynew(void);
@@ -446,8 +447,8 @@ utf8size(char *s) {
 
 void
 selinit(void) {
-	sel.tclick1.tv_sec = 0;
-	sel.tclick1.tv_usec = 0;
+	memset(&sel.tclick1, 0, sizeof(sel.tclick1));
+	memset(&sel.tclick2, 0, sizeof(sel.tclick2));
 	sel.mode = 0;
 	sel.bx = -1;
 	sel.clip = NULL;
@@ -520,8 +521,7 @@ bpress(XEvent *e) {
 		mousereport(e);
 	else if(e->xbutton.button == Button1) {
 		if(sel.bx != -1)
-			for(int i=sel.b.y; i<=sel.e.y; i++)
-				term.dirty[i] = 1;
+			tsetdirt(sel.b.y, sel.e.y);
 		sel.mode = 1;
 		sel.ex = sel.bx = X2COL(e->xbutton.x);
 		sel.ey = sel.by = Y2ROW(e->xbutton.y);
@@ -531,21 +531,28 @@ bpress(XEvent *e) {
 void
 selcopy(void) {
 	char *str, *ptr;
-	int x, y, sz, sl, ls = 0;
+	int x, y, bufsize, is_selected = 0;
 
 	if(sel.bx == -1)
 		str = NULL;
+
 	else {
-		sz = (term.col+1) * (sel.e.y-sel.b.y+1) * UTF_SIZ;
-		ptr = str = malloc(sz);
+		bufsize = (term.col+1) * (sel.e.y-sel.b.y+1) * UTF_SIZ;
+		ptr = str = malloc(bufsize);
+
+		/* append every set & selected glyph to the selection */
 		for(y = 0; y < term.row; y++) {
-			for(x = 0; x < term.col; x++)
-				if(term.line[y][x].state & GLYPH_SET && (ls = selected(x, y))) {
-					sl = utf8size(term.line[y][x].c);
-					memcpy(ptr, term.line[y][x].c, sl);
-					ptr += sl;
+			for(x = 0; x < term.col; x++) {
+				is_selected = selected(x, y);
+				if((term.line[y][x].state & GLYPH_SET) && is_selected) {
+					int size = utf8size(term.line[y][x].c);
+					memcpy(ptr, term.line[y][x].c, size);
+					ptr += size;
 				}
-			if(ls && y < sel.e.y)
+			}
+
+			/* \n at the end of every selected line except for the last one */
+			if(is_selected && y < sel.e.y)
 				*ptr++ = '\n';
 		}
 		*ptr = 0;
@@ -687,8 +694,7 @@ bmotion(XEvent *e) {
 		if(oldey != sel.ey || oldex != sel.ex) {
 			int starty = MIN(oldey, sel.ey);
 			int endy = MAX(oldey, sel.ey);
-			for(int i = starty; i <= endy; i++)
-				term.dirty[i] = 1;
+			tsetdirt(starty, endy);
 			draw();
 		}
 	}
@@ -813,11 +819,21 @@ ttyresize(int x, int y) {
 }
 
 void
-tfulldirt(void)
+tsetdirt(int top, int bot)
 {
 	int i;
-	for(i = 0; i < term.row; i++)
+
+	LIMIT(top, 0, term.row-1);
+	LIMIT(bot, 0, term.row-1);
+
+	for(i = top; i <= bot; i++)
 		term.dirty[i] = 1;
+}
+
+void
+tfulldirt(void)
+{
+	tsetdirt(0, term.row-1);
 }
 
 void
