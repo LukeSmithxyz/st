@@ -24,6 +24,7 @@
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
+#include <X11/extensions/Xdbe.h>
 
 #if   defined(__linux)
  #include <pty.h>
@@ -178,7 +179,7 @@ typedef struct {
 	Display* dpy;
 	Colormap cmap;
 	Window win;
-	Pixmap buf;
+	XdbeBackBuffer buf;
 	Atom xembed;
 	XIM xim;
 	XIC xic;
@@ -270,7 +271,7 @@ static void ttywrite(const char *, size_t);
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
-static void xcopy(int, int, int, int);
+static void xcopy();
 static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
@@ -1620,32 +1621,8 @@ tresize(int col, int row) {
 
 void
 xresize(int col, int row) {
-	Pixmap newbuf;
-	int oldw, oldh;
-
-	oldw = xw.bufw;
-	oldh = xw.bufh;
 	xw.bufw = MAX(1, col * xw.cw);
 	xw.bufh = MAX(1, row * xw.ch);
-	newbuf = XCreatePixmap(xw.dpy, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dpy, xw.scr));
-	XCopyArea(xw.dpy, xw.buf, newbuf, dc.gc, 0, 0, xw.bufw, xw.bufh, 0, 0);
-	XFreePixmap(xw.dpy, xw.buf);
-	XSetForeground(xw.dpy, dc.gc, dc.col[DefaultBG]);
-	if(xw.bufw > oldw)
-		XFillRectangle(xw.dpy, newbuf, dc.gc, oldw, 0,
-				xw.bufw-oldw, MIN(xw.bufh, oldh));
-	else if(xw.bufw < oldw && (BORDER > 0 || xw.w > xw.bufw))
-		XClearArea(xw.dpy, xw.win, BORDER+xw.bufw, BORDER,
-				xw.w-xw.bufh-BORDER, BORDER+MIN(xw.bufh, oldh),
-				False);
-	if(xw.bufh > oldh)
-		XFillRectangle(xw.dpy, newbuf, dc.gc, 0, oldh,
-				xw.bufw, xw.bufh-oldh);
-	else if(xw.bufh < oldh && (BORDER > 0 || xw.h > xw.bufh))
-		XClearArea(xw.dpy, xw.win, BORDER, BORDER+xw.bufh,
-				xw.w-2*BORDER, xw.h-xw.bufh-BORDER,
-				False);
-	xw.buf = newbuf;
 }
 
 void
@@ -1801,7 +1778,7 @@ xinit(void) {
 			CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask
 			| CWColormap,
 			&attrs);
-	xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.bufw, xw.bufh, XDefaultDepth(xw.dpy, xw.scr));
+	xw.buf = XdbeAllocateBackBufferName(xw.dpy, xw.win, XdbeCopied);
 
 
 	/* input methods */
@@ -1871,10 +1848,10 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 /* copy buffer pixmap to screen pixmap */
 void
-xcopy(int x, int y, int cols, int rows) {
-	int src_x = x*xw.cw, src_y = y*xw.ch, src_w = cols*xw.cw, src_h = rows*xw.ch;
-	int dst_x = BORDER+src_x, dst_y = BORDER+src_y;
-	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, src_x, src_y, src_w, src_h, dst_x, dst_y);
+xcopy() {
+        XdbeSwapInfo swpinfo[1] = {{xw.win, XdbeCopied}};
+        XdbeSwapBuffers(xw.dpy, swpinfo, 1);
+
 }
 
 void
@@ -1918,6 +1895,7 @@ xdrawcursor(void) {
 void
 draw() {
 	drawregion(0, 0, term.col, term.row);
+	xcopy();
 	gettimeofday(&xw.lastdraw, NULL);
 }
 
@@ -1959,7 +1937,6 @@ drawregion(int x1, int y1, int x2, int y2) {
 		}
 		if(ib > 0)
 			xdraws(buf, base, ox, y, ic, ib);
-		xcopy(0, y, term.col, 1);
 	}
 	xdrawcursor();
 }
@@ -1968,13 +1945,10 @@ void
 expose(XEvent *ev) {
 	XExposeEvent *e = &ev->xexpose;
 	if(xw.state & WIN_REDRAW) {
-		if(!e->count) {
+		if(!e->count)
 			xw.state &= ~WIN_REDRAW;
-			xcopy(0, 0, term.col, term.row);
-		}
-	} else
-		XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, e->x-BORDER, e->y-BORDER,
-				e->width, e->height, e->x, e->y);
+        }
+        xcopy();
 }
 
 void
