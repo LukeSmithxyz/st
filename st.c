@@ -186,8 +186,6 @@ typedef struct {
 	int scr;
 	int w;	/* window width */
 	int h;	/* window height */
-	int bufw; /* pixmap width  */
-	int bufh; /* pixmap height */
 	int ch; /* char height */
 	int cw; /* char width  */
 	char state; /* focus, redraw, visible */
@@ -1621,8 +1619,8 @@ tresize(int col, int row) {
 
 void
 xresize(int col, int row) {
-	xw.bufw = MAX(1, col * xw.cw);
-	xw.bufh = MAX(1, row * xw.ch);
+	xw.w = MAX(1, 2*BORDER + col * xw.cw);
+	xw.h = MAX(1, 2*BORDER + row * xw.ch);
 }
 
 void
@@ -1671,7 +1669,7 @@ void
 xclear(int x1, int y1, int x2, int y2) {
 	XSetForeground(xw.dpy, dc.gc, dc.col[IS_SET(MODE_REVERSE) ? DefaultFG : DefaultBG]);
 	XFillRectangle(xw.dpy, xw.buf, dc.gc,
-	               x1 * xw.cw, y1 * xw.ch,
+	               BORDER + x1 * xw.cw, BORDER + y1 * xw.ch,
 	               (x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch);
 }
 
@@ -1757,10 +1755,8 @@ xinit(void) {
 	xloadcols();
 
 	/* window - default size */
-	xw.bufh = term.row * xw.ch;
-	xw.bufw = term.col * xw.cw;
-	xw.h = xw.bufh + 2*BORDER;
-	xw.w = xw.bufw + 2*BORDER;
+	xw.h = 2*BORDER + term.row * xw.ch;
+	xw.w = 2*BORDER + term.col * xw.cw;
 
 	attrs.background_pixel = dc.col[DefaultBG];
 	attrs.border_pixel = dc.col[DefaultBG];
@@ -1807,7 +1803,7 @@ xinit(void) {
 void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	int fg = base.fg, bg = base.bg, temp;
-	int winx = x*xw.cw, winy = y*xw.ch + dc.font.ascent, width = charlen*xw.cw;
+	int winx = BORDER+x*xw.cw, winy = BORDER+y*xw.ch + dc.font.ascent, width = charlen*xw.cw;
 	XFontSet fontset = dc.font.set;
 	int i;
 	
