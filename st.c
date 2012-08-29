@@ -1214,7 +1214,6 @@ csihandle(void) {
 		DEFAULT(escseq.arg[1], 1);
 		tmoveto(escseq.arg[1]-1, escseq.arg[0]-1);
 		break;
-	/* XXX: (CSI n I) CHT -- Cursor Forward Tabulation <n> tab stops */
 	case 'J': /* ED -- Clear screen */
 		sel.bx = -1;
 		switch(escseq.arg[0]) {
@@ -1429,8 +1428,11 @@ csireset(void) {
 
 void
 tputtab(void) {
-	int space = TAB - term.c.x % TAB;
-	tmoveto(term.c.x + space, term.c.y);
+	unsigned x;
+
+	for (x = term.c.x + 1; x < term.col && !term.tabs[x]; ++x)
+		/* nothing */ ;
+	tmoveto(x, term.c.y);
 }
 
 void
@@ -1489,6 +1491,10 @@ tputc(char *c) {
 				break;
 			case 'E': /* NEL -- Next line */
 				tnewline(1); /* always go to first col */
+				term.esc = 0;
+				break;
+			case 'H': /* HTS -- Horizontal tab stop */
+				term.tabs[term.c.x] = 1;
 				term.esc = 0;
 				break;
 			case 'M': /* RI -- Reverse index */
