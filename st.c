@@ -164,7 +164,7 @@ typedef struct {
 	int col;	/* nb col */
 	Line* line;	/* screen */
 	Line* alt;	/* alternate screen */
-	bool* dirty; /* dirtyness of lines */
+	bool* dirty;	/* dirtyness of lines */
 	TCursor c;	/* cursor */
 	int top;	/* top    scroll limit */
 	int bot;	/* bottom scroll limit */
@@ -172,6 +172,7 @@ typedef struct {
 	int esc;	/* escape state flags */
 	char title[ESC_TITLE_SIZ];
 	int titlelen;
+	bool *tabs;
 } Term;
 
 /* Purely graphic info */
@@ -847,12 +848,16 @@ tcursor(int mode) {
 
 void
 treset(void) {
+	unsigned i;
 	term.c = (TCursor){{
 		.mode = ATTR_NULL,
 		.fg = DefaultFG,
 		.bg = DefaultBG
 	}, .x = 0, .y = 0, .state = CURSOR_DEFAULT};
-	
+
+	memset(term.tabs, 0, term.col * sizeof(*term.tabs));
+	for (i = TAB; i < term.col; i += TAB)
+		term.tabs[i] = 1;
 	term.top = 0, term.bot = term.row - 1;
 	term.mode = MODE_WRAP;
 	tclearregion(0, 0, term.col-1, term.row-1);
@@ -865,12 +870,14 @@ tnew(int col, int row) {
 	term.line = malloc(term.row * sizeof(Line));
 	term.alt  = malloc(term.row * sizeof(Line));
 	term.dirty = malloc(term.row * sizeof(*term.dirty));
+	term.tabs = malloc(term.col * sizeof(*term.tabs));
 
 	for(row = 0; row < term.row; row++) {
 		term.line[row] = malloc(term.col * sizeof(Glyph));
 		term.alt [row] = malloc(term.col * sizeof(Glyph));
 		term.dirty[row] = 0;
 	}
+	memset(term.tabs, 0, term.col * sizeof(*term.tabs));
 	/* setup screen */
 	treset();
 }
@@ -1588,6 +1595,7 @@ tresize(int col, int row) {
 	term.line = realloc(term.line, row * sizeof(Line));
 	term.alt  = realloc(term.alt,  row * sizeof(Line));
 	term.dirty = realloc(term.dirty, row * sizeof(*term.dirty));
+	term.tabs = realloc(term.tabs, col * sizeof(*term.tabs));
 
 	/* resize each row to new width, zero-pad if needed */
 	for(i = 0; i < minrow; i++) {
@@ -1606,7 +1614,15 @@ tresize(int col, int row) {
 		term.line[i] = calloc(col, sizeof(Glyph));
 		term.alt [i] = calloc(col, sizeof(Glyph));
 	}
-	
+	if (col > term.col) {
+		bool *bp = term.tabs + term.col;
+
+		memset(bp, 0, sizeof(*term.tabs) * (col - term.col));
+		while (--bp > term.tabs && !*bp)
+			/* nothing */ ;
+		for (bp += TAB; bp < term.tabs + col; bp += TAB)
+			*bp = 1;
+	}
 	/* update terminal size */
 	term.col = col, term.row = row;
 	/* make use of the LIMIT in tmoveto */
