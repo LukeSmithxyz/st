@@ -20,6 +20,7 @@ bugs
 * fix shift up/down (shift selection in emacs)
 * fix selection click
 * fix selection paste for xatom STRING
+* fix umlaut handling in settitle
 
 misc
 ----
