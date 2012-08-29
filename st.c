@@ -1203,6 +1203,18 @@ csihandle(void) {
 		DEFAULT(escseq.arg[0], 1);
 		tmoveto(0, term.c.y-escseq.arg[0]);
 		break;
+	case 'g': /* TBC -- Tabulation clear */
+		switch (escseq.arg[0]) {
+		case 0: /* clear current tab stop */
+			term.tabs[term.c.x] = 0;
+			break;
+		case 3: /* clear all the tabs */
+			memset(term.tabs, 0, term.col * sizeof(*term.tabs));
+			break;
+		default:
+			goto unknown;
+		}
+		break;
 	case 'G': /* CHA -- Move to <col> */
 	case '`': /* XXX: HPA -- same? */
 		DEFAULT(escseq.arg[0], 1);
