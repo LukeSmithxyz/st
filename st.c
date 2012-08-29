@@ -1226,6 +1226,11 @@ csihandle(void) {
 		DEFAULT(escseq.arg[1], 1);
 		tmoveto(escseq.arg[1]-1, escseq.arg[0]-1);
 		break;
+	case 'I': /* CHT -- Cursor Forward Tabulation <n> tab stops */
+		DEFAULT(escseq.arg[0], 1);
+		while (escseq.arg[0]--)
+			tputtab();
+		break;
 	case 'J': /* ED -- Clear screen */
 		sel.bx = -1;
 		switch(escseq.arg[0]) {
