@@ -1465,6 +1465,11 @@ void
 strhandle(void) {
 	char *p;
 
+	/*
+	 * TODO: make this being useful in case of color palette change.
+	 */
+	strparse();
+
 	p = strescseq.buf; 
 
 	switch(strescseq.type) {
