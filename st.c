@@ -1467,16 +1467,13 @@ strhandle(void) {
 	case ']': /* OSC -- Operating System Command */
 		switch(p[0]) {
 		case '0':
+		case '1':
 		case '2':
 			/*
 			 * TODO: Handle special chars in string, like umlauts.
 			 */
 			if(p[1] == ';') {
-				if(!strncmp(strescseq.buf, "settitle ", 9)) {
-					XStoreName(xw.dpy, xw.win, strescseq.buf+11);	
-				} else {
-					XStoreName(xw.dpy, xw.win, strescseq.buf+2);
-				}
+				XStoreName(xw.dpy, xw.win, strescseq.buf+2);
 			}
 			break;
 		case ';':
