@@ -97,11 +97,11 @@ enum glyph_state {
 };
 
 enum term_mode {
-	MODE_WRAP        = 1,
+	MODE_WRAP	= 1,
 	MODE_INSERT      = 2,
 	MODE_APPKEYPAD   = 4,
 	MODE_ALTSCREEN   = 8,
-	MODE_CRLF        = 16,
+	MODE_CRLF	= 16,
 	MODE_MOUSEBTN    = 32,
 	MODE_MOUSEMOTION = 64,
 	MODE_MOUSE       = 32|64,
@@ -110,8 +110,8 @@ enum term_mode {
 
 enum escape_state {
 	ESC_START      = 1,
-	ESC_CSI        = 2,
-	ESC_STR        = 4, /* DSC, OSC, PM, APC */
+	ESC_CSI	= 2,
+	ESC_STR	= 4, /* DSC, OSC, PM, APC */
 	ESC_ALTCHARSET = 8,
 	ESC_STR_END    = 16, /* a final string was encountered */
 };
@@ -152,21 +152,21 @@ typedef struct {
 /* ESC '[' [[ [<priv>] <arg> [;]] <mode>] */
 typedef struct {
 	char buf[ESC_BUF_SIZ]; /* raw string */
-	int len;               /* raw string length */
+	int len;	       /* raw string length */
 	char priv;
 	int arg[ESC_ARG_SIZ];
-	int narg;              /* nb of args */
+	int narg;	      /* nb of args */
 	char mode;
 } CSIEscape;
 
 /* STR Escape sequence structs */
 /* ESC type [[ [<priv>] <arg> [;]] <mode>] ESC '\' */
 typedef struct {
-	char type;             /* ESC type ... */
+	char type;	     /* ESC type ... */
 	char buf[STR_BUF_SIZ]; /* raw string */
-	int len;               /* raw string length */
+	int len;	       /* raw string length */
 	char *args[STR_ARG_SIZ];
-	int narg;              /* nb of args */
+	int narg;	      /* nb of args */
 } STREscape;
 
 /* Internal representation of the screen */
@@ -262,7 +262,7 @@ static void tinsertblankline(int);
 static void tmoveto(int, int);
 static void tnew(int, int);
 static void tnewline(int);
-static void tputtab(void);
+static void tputtab(bool);
 static void tputc(char*);
 static void treset(void);
 static int tresize(int, int);
@@ -1243,7 +1243,7 @@ csihandle(void) {
 	case 'I': /* CHT -- Cursor Forward Tabulation <n> tab stops */
 		DEFAULT(csiescseq.arg[0], 1);
 		while (csiescseq.arg[0]--)
-			tputtab();
+			tputtab(1);
 		break;
 	case 'J': /* ED -- Clear screen */
 		sel.bx = -1;
@@ -1356,7 +1356,11 @@ csihandle(void) {
 		DEFAULT(csiescseq.arg[0], 1);
 		tdeletechar(csiescseq.arg[0]);
 		break;
-	/* XXX: (CSI n Z) CBT -- Cursor Backward Tabulation <n> tab stops */
+	case 'Z': /* CBT -- Cursor Backward Tabulation <n> tab stops */
+		DEFAULT(csiescseq.arg[0], 1);
+		while (csiescseq.arg[0]--)
+			tputtab(0);
+		break;
 	case 'd': /* VPA -- Move to <row> */
 		DEFAULT(csiescseq.arg[0], 1);
 		tmoveto(term.c.x, csiescseq.arg[0]-1);
@@ -1528,11 +1532,20 @@ strreset(void) {
 }
 
 void
-tputtab(void) {
-	unsigned x;
+tputtab(bool forward) {
+	unsigned x = term.c.x;
 
-	for (x = term.c.x + 1; x < term.col && !term.tabs[x]; ++x)
-		/* nothing */ ;
+	if (forward) {
+		if (x == term.col)
+			return;
+		for (++x; x < term.col && !term.tabs[x]; ++x)
+			/* nothing */ ;
+	} else {
+		if (x == 0)
+			return;
+		for (--x; x > 0 && !term.tabs[x]; --x)
+			/* nothing */ ;
+	}
 	tmoveto(x, term.c.y);
 }
 
@@ -1650,7 +1663,7 @@ tputc(char *c) {
 			sel.bx = -1;
 		switch(ascii) {
 		case '\t':
-			tputtab();
+			tputtab(1);
 			break;
 		case '\b':
 			tmoveto(term.c.x-1, term.c.y);
@@ -1806,8 +1819,8 @@ void
 xclear(int x1, int y1, int x2, int y2) {
 	XSetForeground(xw.dpy, dc.gc, dc.col[IS_SET(MODE_REVERSE) ? DefaultFG : DefaultBG]);
 	XFillRectangle(xw.dpy, xw.buf, dc.gc,
-	               BORDER + x1 * xw.cw, BORDER + y1 * xw.ch,
-	               (x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch);
+		       BORDER + x1 * xw.cw, BORDER + y1 * xw.ch,
+		       (x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch);
 }
 
 void
@@ -1982,8 +1995,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 /* copy buffer pixmap to screen pixmap */
 void
 xcopy() {
-        XdbeSwapInfo swpinfo[1] = {{xw.win, XdbeCopied}};
-        XdbeSwapBuffers(xw.dpy, swpinfo, 1);
+	XdbeSwapInfo swpinfo[1] = {{xw.win, XdbeCopied}};
+	XdbeSwapBuffers(xw.dpy, swpinfo, 1);
 
 }
 
@@ -2080,8 +2093,8 @@ expose(XEvent *ev) {
 	if(xw.state & WIN_REDRAW) {
 		if(!e->count)
 			xw.state &= ~WIN_REDRAW;
-        }
-        xcopy();
+	}
+	xcopy();
 }
 
 void
