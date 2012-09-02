@@ -103,6 +103,8 @@ st| simpleterm,
 	tsl=\E]0;,
 	ul,
 	xenl,
+	vpa=\E[%i%p1%dd,
+
 
 st-256color| simpleterm with 256 colors,
 	use=st,
