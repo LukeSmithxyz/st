@@ -1128,7 +1128,7 @@ tsetattr(int *attr, int l) {
 					fprintf(stderr, "erresc: bad fgcolor %d\n", attr[i]);
 			}
 			else
-				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]);
+				fprintf(stderr, "erresc(38): gfx attr %d unknown\n", attr[i]);
 			break;
 		case 39:
 			term.c.attr.fg = DefaultFG;
@@ -1142,7 +1142,7 @@ tsetattr(int *attr, int l) {
 					fprintf(stderr, "erresc: bad bgcolor %d\n", attr[i]);
 			}
 			else
-				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]);
+				fprintf(stderr, "erresc(48): gfx attr %d unknown\n", attr[i]);
 			break;
 		case 49:
 			term.c.attr.bg = DefaultBG;
@@ -1157,8 +1157,7 @@ tsetattr(int *attr, int l) {
 			else if(BETWEEN(attr[i], 100, 107))
 				term.c.attr.fg = attr[i] - 100 + 8;
 			else
-				fprintf(stderr, "erresc: gfx attr %d unknown\n", attr[i]), csidump();
-			
+				fprintf(stderr, "erresc(default): gfx attr %d unknown\n", attr[i]), csidump();
 			break;
 		}
 	}
