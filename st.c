@@ -504,7 +504,7 @@ mousereport(XEvent *e) {
 	int state = e->xbutton.state;
 	char buf[] = { '\033', '[', 'M', 0, 32+x+1, 32+y+1 };
 	static int ob, ox, oy;
-	
+
 	/* from urxvt */
 	if(e->xbutton.type == MotionNotify) {
 		if(!IS_SET(MODE_MOUSEMOTION) || (x == ox && y == oy))
@@ -522,11 +522,11 @@ mousereport(XEvent *e) {
 			ox = x, oy = y;
 		}
 	}
-	
+
 	buf[3] = 32 + button + (state & ShiftMask ? 4 : 0)
 		+ (state & Mod4Mask    ? 8  : 0)
 		+ (state & ControlMask ? 16 : 0);
-	
+
 	ttywrite(buf, sizeof(buf));
 }
 
@@ -751,7 +751,7 @@ sigchld(int a) {
 void
 ttynew(void) {
 	int m, s;
-	
+
 	/* seems to work fine on linux, openbsd and freebsd */
 	struct winsize w = {term.row, term.col, 0, 0};
 	if(openpty(&m, &s, NULL, NULL, &w) < 0)
@@ -910,11 +910,11 @@ void
 tscrolldown(int orig, int n) {
 	int i;
 	Line temp;
-	
+
 	LIMIT(n, 0, term.bot-orig+1);
 
 	tclearregion(0, term.bot-n+1, term.col-1, term.bot);
-	
+
 	for(i = term.bot; i >= orig+n; i--) {
 		temp = term.line[i];
 		term.line[i] = term.line[i-n];
@@ -932,9 +932,9 @@ tscrollup(int orig, int n) {
 	int i;
 	Line temp;
 	LIMIT(n, 0, term.bot-orig+1);
-	
+
 	tclearregion(0, orig, term.col-1, orig+n-1);
-	
+
 	for(i = orig; i <= term.bot-n; i++) {
 		 temp = term.line[i];
 		 term.line[i] = term.line[i+n];
@@ -951,7 +951,7 @@ void
 selscroll(int orig, int n) {
 	if(sel.bx == -1)
 		return;
-	
+
 	if(BETWEEN(sel.by, orig, term.bot) || BETWEEN(sel.ey, orig, term.bot)) {
 		if((sel.by += n) > term.bot || (sel.ey += n) < term.top) {
 			sel.bx = -1;
@@ -988,7 +988,7 @@ csiparse(void) {
 	csiescseq.narg = 0;
 	if(*p == '?')
 		csiescseq.priv = 1, p++;
-	
+
 	while(p < csiescseq.buf+csiescseq.len) {
 		while(isdigit(*p)) {
 			csiescseq.arg[csiescseq.narg] *= 10;
@@ -1047,7 +1047,7 @@ tdeletechar(int n) {
 	int src = term.c.x + n;
 	int dst = term.c.x;
 	int size = term.col - src;
-	
+
 	term.dirty[term.c.y] = 1;
 
 	if(src >= term.col) {
@@ -1765,7 +1765,7 @@ xloadcols(void) {
 		} else
 			dc.col[i] = color.pixel;
 	}
-	
+
 	/* load colors [16-255] ; same colors as xterm */
 	for(i = 16, r = 0; r < 6; r++)
 		for(g = 0; g < 6; g++)
@@ -1868,7 +1868,7 @@ xinit(void) {
 	if(!(xw.dpy = XOpenDisplay(NULL)))
 		die("Can't open display\n");
 	xw.scr = XDefaultScreen(xw.dpy);
-	
+
 	/* font */
 	initfonts(FONT, BOLDFONT);
 
@@ -1910,7 +1910,7 @@ xinit(void) {
 					   XNFocusWindow, xw.win, NULL);
 	/* gc */
 	dc.gc = XCreateGC(xw.dpy, xw.win, 0, NULL);
-	
+
 	/* white cursor, black outline */
 	cursor = XCreateFontCursor(xw.dpy, XC_xterm);
 	XDefineCursor(xw.dpy, xw.win, cursor);
@@ -1932,7 +1932,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	int winx = BORDER+x*xw.cw, winy = BORDER+y*xw.ch + dc.font.ascent, width = charlen*xw.cw;
 	XFontSet fontset = dc.font.set;
 	int i;
-	
+
 	/* only switch default fg/bg if term is in RV mode */
 	if(IS_SET(MODE_REVERSE)) {
 		if(fg == DefaultFG)
@@ -1963,7 +1963,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	}
 
 	XmbDrawImageString(xw.dpy, xw.buf, fontset, dc.gc, winx, winy, s, bytelen);
-	
+
 	if(base.mode & ATTR_UNDERLINE)
 		XDrawLine(xw.dpy, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
 }
@@ -1982,10 +1982,10 @@ xdrawcursor(void) {
 	static int oldy = 0;
 	int sl;
 	Glyph g = {{' '}, ATTR_NULL, DefaultBG, DefaultCS, 0};
-	
+
 	LIMIT(oldx, 0, term.col-1);
 	LIMIT(oldy, 0, term.row-1);
-	
+
 	if(term.line[term.c.y][term.c.x].state & GLYPH_SET)
 		memcpy(g.c, term.line[term.c.y][term.c.x].c, UTF_SIZ);
 
@@ -2132,7 +2132,7 @@ kpress(XEvent *ev) {
 	meta = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
 	len = XmbLookupString(xw.xic, e, buf, sizeof(buf), &ksym, &status);
-	
+
 	/* 1. custom keys from config.h */
 	if((customkey = kmap(ksym, e->state)))
 		ttywrite(customkey, strlen(customkey));
@@ -2186,10 +2186,10 @@ cmessage(XEvent *e) {
 void
 resize(XEvent *e) {
 	int col, row;
-	
+
 	if(e->xconfigure.width == xw.w && e->xconfigure.height == xw.h)
 		return;
-	
+
 	xw.w = e->xconfigure.width;
 	xw.h = e->xconfigure.height;
 	col = (xw.w - 2*BORDER) / xw.cw;
@@ -2216,7 +2216,7 @@ run(void) {
 	int xfd = XConnectionNumber(xw.dpy);
 	struct timeval timeout = {0};
 	bool stuff_to_print = 0;
-	
+
 	for(;;) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
@@ -2251,7 +2251,7 @@ run(void) {
 int
 main(int argc, char *argv[]) {
 	int i;
-	
+
 	for(i = 1; i < argc; i++) {
 		switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
 		case 't':
