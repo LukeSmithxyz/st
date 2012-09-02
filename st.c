@@ -1104,6 +1104,9 @@ tsetattr(int *attr, int l) {
 		case 1:
 			term.c.attr.mode |= ATTR_BOLD;
 			break;
+		case 3: /* enter standout (highlight) mode TODO: make it italic */
+			term.c.attr.mode |= ATTR_REVERSE;
+			break;
 		case 4:
 			term.c.attr.mode |= ATTR_UNDERLINE;
 			break;
@@ -1112,6 +1115,9 @@ tsetattr(int *attr, int l) {
 			break;
 		case 22:
 			term.c.attr.mode &= ~ATTR_BOLD;
+			break;
+		case 23: /* leave standout (highlight) mode TODO: make it italic */
+			term.c.attr.mode &= ~ATTR_REVERSE;
 			break;
 		case 24:
 			term.c.attr.mode &= ~ATTR_UNDERLINE;
@@ -1441,7 +1447,7 @@ strhandle(void) {
 	 */
 	strparse();
 
-	p = strescseq.buf; 
+	p = strescseq.buf;
 
 	switch(strescseq.type) {
 	case ']': /* OSC -- Operating System Command */
