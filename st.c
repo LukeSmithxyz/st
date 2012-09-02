@@ -273,6 +273,7 @@ static void tsetchar(char*);
 static void tsetscroll(int, int);
 static void tswapscreen(void);
 static void tsetdirt(int, int);
+static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 
 static void ttynew(void);
@@ -1178,6 +1179,79 @@ tsetscroll(int t, int b) {
 	term.bot = b;
 }
 
+#define MODBIT(x, set, bit) ((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
+
+void
+tsetmode(bool priv, bool set, int *args, int narg) {
+	int *lim, mode;
+
+	for (lim = args + narg; args < lim; ++args) {
+		if(priv) {
+			switch(*args) {
+			case 1:
+				MODBIT(term.mode, set, MODE_APPKEYPAD);
+				break;
+			case 5: /* DECSCNM -- Reverve video */
+				mode = term.mode;
+				MODBIT(term.mode,set, MODE_REVERSE);
+				if (mode != term.mode)
+					draw();
+				break;
+			case 7:
+				MODBIT(term.mode, set, MODE_WRAP);
+				break;
+			case 20:
+				MODBIT(term.mode, set, MODE_CRLF);
+				break;
+			case 12: /* att610 -- Start blinking cursor (IGNORED) */
+				break;
+			case 25:
+				MODBIT(term.c.state, !set, CURSOR_HIDE);
+				break;
+			case 1000: /* 1000,1002: enable xterm mouse report */
+				MODBIT(term.mode, set, MODE_MOUSEBTN);
+				break;
+			case 1002:
+				MODBIT(term.mode, set, MODE_MOUSEMOTION);
+				break;
+			case 1049: /* = 1047 and 1048 */
+			case 47:
+			case 1047:
+				if(IS_SET(MODE_ALTSCREEN))
+					tclearregion(0, 0, term.col-1, term.row-1);
+				if ((set && !IS_SET(MODE_ALTSCREEN)) ||
+				    (!set && IS_SET(MODE_ALTSCREEN))) {
+					    tswapscreen();
+				}
+				if (*args != 1049)
+					break;
+				/* pass through */
+			case 1048:
+				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
+				break;
+			default:
+				fprintf(stderr,
+					"erresc: unknown private set/reset mode %d\n",
+					*args);
+				break;
+			}
+		} else {
+			switch(*args) {
+			case 4:
+				MODBIT(term.mode, set, MODE_INSERT);
+				break;
+			default:
+				fprintf(stderr,
+					"erresc: unknown set/reset mode %d\n",
+					*args);
+				break;
+			}
+		}
+	}
+}
+#undef MODBIT
+
+
 void
 csihandle(void) {
 	switch(csiescseq.mode) {
@@ -1291,58 +1365,7 @@ csihandle(void) {
 		tinsertblankline(csiescseq.arg[0]);
 		break;
 	case 'l': /* RM -- Reset Mode */
-		if(csiescseq.priv) {
-			switch(csiescseq.arg[0]) {
-			case 1:
-				term.mode &= ~MODE_APPKEYPAD;
-				break;
-			case 5: /* DECSCNM -- Remove reverse video */
-				if(IS_SET(MODE_REVERSE)) {
-					term.mode &= ~MODE_REVERSE;
-					draw();
-				}
-				break;
-			case 7:
-				term.mode &= ~MODE_WRAP;
-				break;
-			case 12: /* att610 -- Stop blinking cursor (IGNORED) */
-				break;
-			case 20:
-				term.mode &= ~MODE_CRLF;
-				break;
-			case 25:
-				term.c.state |= CURSOR_HIDE;
-				break;
-			case 1000: /* disable X11 xterm mouse reporting */
-				term.mode &= ~MODE_MOUSEBTN;
-				break;
-			case 1002:
-				term.mode &= ~MODE_MOUSEMOTION;
-				break;
-			case 1049: /* = 1047 and 1048 */
-			case 47:
-			case 1047:
-				if(IS_SET(MODE_ALTSCREEN)) {
-					tclearregion(0, 0, term.col-1, term.row-1);
-					tswapscreen();
-				}
-				if(csiescseq.arg[0] != 1049)
-					break;
-			case 1048:
-				tcursor(CURSOR_LOAD);
-				break;
-			default:
-				goto unknown;
-			}
-		} else {
-			switch(csiescseq.arg[0]) {
-			case 4:
-				term.mode &= ~MODE_INSERT;
-				break;
-			default:
-				goto unknown;
-			}
-		}
+		tsetmode(csiescseq.priv, 0, csiescseq.arg, csiescseq.narg);
 		break;
 	case 'M': /* DL -- Delete <n> lines */
 		DEFAULT(csiescseq.arg[0], 1);
@@ -1366,58 +1389,7 @@ csihandle(void) {
 		tmoveto(term.c.x, csiescseq.arg[0]-1);
 		break;
 	case 'h': /* SM -- Set terminal mode */
-		if(csiescseq.priv) {
-			switch(csiescseq.arg[0]) {
-			case 1:
-				term.mode |= MODE_APPKEYPAD;
-				break;
-			case 5: /* DECSCNM -- Reverve video */
-				if(!IS_SET(MODE_REVERSE)) {
-					term.mode |= MODE_REVERSE;
-					draw();
-				}
-				break;
-			case 7:
-				term.mode |= MODE_WRAP;
-				break;
-			case 20:
-				term.mode |= MODE_CRLF;
-				break;
-			case 12: /* att610 -- Start blinking cursor (IGNORED) */
-				 /* fallthrough for xterm cvvis = CSI [ ? 12 ; 25 h */
-				if(csiescseq.narg > 1 && csiescseq.arg[1] != 25)
-					break;
-			case 25:
-				term.c.state &= ~CURSOR_HIDE;
-				break;
-			case 1000: /* 1000,1002: enable xterm mouse report */
-				term.mode |= MODE_MOUSEBTN;
-				break;
-			case 1002:
-				term.mode |= MODE_MOUSEMOTION;
-				break;
-			case 1049: /* = 1047 and 1048 */
-			case 47:
-			case 1047:
-				if(IS_SET(MODE_ALTSCREEN))
-					tclearregion(0, 0, term.col-1, term.row-1);
-				else
-					tswapscreen();
-				if(csiescseq.arg[0] != 1049)
-					break;
-			case 1048:
-				tcursor(CURSOR_SAVE);
-				break;
-			default: goto unknown;
-			}
-		} else {
-			switch(csiescseq.arg[0]) {
-			case 4:
-				term.mode |= MODE_INSERT;
-				break;
-			default: goto unknown;
-			}
-		};
+		tsetmode(csiescseq.priv, 1, csiescseq.arg, csiescseq.narg);
 		break;
 	case 'm': /* SGR -- Terminal attribute (color) */
 		tsetattr(csiescseq.arg, csiescseq.narg);
