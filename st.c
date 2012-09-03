@@ -1902,11 +1902,11 @@ xinit(void) {
 	/* adjust fixed window geometry */
 	if(xw.isfixed) {
 		sw = DisplayWidth(xw.dpy, xw.scr);
-		sh = DisplayWidth(xw.dpy, xw.scr);
+		sh = DisplayHeight(xw.dpy, xw.scr);
 		if(xw.fx < 0)
-			xw.fx = sw + xw.fx - xw.fw;
+			xw.fx = sw + xw.fx - xw.fw - 1;
 		if(xw.fy < 0)
-			xw.fy = sh + xw.fy - xw.fh;
+			xw.fy = sh + xw.fy - xw.fh - 1;
 	} else {
 		/* window - default size */
 		xw.h = 2*BORDER + term.row * xw.ch;
