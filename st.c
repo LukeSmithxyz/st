@@ -54,6 +54,7 @@
 
 #define SELECT_TIMEOUT (20*1000) /* 20 ms */
 #define DRAW_TIMEOUT  (20*1000) /* 20 ms */
+#define REDRAW_TIMEOUT (80*1000) /* 80 ms */
 
 #define SERRNO strerror(errno)
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
@@ -238,6 +239,7 @@ typedef struct {
 
 static void die(const char*, ...);
 static void draw(void);
+static void redraw(void);
 static void drawregion(int, int, int, int);
 static void execsh(void);
 static void sigchld(int);
@@ -1206,7 +1208,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				mode = term.mode;
 				MODBIT(term.mode,set, MODE_REVERSE);
 				if (mode != term.mode)
-					draw();
+					redraw();
 				break;
 			case 7:
 				MODBIT(term.mode, set, MODE_WRAP);
@@ -2027,6 +2029,14 @@ xdrawcursor(void) {
 	}
 
 	xcopy(term.c.x, term.c.y, 1, 1);
+}
+
+void
+redraw(void) {
+	struct timespec tv = {0, REDRAW_TIMEOUT * 1000};
+	tfulldirt();
+	draw();
+	nanosleep(&tv, NULL);
 }
 
 void
