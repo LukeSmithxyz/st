@@ -36,7 +36,7 @@
 
 #define USAGE \
 	"st " VERSION " (c) 2010-2012 st engineers\n" \
-	"usage: st [-t title] [-c class] [-w windowid] [-v] [-e command...]\n"
+	"usage: st [-t title] [-c class] [-w windowid] [-v] [-f file] [-e command...]\n"
 
 /* XEMBED messages */
 #define XEMBED_FOCUS_IN  4
@@ -342,7 +342,9 @@ static STREscape strescseq;
 static int cmdfd;
 static pid_t pid;
 static Selection sel;
+static FILE *fileio;
 static char **opt_cmd  = NULL;
+static char *opt_io    = NULL;
 static char *opt_title = NULL;
 static char *opt_embed = NULL;
 static char *opt_class = NULL;
@@ -776,6 +778,10 @@ ttynew(void) {
 		close(s);
 		cmdfd = m;
 		signal(SIGCHLD, sigchld);
+		if (opt_io && !(fileio = fopen(opt_io, "w"))) {
+			fprintf(stderr, "Error opening %s:%s",
+				opt_io, strerror(errno));
+		}
 	}
 }
 
@@ -1534,6 +1540,9 @@ tputtab(bool forward) {
 void
 tputc(char *c) {
 	char ascii = *c;
+
+	if (fileio)
+		putc(ascii, fileio);
 	if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
 			csiescseq.buf[csiescseq.len++] = ascii;
@@ -2268,6 +2277,9 @@ main(int argc, char *argv[]) {
 			break;
 		case 'w':
 			if(++i < argc) opt_embed = argv[i];
+			break;
+		case 'f':
+			if (++i < argc) opt_io = argv[i];
 			break;
 		case 'e':
 			/* eat every remaining arguments */

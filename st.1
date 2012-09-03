@@ -10,6 +10,8 @@ st \- simple terminal
 .RB [ \-w 
 .IR windowid ]
 .RB [ \-v ]
+.RB [ \-f
+.IR file ]
 .RB [ \-e
 .IR command ...]
 .SH DESCRIPTION
@@ -29,6 +31,10 @@ embeds st within the window identified by
 .TP
 .B \-v
 prints version information to stderr, then exits.
+.TP
+.BI \-f " file"
+writes all the I/O to
+.I file
 .TP
 .BI \-e " program " [ " arguments " "... ]"
 st executes
