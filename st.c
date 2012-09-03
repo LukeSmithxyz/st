@@ -36,7 +36,8 @@
 
 #define USAGE \
 	"st " VERSION " (c) 2010-2012 st engineers\n" \
-	"usage: st [-t title] [-c class] [-w windowid] [-v] [-f file] [-e command...]\n"
+	"usage: st [-t title] [-c class] [-g geometry]" \
+	" [-w windowid] [-v] [-f file] [-e command...]\n"
 
 /* XEMBED messages */
 #define XEMBED_FOCUS_IN  4
@@ -195,6 +196,8 @@ typedef struct {
 	XIM xim;
 	XIC xic;
 	int scr;
+	Bool isfixed; /* is fixed geometry? */
+	int fx, fy, fw, fh; /* fixed geometry */
 	int w;	/* window width */
 	int h;	/* window height */
 	int ch; /* char height */
@@ -1820,16 +1823,25 @@ void
 xhints(void) {
 	XClassHint class = {opt_class ? opt_class : TNAME, TNAME};
 	XWMHints wm = {.flags = InputHint, .input = 1};
-	XSizeHints size = {
-		.flags = PSize | PResizeInc | PBaseSize,
-		.height = xw.h,
-		.width = xw.w,
-		.height_inc = xw.ch,
-		.width_inc = xw.cw,
-		.base_height = 2*BORDER,
-		.base_width = 2*BORDER,
-	};
-	XSetWMProperties(xw.dpy, xw.win, NULL, NULL, NULL, 0, &size, &wm, &class);
+	XSizeHints *sizeh = NULL;
+
+	sizeh = XAllocSizeHints();
+	if(xw.isfixed == False) {
+		sizeh->flags = PSize | PResizeInc | PBaseSize;
+		sizeh->height = xw.h;
+		sizeh->width = xw.w;
+		sizeh->height_inc = xw.ch;
+		sizeh->width_inc = xw.cw;
+		sizeh->base_height = 2*BORDER;
+		sizeh->base_width = 2*BORDER;
+	} else {
+		sizeh->flags = PMaxSize | PMinSize;
+		sizeh->min_width = sizeh->max_width = xw.fw;
+		sizeh->min_height = sizeh->max_height = xw.fh;
+	}
+
+	XSetWMProperties(xw.dpy, xw.win, NULL, NULL, NULL, 0, sizeh, &wm, &class);
+	XFree(sizeh);
 }
 
 XFontSet
@@ -1881,10 +1893,27 @@ xinit(void) {
 	XSetWindowAttributes attrs;
 	Cursor cursor;
 	Window parent;
+	int sw, sh;
 
 	if(!(xw.dpy = XOpenDisplay(NULL)))
 		die("Can't open display\n");
 	xw.scr = XDefaultScreen(xw.dpy);
+
+	/* adjust fixed window geometry */
+	if(xw.isfixed) {
+		sw = DisplayWidth(xw.dpy, xw.scr);
+		sh = DisplayWidth(xw.dpy, xw.scr);
+		if(xw.fx < 0)
+			xw.fx = sw + xw.fx - xw.fw;
+		if(xw.fy < 0)
+			xw.fy = sh + xw.fy - xw.fh;
+	} else {
+		/* window - default size */
+		xw.h = 2*BORDER + term.row * xw.ch;
+		xw.w = 2*BORDER + term.col * xw.cw;
+		xw.fw = xw.w;
+		xw.fh = xw.h;
+	}
 
 	/* font */
 	initfonts(FONT, BOLDFONT);
@@ -1897,10 +1926,6 @@ xinit(void) {
 	xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
 	xloadcols();
 
-	/* window - default size */
-	xw.h = 2*BORDER + term.row * xw.ch;
-	xw.w = 2*BORDER + term.col * xw.cw;
-
 	attrs.background_pixel = dc.col[DefaultBG];
 	attrs.border_pixel = dc.col[DefaultBG];
 	attrs.bit_gravity = NorthWestGravity;
@@ -1911,8 +1936,8 @@ xinit(void) {
 	attrs.colormap = xw.cmap;
 
 	parent = opt_embed ? strtol(opt_embed, NULL, 0) : XRootWindow(xw.dpy, xw.scr);
-	xw.win = XCreateWindow(xw.dpy, parent, 0, 0,
-			xw.w, xw.h, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
+	xw.win = XCreateWindow(xw.dpy, parent, xw.fx, xw.fy,
+			xw.fw, xw.fh, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
 			XDefaultVisual(xw.dpy, xw.scr),
 			CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask
 			| CWColormap,
@@ -2275,7 +2300,10 @@ run(void) {
 
 int
 main(int argc, char *argv[]) {
-	int i;
+	int i, bitm, xr, yr;
+	unsigned int wr, hr;
+
+	xw.fw = xw.fh = xw.fx = xw.fy = 0;
 
 	for(i = 1; i < argc; i++) {
 		switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
@@ -2295,6 +2323,27 @@ main(int argc, char *argv[]) {
 			/* eat every remaining arguments */
 			if(++i < argc) opt_cmd = &argv[i];
 			goto run;
+		case 'g':
+			if(++i >= argc)
+				break;
+
+			bitm = XParseGeometry(argv[i], &xr, &yr, &wr, &hr);
+			if(bitm & XValue)
+				xw.fx = xr;
+			if(bitm & YValue)
+				xw.fy = yr;
+			if(bitm & WidthValue)
+				xw.fw = (int)wr;
+			if(bitm & HeightValue)
+				xw.fh = (int)hr;
+			if(bitm & XNegative && xw.fx == 0)
+				xw.fx = -1;
+			if(bitm & XNegative && xw.fy == 0)
+				xw.fy = -1;
+
+			if(xw.fh != 0 && xw.fw != 0)
+				xw.isfixed = True;
+			break;
 		case 'v':
 		default:
 			die(USAGE);
@@ -2310,3 +2359,4 @@ main(int argc, char *argv[]) {
 	run();
 	return 0;
 }
+

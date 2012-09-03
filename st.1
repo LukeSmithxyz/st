@@ -5,6 +5,8 @@ st \- simple terminal
 .B st
 .RB [ \-c
 .IR class ]
+.RB [ \-g
+.IR geometry ]
 .RB [ \-t 
 .IR title ]
 .RB [ \-w 
@@ -29,6 +31,8 @@ defines the window class (default $TERM).
 embeds st within the window identified by 
 .I windowid
 .TP
+.B \-g " geometry"
+defines the X11 geometry string, which will fixate the height and width of st. 
 .B \-v
 prints version information to stderr, then exits.
 .TP
