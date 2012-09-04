@@ -841,6 +841,8 @@ ttyresize(int x, int y) {
 
 	w.ws_row = term.row;
 	w.ws_col = term.col;
+	w.ws_xpixel = xw.w;
+	w.ws_ypixel = xw.h;
 	w.ws_xpixel = w.ws_ypixel = 0;
 	if(ioctl(cmdfd, TIOCSWINSZ, &w) < 0)
 		fprintf(stderr, "Couldn't set window size: %s\n", SERRNO);
@@ -1910,12 +1912,15 @@ xinit(void) {
 			xw.fx = sw + xw.fx - xw.fw - 1;
 		if(xw.fy < 0)
 			xw.fy = sh + xw.fy - xw.fh - 1;
+
+		xw.h = xw.fh;
+		xw.w = xw.fw;
 	} else {
 		/* window - default size */
 		xw.h = 2*BORDER + term.row * xw.ch;
 		xw.w = 2*BORDER + term.col * xw.cw;
-		xw.fw = xw.w;
-		xw.fh = xw.h;
+		xw.fx = 0;
+		xw.fy = 0;
 	}
 
 	/* font */
@@ -1940,7 +1945,7 @@ xinit(void) {
 
 	parent = opt_embed ? strtol(opt_embed, NULL, 0) : XRootWindow(xw.dpy, xw.scr);
 	xw.win = XCreateWindow(xw.dpy, parent, xw.fx, xw.fy,
-			xw.fw, xw.fh, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
+			xw.w, xw.h, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
 			XDefaultVisual(xw.dpy, xw.scr),
 			CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask
 			| CWColormap,
@@ -2254,8 +2259,8 @@ resize(XEvent *e) {
 		return;
 	if(tresize(col, row))
 		draw();
-	ttyresize(col, row);
 	xresize(col, row);
+	ttyresize(col, row);
 }
 
 bool
@@ -2310,6 +2315,7 @@ main(int argc, char *argv[]) {
 	unsigned int wr, hr;
 
 	xw.fw = xw.fh = xw.fx = xw.fy = 0;
+	xw.isfixed = False;
 
 	for(i = 1; i < argc; i++) {
 		switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
