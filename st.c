@@ -739,6 +739,10 @@ execsh(void) {
 	char **args;
 	char *envshell = getenv("SHELL");
 
+	unsetenv("COLUMNS");
+	unsetenv("LINES");
+	unsetenv("TERMCAP");
+
 	DEFAULT(envshell, SHELL);
 	putenv("TERM="TNAME);
 	args = opt_cmd ? opt_cmd : (char*[]){envshell, "-i", NULL};
