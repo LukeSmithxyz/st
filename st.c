@@ -1322,12 +1322,12 @@ csihandle(void) {
 		}
 		break;
 	case 'G': /* CHA -- Move to <col> */
-	case '`': /* XXX: HPA -- same? */
+	case '`': /* HPA */
 		DEFAULT(csiescseq.arg[0], 1);
 		tmoveto(csiescseq.arg[0]-1, term.c.y);
 		break;
 	case 'H': /* CUP -- Move to <row> <col> */
-	case 'f': /* XXX: HVP -- same? */
+	case 'f': /* HVP */
 		DEFAULT(csiescseq.arg[0], 1);
 		DEFAULT(csiescseq.arg[1], 1);
 		tmoveto(csiescseq.arg[1]-1, csiescseq.arg[0]-1);
