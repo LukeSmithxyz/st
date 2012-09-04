@@ -4,6 +4,7 @@ vt emulation
 * color definition in CSI
 	* implement CSI parsing
 * implement real italic
+* tell ncurses applications about resize
 
 code & interface
 ----------------
