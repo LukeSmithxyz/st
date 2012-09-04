@@ -221,6 +221,7 @@ typedef struct {
 	struct {int x, y;} b, e;
 	char *clip;
 	Atom xtarget;
+	bool alt;
 	struct timeval tclick1;
 	struct timeval tclick2;
 } Selection;
@@ -579,6 +580,7 @@ selcopy(void) {
 		}
 		*ptr = 0;
 	}
+	sel.alt = IS_SET(MODE_ALTSCREEN);
 	xsetsel(str);
 }
 
@@ -2076,7 +2078,10 @@ drawregion(int x1, int y1, int x2, int y2) {
 	int ic, ib, x, y, ox, sl;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
+	bool ena_sel = sel.bx != -1, alt = IS_SET(MODE_ALTSCREEN);
 
+	if((sel.alt && !alt) || (!sel.alt && alt))
+		ena_sel = 0;
 	if(!(xw.state & WIN_VISIBLE))
 		return;
 
@@ -2089,7 +2094,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 		ic = ib = ox = 0;
 		for(x = x1; x < x2; x++) {
 			new = term.line[y][x];
-			if(sel.bx != -1 && *(new.c) && selected(x, y))
+			if(ena_sel && *(new.c) && selected(x, y))
 				new.mode ^= ATTR_REVERSE;
 			if(ib > 0 && (!(new.state & GLYPH_SET) || ATTRCMP(base, new) ||
 						  ib >= DRAW_BUF_SIZ-UTF_SIZ)) {
