@@ -3,7 +3,7 @@
 st| simpleterm,
 	acsc=``aaffggiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~,
 	am,
-	bce,
+#	bce,
 	bel=^G,
 #	blink=\E[5m,
 	bold=\E[1m,

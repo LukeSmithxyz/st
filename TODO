@@ -1,6 +1,7 @@
 vt emulation
 ------------
 
+* implement BCE right
 * color definition in CSI
 	* implement CSI parsing
 * implement real italic
