@@ -784,7 +784,7 @@ ttynew(void) {
 		cmdfd = m;
 		signal(SIGCHLD, sigchld);
 		if (opt_io && !(fileio = fopen(opt_io, "w"))) {
-			fprintf(stderr, "Error opening %s:%s",
+			fprintf(stderr, "Error opening %s:%s\n",
 				opt_io, strerror(errno));
 		}
 	}
