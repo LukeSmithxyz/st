@@ -785,7 +785,7 @@ ttynew(void) {
 		close(s);
 		cmdfd = m;
 		signal(SIGCHLD, sigchld);
-		if (opt_io && !(fileio = fopen(opt_io, "w"))) {
+		if(opt_io && !(fileio = fopen(opt_io, "w"))) {
 			fprintf(stderr, "Error opening %s:%s\n",
 				opt_io, strerror(errno));
 		}
@@ -884,7 +884,7 @@ treset(void) {
 	}, .x = 0, .y = 0, .state = CURSOR_DEFAULT};
 
 	memset(term.tabs, 0, term.col * sizeof(*term.tabs));
-	for (i = TAB; i < term.col; i += TAB)
+	for(i = TAB; i < term.col; i += TAB)
 		term.tabs[i] = 1;
 	term.top = 0, term.bot = term.row - 1;
 	term.mode = MODE_WRAP;
@@ -1203,7 +1203,7 @@ void
 tsetmode(bool priv, bool set, int *args, int narg) {
 	int *lim, mode;
 
-	for (lim = args + narg; args < lim; ++args) {
+	for(lim = args + narg; args < lim; ++args) {
 		if(priv) {
 			switch(*args) {
 			case 1:
@@ -1212,7 +1212,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 5: /* DECSCNM -- Reverve video */
 				mode = term.mode;
 				MODBIT(term.mode,set, MODE_REVERSE);
-				if (mode != term.mode)
+				if(mode != term.mode)
 					redraw();
 				break;
 			case 7:
@@ -1237,11 +1237,11 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 1047:
 				if(IS_SET(MODE_ALTSCREEN))
 					tclearregion(0, 0, term.col-1, term.row-1);
-				if ((set && !IS_SET(MODE_ALTSCREEN)) ||
+				if((set && !IS_SET(MODE_ALTSCREEN)) ||
 				    (!set && IS_SET(MODE_ALTSCREEN))) {
 					    tswapscreen();
 				}
-				if (*args != 1049)
+				if(*args != 1049)
 					break;
 				/* pass through */
 			case 1048:
@@ -1334,7 +1334,7 @@ csihandle(void) {
 		break;
 	case 'I': /* CHT -- Cursor Forward Tabulation <n> tab stops */
 		DEFAULT(csiescseq.arg[0], 1);
-		while (csiescseq.arg[0]--)
+		while(csiescseq.arg[0]--)
 			tputtab(1);
 		break;
 	case 'J': /* ED -- Clear screen */
@@ -1399,7 +1399,7 @@ csihandle(void) {
 		break;
 	case 'Z': /* CBT -- Cursor Backward Tabulation <n> tab stops */
 		DEFAULT(csiescseq.arg[0], 1);
-		while (csiescseq.arg[0]--)
+		while(csiescseq.arg[0]--)
 			tputtab(0);
 		break;
 	case 'd': /* VPA -- Move to <row> */
@@ -1530,15 +1530,15 @@ void
 tputtab(bool forward) {
 	unsigned x = term.c.x;
 
-	if (forward) {
-		if (x == term.col)
+	if(forward) {
+		if(x == term.col)
 			return;
-		for (++x; x < term.col && !term.tabs[x]; ++x)
+		for(++x; x < term.col && !term.tabs[x]; ++x)
 			/* nothing */ ;
 	} else {
-		if (x == 0)
+		if(x == 0)
 			return;
-		for (--x; x > 0 && !term.tabs[x]; --x)
+		for(--x; x > 0 && !term.tabs[x]; --x)
 			/* nothing */ ;
 	}
 	tmoveto(x, term.c.y);
@@ -1548,8 +1548,9 @@ void
 tputc(char *c) {
 	char ascii = *c;
 
-	if (fileio)
+	if(fileio)
 		putc(ascii, fileio);
+
 	if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
 			csiescseq.buf[csiescseq.len++] = ascii;
@@ -1568,7 +1569,7 @@ tputc(char *c) {
 				break;
 			default:
 				strescseq.buf[strescseq.len++] = ascii;
-				if (strescseq.len+1 >= STR_BUF_SIZ) {
+				if(strescseq.len+1 >= STR_BUF_SIZ) {
 					term.esc = 0;
 					strhandle();
 				}
@@ -1746,13 +1747,13 @@ tresize(int col, int row) {
 		term.line[i] = calloc(col, sizeof(Glyph));
 		term.alt [i] = calloc(col, sizeof(Glyph));
 	}
-	if (col > term.col) {
+	if(col > term.col) {
 		bool *bp = term.tabs + term.col;
 
 		memset(bp, 0, sizeof(*term.tabs) * (col - term.col));
-		while (--bp > term.tabs && !*bp)
+		while(--bp > term.tabs && !*bp)
 			/* nothing */ ;
-		for (bp += TAB; bp < term.tabs + col; bp += TAB)
+		for(bp += TAB; bp < term.tabs + col; bp += TAB)
 			*bp = 1;
 	}
 	/* update terminal size */
@@ -1805,7 +1806,7 @@ xloadcols(void) {
 
 	for(r = 0; r < 24; r++, i++) {
 		color.red = color.green = color.blue = 0x0808 + 0x0a0a * r;
-		if (!XAllocColor(xw.dpy, xw.cmap, &color)) {
+		if(!XAllocColor(xw.dpy, xw.cmap, &color)) {
 			dc.col[i] = white;
 			fprintf(stderr, "Could not allocate color %d\n", i);
 		} else
@@ -2227,11 +2228,11 @@ void
 cmessage(XEvent *e) {
 	/* See xembed specs
 	   http://standards.freedesktop.org/xembed-spec/xembed-spec-latest.html */
-	if (e->xclient.message_type == xw.xembed && e->xclient.format == 32) {
-		if (e->xclient.data.l[1] == XEMBED_FOCUS_IN) {
+	if(e->xclient.message_type == xw.xembed && e->xclient.format == 32) {
+		if(e->xclient.data.l[1] == XEMBED_FOCUS_IN) {
 			xw.state |= WIN_FOCUSED;
 			xseturgency(0);
-		} else if (e->xclient.data.l[1] == XEMBED_FOCUS_OUT) {
+		} else if(e->xclient.data.l[1] == XEMBED_FOCUS_OUT) {
 			xw.state &= ~WIN_FOCUSED;
 		}
 		draw();
@@ -2322,7 +2323,7 @@ main(int argc, char *argv[]) {
 			if(++i < argc) opt_embed = argv[i];
 			break;
 		case 'f':
-			if (++i < argc) opt_io = argv[i];
+			if(++i < argc) opt_io = argv[i];
 			break;
 		case 'e':
 			/* eat every remaining arguments */
