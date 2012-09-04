@@ -1,17 +1,15 @@
 vt emulation
 ------------
 
-* screen erased with background color ## capname:bce
-* back tab                            ## capname:cbt ## seq:CSI Z
-* ...
+* color definition in CSI
+	* implement CSI parsing
+* implement real italic
 
 code & interface
 ----------------
 
 * clean selection code
 * clean and complete terminfo entry
-* fast drawing
-* ...
 
 bugs
 ----
@@ -21,6 +19,7 @@ bugs
 * fix selection click
 * fix selection paste for xatom STRING
 * fix umlaut handling in settitle
+* fix the scrolling issues in less 
 
 misc
 ----
