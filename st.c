@@ -843,7 +843,6 @@ ttyresize(int x, int y) {
 	w.ws_col = term.col;
 	w.ws_xpixel = xw.w;
 	w.ws_ypixel = xw.h;
-	w.ws_xpixel = w.ws_ypixel = 0;
 	if(ioctl(cmdfd, TIOCSWINSZ, &w) < 0)
 		fprintf(stderr, "Couldn't set window size: %s\n", SERRNO);
 }
