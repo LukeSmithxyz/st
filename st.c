@@ -801,9 +801,15 @@ ttynew(void) {
 		close(s);
 		cmdfd = m;
 		signal(SIGCHLD, sigchld);
-		if(opt_io && !(fileio = fopen(opt_io, "w"))) {
-			fprintf(stderr, "Error opening %s:%s\n",
-				opt_io, strerror(errno));
+		if(opt_io) {
+			if(!strcmp(opt_io, "-")) {
+				fileio = stdout;
+			} else {
+				if(!(fileio = fopen(opt_io, "w"))) {
+					fprintf(stderr, "Error opening %s:%s\n",
+						opt_io, strerror(errno));
+				}
+			}
 		}
 	}
 }
