@@ -1960,8 +1960,7 @@ xinit(void) {
 	attrs.bit_gravity = NorthWestGravity;
 	attrs.event_mask = FocusChangeMask | KeyPressMask
 		| ExposureMask | VisibilityChangeMask | StructureNotifyMask
-		| ButtonMotionMask | ButtonPressMask | ButtonReleaseMask
-		| EnterWindowMask | LeaveWindowMask;
+		| ButtonMotionMask | ButtonPressMask | ButtonReleaseMask;
 	attrs.colormap = xw.cmap;
 
 	parent = opt_embed ? strtol(opt_embed, NULL, 0) : XRootWindow(xw.dpy, xw.scr);
@@ -2047,7 +2046,6 @@ void
 xcopy() {
 	XdbeSwapInfo swpinfo[1] = {{xw.win, XdbeCopied}};
 	XdbeSwapBuffers(xw.dpy, swpinfo, 1);
-
 }
 
 void
