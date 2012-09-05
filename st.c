@@ -291,7 +291,7 @@ static void ttywrite(const char *, size_t);
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
-static void xcopy();
+static void xcopy(void);
 static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
@@ -316,7 +316,7 @@ static void selrequest(XEvent *);
 static void selinit(void);
 static inline bool selected(int, int);
 static void selcopy(void);
-static void selpaste();
+static void selpaste(void);
 static void selscroll(int, int);
 
 static int utf8decode(char *, long *);
