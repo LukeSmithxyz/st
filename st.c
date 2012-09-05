@@ -2059,7 +2059,7 @@ xdrawcursor(void) {
 	} else
 		xclear(oldx, oldy, oldx, oldy);
 
-	xcopy(oldx, oldy, 1, 1);
+	xcopy();
 
 	/* draw the new one */
 	if(!(term.c.state & CURSOR_HIDE)) {
@@ -2074,7 +2074,7 @@ xdrawcursor(void) {
 		oldx = term.c.x, oldy = term.c.y;
 	}
 
-	xcopy(term.c.x, term.c.y, 1, 1);
+	xcopy();
 }
 
 void
