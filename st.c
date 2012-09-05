@@ -1127,7 +1127,8 @@ tsetattr(int *attr, int l) {
 	for(i = 0; i < l; i++) {
 		switch(attr[i]) {
 		case 0:
-			term.c.attr.mode &= ~(ATTR_REVERSE | ATTR_UNDERLINE | ATTR_BOLD);
+			term.c.attr.mode &= ~(ATTR_REVERSE | ATTR_UNDERLINE | ATTR_BOLD \
+					| ATTR_ITALIC);
 			term.c.attr.fg = DefaultFG;
 			term.c.attr.bg = DefaultBG;
 			break;
@@ -1565,8 +1566,10 @@ void
 tputc(char *c) {
 	char ascii = *c;
 
-	if(fileio)
+	if(fileio) {
 		putc(ascii, fileio);
+		fflush(fileio);
+	}
 
 	if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
