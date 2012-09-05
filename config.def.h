@@ -1,6 +1,8 @@
 
 #define FONT "-*-*-medium-r-*-*-*-120-75-75-*-60-*-*"
 #define BOLDFONT "-*-*-bold-r-*-*-*-120-75-75-*-60-*-*"
+/* If italic is not availbel, fall back to bold. */
+#define ITALICFONT "-*-*-medium-o-*-*-*-120-75-75-*-60-*-*," BOLDFONT
 
 /* Space in pixels around the terminal buffer */
 #define BORDER 2
@@ -29,9 +31,9 @@ static const char *colorname[] = {
 	"magenta",
 	"cyan",
 	"white",
-	
+
 	[255] = 0,
-	
+
 	/* more colors can be added after 255 to use with DefaultXX */
 	"#cccccc",
 	"#333333",
@@ -50,11 +52,11 @@ static const char *colorname[] = {
    Mask value:
    * Use XK_ANY_MOD to match the key no matter modifiers state
    * Use XK_NO_MOD to match the key alone (no modifiers)
-   
+
       key,        mask,  output */
 static Key key[] = {
 	{ XK_BackSpace, XK_NO_MOD, "\177" },
-   	{ XK_Insert,    XK_NO_MOD, "\033[2~" },
+	{ XK_Insert,    XK_NO_MOD, "\033[2~" },
 	{ XK_Delete,    XK_NO_MOD, "\033[3~" },
 	{ XK_Home,      XK_NO_MOD, "\033[1~" },
 	{ XK_End,       XK_NO_MOD, "\033[4~" },

@@ -4,7 +4,6 @@ vt emulation
 * implement BCE right
 * color definition in CSI
 	* implement CSI parsing
-* implement real italic
 * make the keypad keys really work
 	* kf0 .. kf44
 	* kend, kel, kent, kfnd, ked, kext

@@ -76,6 +76,7 @@ enum glyph_attribute {
 	ATTR_UNDERLINE = 2,
 	ATTR_BOLD      = 4,
 	ATTR_GFX       = 8,
+	ATTR_ITALIC    = 16,
 };
 
 enum cursor_movement {
@@ -238,7 +239,7 @@ typedef struct {
 		short lbearing;
 		short rbearing;
 		XFontSet set;
-	} font, bfont;
+	} font, bfont, ifont;
 } DC;
 
 static void die(const char*, ...);
@@ -1122,8 +1123,8 @@ tsetattr(int *attr, int l) {
 		case 1:
 			term.c.attr.mode |= ATTR_BOLD;
 			break;
-		case 3: /* enter standout (highlight) mode TODO: make it italic */
-			term.c.attr.mode |= ATTR_REVERSE;
+		case 3: /* enter standout (highlight) */
+			term.c.attr.mode |= ATTR_ITALIC;
 			break;
 		case 4:
 			term.c.attr.mode |= ATTR_UNDERLINE;
@@ -1134,8 +1135,8 @@ tsetattr(int *attr, int l) {
 		case 22:
 			term.c.attr.mode &= ~ATTR_BOLD;
 			break;
-		case 23: /* leave standout (highlight) mode TODO: make it italic */
-			term.c.attr.mode &= ~ATTR_REVERSE;
+		case 23: /* leave standout (highlight) mode */
+			term.c.attr.mode &= ~ATTR_ITALIC;
 			break;
 		case 24:
 			term.c.attr.mode &= ~ATTR_UNDERLINE;
@@ -1886,14 +1887,20 @@ xgetfontinfo(XFontSet set, int *ascent, int *descent, short *lbearing, short *rb
 }
 
 void
-initfonts(char *fontstr, char *bfontstr) {
-	if((dc.font.set = xinitfont(fontstr)) == NULL ||
-	   (dc.bfont.set = xinitfont(bfontstr)) == NULL)
-		die("Can't load font %s\n", dc.font.set ? BOLDFONT : FONT);
+initfonts(char *fontstr, char *bfontstr, char *ifontstr) {
+	if((dc.font.set = xinitfont(fontstr)) == NULL)
+		die("Can't load font %s\n", fontstr);
+	if((dc.bfont.set = xinitfont(bfontstr)) == NULL)
+		die("Can't load bfont %s\n", bfontstr);
+	if((dc.ifont.set = xinitfont(ifontstr)) == NULL)
+		die("Can't load ifont %s\n", ifontstr);
+
 	xgetfontinfo(dc.font.set, &dc.font.ascent, &dc.font.descent,
 	    &dc.font.lbearing, &dc.font.rbearing);
 	xgetfontinfo(dc.bfont.set, &dc.bfont.ascent, &dc.bfont.descent,
 	    &dc.bfont.lbearing, &dc.bfont.rbearing);
+	xgetfontinfo(dc.ifont.set, &dc.ifont.ascent, &dc.ifont.descent,
+	    &dc.ifont.lbearing, &dc.ifont.rbearing);
 }
 
 void
@@ -1927,7 +1934,7 @@ xinit(void) {
 	}
 
 	/* font */
-	initfonts(FONT, BOLDFONT);
+	initfonts(FONT, BOLDFONT, ITALICFONT);
 
 	/* XXX: Assuming same size for bold font */
 	xw.cw = dc.font.rbearing - dc.font.lbearing;
@@ -2001,6 +2008,9 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		fg += 8;
 		fontset = dc.bfont.set;
 	}
+
+	if(base.mode & ATTR_ITALIC)
+		fontset = dc.ifont.set;
 
 	XSetBackground(xw.dpy, dc.gc, dc.col[bg]);
 	XSetForeground(xw.dpy, dc.gc, dc.col[fg]);
