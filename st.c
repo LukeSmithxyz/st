@@ -551,6 +551,7 @@ bpress(XEvent *e) {
 		sel.mode = 1;
 		sel.ex = sel.bx = X2COL(e->xbutton.x);
 		sel.ey = sel.by = Y2ROW(e->xbutton.y);
+		draw();
 	}
 }
 
@@ -619,6 +620,7 @@ void selclear(XEvent *e) {
 		return;
 	sel.bx = -1;
 	tsetdirt(sel.b.y, sel.e.y);
+	draw();
 }
 
 void
