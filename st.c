@@ -311,6 +311,7 @@ static void brelease(XEvent *);
 static void bpress(XEvent *);
 static void bmotion(XEvent *);
 static void selnotify(XEvent *);
+static void selclear(XEvent *);
 static void selrequest(XEvent *);
 
 static void selinit(void);
@@ -336,6 +337,7 @@ static void (*handler[LASTEvent])(XEvent *) = {
 	[MotionNotify] = bmotion,
 	[ButtonPress] = bpress,
 	[ButtonRelease] = brelease,
+	[SelectionClear] = selclear,
 	[SelectionNotify] = selnotify,
 	[SelectionRequest] = selrequest,
 };
@@ -610,6 +612,13 @@ selnotify(XEvent *e) {
 void
 selpaste() {
 	XConvertSelection(xw.dpy, XA_PRIMARY, sel.xtarget, XA_PRIMARY, xw.win, CurrentTime);
+}
+
+void selclear(XEvent *e) {
+	if(sel.bx == -1)
+		return;
+	sel.bx = -1;
+	tsetdirt(sel.b.y, sel.e.y);
 }
 
 void
