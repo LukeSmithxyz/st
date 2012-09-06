@@ -551,7 +551,6 @@ bpress(XEvent *e) {
 		sel.mode = 1;
 		sel.ex = sel.bx = X2COL(e->xbutton.x);
 		sel.ey = sel.by = Y2ROW(e->xbutton.y);
-		draw();
 	}
 }
 
