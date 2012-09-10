@@ -1933,6 +1933,17 @@ xinit(void) {
 		die("Can't open display\n");
 	xw.scr = XDefaultScreen(xw.dpy);
 
+	/* font */
+	initfonts(FONT, BOLDFONT, ITALICFONT);
+
+	/* XXX: Assuming same size for bold font */
+	xw.cw = dc.font.rbearing - dc.font.lbearing;
+	xw.ch = dc.font.ascent + dc.font.descent;
+
+	/* colors */
+	xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
+	xloadcols();
+
 	/* adjust fixed window geometry */
 	if(xw.isfixed) {
 		sw = DisplayWidth(xw.dpy, xw.scr);
@@ -1951,17 +1962,6 @@ xinit(void) {
 		xw.fx = 0;
 		xw.fy = 0;
 	}
-
-	/* font */
-	initfonts(FONT, BOLDFONT, ITALICFONT);
-
-	/* XXX: Assuming same size for bold font */
-	xw.cw = dc.font.rbearing - dc.font.lbearing;
-	xw.ch = dc.font.ascent + dc.font.descent;
-
-	/* colors */
-	xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
-	xloadcols();
 
 	attrs.background_pixel = dc.col[DefaultBG];
 	attrs.border_pixel = dc.col[DefaultBG];
