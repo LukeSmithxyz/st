@@ -326,6 +326,9 @@ static int utf8encode(long *, char *);
 static int utf8size(char *);
 static int isfullutf8(char *, int);
 
+static void *xmalloc(size_t);
+static void *xrealloc(void *, size_t);
+
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
 	[ClientMessage] = cmessage,
@@ -358,6 +361,21 @@ static char *opt_io    = NULL;
 static char *opt_title = NULL;
 static char *opt_embed = NULL;
 static char *opt_class = NULL;
+
+void *
+xmalloc(size_t len) {
+	void *p = malloc(len);
+	if(!p)
+		die("Out of memory");
+	return p;
+}
+
+void *
+xrealloc(void *p, size_t len) {
+	if((p = realloc(p, len)) == NULL)
+		die("Out of memory");
+	return p;
+}
 
 int
 utf8decode(char *s, long *u) {
@@ -565,7 +583,7 @@ selcopy(void) {
 
 	else {
 		bufsize = (term.col+1) * (sel.e.y-sel.b.y+1) * UTF_SIZ;
-		ptr = str = malloc(bufsize);
+		ptr = str = xmalloc(bufsize);
 
 		/* append every set & selected glyph to the selection */
 		for(y = 0; y < term.row; y++) {
@@ -918,14 +936,14 @@ void
 tnew(int col, int row) {
 	/* set screen size */
 	term.row = row, term.col = col;
-	term.line = malloc(term.row * sizeof(Line));
-	term.alt  = malloc(term.row * sizeof(Line));
-	term.dirty = malloc(term.row * sizeof(*term.dirty));
-	term.tabs = malloc(term.col * sizeof(*term.tabs));
+	term.line = xmalloc(term.row * sizeof(Line));
+	term.alt  = xmalloc(term.row * sizeof(Line));
+	term.dirty = xmalloc(term.row * sizeof(*term.dirty));
+	term.tabs = xmalloc(term.col * sizeof(*term.tabs));
 
 	for(row = 0; row < term.row; row++) {
-		term.line[row] = malloc(term.col * sizeof(Glyph));
-		term.alt [row] = malloc(term.col * sizeof(Glyph));
+		term.line[row] = xmalloc(term.col * sizeof(Glyph));
+		term.alt [row] = xmalloc(term.col * sizeof(Glyph));
 		term.dirty[row] = 0;
 	}
 	memset(term.tabs, 0, term.col * sizeof(*term.tabs));
@@ -1761,16 +1779,16 @@ tresize(int col, int row) {
 	}
 
 	/* resize to new height */
-	term.line = realloc(term.line, row * sizeof(Line));
-	term.alt  = realloc(term.alt,  row * sizeof(Line));
-	term.dirty = realloc(term.dirty, row * sizeof(*term.dirty));
-	term.tabs = realloc(term.tabs, col * sizeof(*term.tabs));
+	term.line = xrealloc(term.line, row * sizeof(Line));
+	term.alt  = xrealloc(term.alt,  row * sizeof(Line));
+	term.dirty = xrealloc(term.dirty, row * sizeof(*term.dirty));
+	term.tabs = xrealloc(term.tabs, col * sizeof(*term.tabs));
 
 	/* resize each row to new width, zero-pad if needed */
 	for(i = 0; i < minrow; i++) {
 		term.dirty[i] = 1;
-		term.line[i] = realloc(term.line[i], col * sizeof(Glyph));
-		term.alt[i]  = realloc(term.alt[i],  col * sizeof(Glyph));
+		term.line[i] = xrealloc(term.line[i], col * sizeof(Glyph));
+		term.alt[i]  = xrealloc(term.alt[i],  col * sizeof(Glyph));
 		for(x = mincol; x < col; x++) {
 			term.line[i][x].state = 0;
 			term.alt[i][x].state = 0;
