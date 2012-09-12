@@ -355,7 +355,7 @@ static STREscape strescseq;
 static int cmdfd;
 static pid_t pid;
 static Selection sel;
-static FILE *fileio;
+static int iofd = -1;
 static char **opt_cmd  = NULL;
 static char *opt_io    = NULL;
 static char *opt_title = NULL;
@@ -821,9 +821,9 @@ ttynew(void) {
 		signal(SIGCHLD, sigchld);
 		if(opt_io) {
 			if(!strcmp(opt_io, "-")) {
-				fileio = stdout;
+				iofd = STDOUT_FILENO;
 			} else {
-				if(!(fileio = fopen(opt_io, "w"))) {
+				if((iofd = open(opt_io, O_WRONLY | O_CREAT, 0666)) < 0) {
 					fprintf(stderr, "Error opening %s:%s\n",
 						opt_io, strerror(errno));
 				}
@@ -1599,10 +1599,8 @@ void
 tputc(char *c) {
 	char ascii = *c;
 
-	if(fileio) {
-		putc(ascii, fileio);
-		fflush(fileio);
-	}
+	if(iofd != -1)
+		write(iofd, c, 1);
 
 	if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
