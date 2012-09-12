@@ -77,6 +77,7 @@ enum glyph_attribute {
 	ATTR_BOLD      = 4,
 	ATTR_GFX       = 8,
 	ATTR_ITALIC    = 16,
+	ATTR_BLINK     = 32,
 };
 
 enum cursor_movement {
@@ -1133,7 +1134,7 @@ tsetattr(int *attr, int l) {
 		switch(attr[i]) {
 		case 0:
 			term.c.attr.mode &= ~(ATTR_REVERSE | ATTR_UNDERLINE | ATTR_BOLD \
-					| ATTR_ITALIC);
+					| ATTR_ITALIC | ATTR_BLINK);
 			term.c.attr.fg = DefaultFG;
 			term.c.attr.bg = DefaultBG;
 			break;
@@ -1146,6 +1147,9 @@ tsetattr(int *attr, int l) {
 		case 4:
 			term.c.attr.mode |= ATTR_UNDERLINE;
 			break;
+		case 5:
+			term.c.attr.mode |= ATTR_BLINK;
+			break;
 		case 7:
 			term.c.attr.mode |= ATTR_REVERSE;
 			break;
@@ -1157,6 +1161,9 @@ tsetattr(int *attr, int l) {
 			break;
 		case 24:
 			term.c.attr.mode &= ~ATTR_UNDERLINE;
+			break;
+		case 25:
+			term.c.attr.mode &= ~ATTR_BLINK;
 			break;
 		case 27:
 			term.c.attr.mode &= ~ATTR_REVERSE;
