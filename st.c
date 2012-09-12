@@ -1509,6 +1509,9 @@ strhandle(void) {
 			break;
 		}
 		break;
+	case 'k': /* old title set compatibility */
+		XStoreName(xw.dpy, xw.win, strescseq.buf);
+		break;
 	case 'P': /* DSC -- Device Control String */
 	case '_': /* APC -- Application Program Command */
 	case '^': /* PM -- Privacy Message */
@@ -1624,6 +1627,7 @@ tputc(char *c) {
 			case '_': /* APC -- Application Program Command */
 			case '^': /* PM -- Privacy Message */
 			case ']': /* OSC -- Operating System Command */
+			case 'k': /* old title set compatibility */
 				strreset();
 				strescseq.type = ascii;
 				term.esc |= ESC_STR;
