@@ -296,6 +296,7 @@ static void xcopy(void);
 static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
+static void xresettitle(void);
 static void xseturgency(int);
 static void xsetsel(char*);
 static void xresize(int, int);
@@ -1684,6 +1685,7 @@ tputc(char *c) {
 			case 'c': /* RIS -- Reset to inital state */
 				treset();
 				term.esc = 0;
+				xresettitle();
 				break;
 			case '=': /* DECPAM -- Application keypad */
 				term.mode |= MODE_APPKEYPAD;
@@ -2026,7 +2028,7 @@ xinit(void) {
 
 	xw.xembed = XInternAtom(xw.dpy, "_XEMBED", False);
 
-	XStoreName(xw.dpy, xw.win, opt_title ? opt_title : "st");
+	xresettitle();
 	XMapWindow(xw.dpy, xw.win);
 	xhints();
 	XSync(xw.dpy, 0);
@@ -2120,6 +2122,11 @@ xdrawcursor(void) {
 	}
 
 	xcopy();
+}
+
+void
+xresettitle(void) {
+	XStoreName(xw.dpy, xw.win, opt_title ? opt_title : "st");
 }
 
 void
