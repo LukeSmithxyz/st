@@ -774,6 +774,13 @@ execsh(void) {
 	unsetenv("LINES");
 	unsetenv("TERMCAP");
 
+	signal(SIGCHLD, SIG_DFL);
+	signal(SIGHUP, SIG_DFL);
+	signal(SIGINT, SIG_DFL);
+	signal(SIGQUIT, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+	signal(SIGALRM, SIG_DFL);
+
 	DEFAULT(envshell, SHELL);
 	putenv("TERM="TNAME);
 	args = opt_cmd ? opt_cmd : (char*[]){envshell, "-i", NULL};
