@@ -1171,6 +1171,7 @@ tsetattr(int *attr, int l) {
 		case 7:
 			term.c.attr.mode |= ATTR_REVERSE;
 			break;
+		case 21:
 		case 22:
 			term.c.attr.mode &= ~ATTR_BOLD;
 			break;
