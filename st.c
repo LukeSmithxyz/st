@@ -1723,6 +1723,8 @@ tputc(char *c) {
 		if(sel.bx != -1 && BETWEEN(term.c.y, sel.by, sel.ey))
 			sel.bx = -1;
 		switch(ascii) {
+		case '\0': /* padding character, do nothing */
+			break;
 		case '\t':
 			tputtab(1);
 			break;
