@@ -1,8 +1,9 @@
 
-#define FONT "-*-*-medium-r-*-*-*-120-75-75-*-60-*-*"
-#define BOLDFONT "-*-*-bold-r-*-*-*-120-75-75-*-60-*-*"
+#define FONT "-*-*-medium-r-*-*-*-120-75-75-*-70-*-*"
+#define BOLDFONT "-*-*-bold-r-*-*-*-120-75-75-*-70-*-*"
 /* If italic is not availbel, fall back to bold. */
-#define ITALICFONT "-*-*-medium-o-*-*-*-120-75-75-*-60-*-*," BOLDFONT
+#define ITALICFONT "-*-*-medium-o-*-*-*-120-75-75-*-70-*-*," BOLDFONT
+#define ITALICBOLDFONT "-*-*-bold-o-*-*-*-120-75-75-*-70-*-*," BOLDFONT
 
 /* Space in pixels around the terminal buffer */
 #define BORDER 2

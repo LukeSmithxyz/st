@@ -240,7 +240,7 @@ typedef struct {
 		short lbearing;
 		short rbearing;
 		XFontSet set;
-	} font, bfont, ifont;
+	} font, bfont, ifont, ibfont;
 } DC;
 
 static void die(const char*, ...);
@@ -1945,13 +1945,15 @@ xgetfontinfo(XFontSet set, int *ascent, int *descent, short *lbearing, short *rb
 }
 
 void
-initfonts(char *fontstr, char *bfontstr, char *ifontstr) {
+initfonts(char *fontstr, char *bfontstr, char *ifontstr, char *ibfontstr) {
 	if((dc.font.set = xinitfont(fontstr)) == NULL)
 		die("Can't load font %s\n", fontstr);
 	if((dc.bfont.set = xinitfont(bfontstr)) == NULL)
 		die("Can't load bfont %s\n", bfontstr);
 	if((dc.ifont.set = xinitfont(ifontstr)) == NULL)
 		die("Can't load ifont %s\n", ifontstr);
+	if((dc.ibfont.set = xinitfont(ibfontstr)) == NULL)
+		die("Can't load ibfont %s\n", ibfontstr);
 
 	xgetfontinfo(dc.font.set, &dc.font.ascent, &dc.font.descent,
 	    &dc.font.lbearing, &dc.font.rbearing);
@@ -1959,6 +1961,8 @@ initfonts(char *fontstr, char *bfontstr, char *ifontstr) {
 	    &dc.bfont.lbearing, &dc.bfont.rbearing);
 	xgetfontinfo(dc.ifont.set, &dc.ifont.ascent, &dc.ifont.descent,
 	    &dc.ifont.lbearing, &dc.ifont.rbearing);
+	xgetfontinfo(dc.ibfont.set, &dc.ibfont.ascent, &dc.ibfont.descent,
+	    &dc.ibfont.lbearing, &dc.ibfont.rbearing);
 }
 
 void
@@ -1973,7 +1977,7 @@ xinit(void) {
 	xw.scr = XDefaultScreen(xw.dpy);
 
 	/* font */
-	initfonts(FONT, BOLDFONT, ITALICFONT);
+	initfonts(FONT, BOLDFONT, ITALICFONT, ITALICBOLDFONT);
 
 	/* XXX: Assuming same size for bold font */
 	xw.cw = dc.font.rbearing - dc.font.lbearing;
@@ -2068,6 +2072,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	if(base.mode & ATTR_ITALIC)
 		fontset = dc.ifont.set;
+	if(base.mode & (ATTR_ITALIC|ATTR_ITALIC))
+		fontset = dc.ibfont.set;
 
 	XSetBackground(xw.dpy, dc.gc, dc.col[bg]);
 	XSetForeground(xw.dpy, dc.gc, dc.col[fg]);
