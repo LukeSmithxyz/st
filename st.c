@@ -1970,7 +1970,7 @@ xinit(void) {
 	XSetWindowAttributes attrs;
 	Cursor cursor;
 	Window parent;
-	int sw, sh;
+	int sw, sh, major, minor;
 
 	if(!(xw.dpy = XOpenDisplay(NULL)))
 		die("Can't open display\n");
@@ -2021,8 +2021,9 @@ xinit(void) {
 			CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask
 			| CWColormap,
 			&attrs);
+	if(!XdbeQueryExtension(xw.dpy, &major, &minor))
+		die("Xdbe extension is not present\n");
 	xw.buf = XdbeAllocateBackBufferName(xw.dpy, xw.win, XdbeCopied);
-
 
 	/* input methods */
 	xw.xim = XOpenIM(xw.dpy, NULL, NULL, NULL);
