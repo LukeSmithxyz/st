@@ -53,8 +53,6 @@
 #define XK_NO_MOD     UINT_MAX
 #define XK_ANY_MOD    0
 
-#define SELECT_TIMEOUT (20*1000) /* 20 ms */
-#define DRAW_TIMEOUT  (20*1000) /* 20 ms */
 #define REDRAW_TIMEOUT (80*1000) /* 80 ms */
 
 #define SERRNO strerror(errno)
@@ -205,7 +203,6 @@ typedef struct {
 	int ch; /* char height */
 	int cw; /* char width  */
 	char state; /* focus, redraw, visible */
-	struct timeval lastdraw;
 } XWindow;
 
 typedef struct {
@@ -250,7 +247,6 @@ static void drawregion(int, int, int, int);
 static void execsh(void);
 static void sigchld(int);
 static void run(void);
-static bool last_draw_too_old(void);
 
 static void csidump(void);
 static void csihandle(void);
@@ -2158,7 +2154,6 @@ void
 draw() {
 	drawregion(0, 0, term.col, term.row);
 	xcopy();
-	gettimeofday(&xw.lastdraw, NULL);
 }
 
 void
@@ -2345,41 +2340,25 @@ resize(XEvent *e) {
 	ttyresize(col, row);
 }
 
-bool
-last_draw_too_old(void) {
-	struct timeval now;
-	gettimeofday(&now, NULL);
-	return TIMEDIFF(now, xw.lastdraw) >= DRAW_TIMEOUT/1000;
-}
-
 void
 run(void) {
 	XEvent ev;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dpy);
-	struct timeval timeout = {0};
-	bool stuff_to_print = 0;
 
 	for(;;) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
-		timeout.tv_sec  = 0;
-		timeout.tv_usec = SELECT_TIMEOUT;
-		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, &timeout) < 0) {
+		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, NULL) < 0) {
 			if(errno == EINTR)
 				continue;
 			die("select failed: %s\n", SERRNO);
 		}
-		if(FD_ISSET(cmdfd, &rfd)) {
+		if(FD_ISSET(cmdfd, &rfd))
 			ttyread();
-			stuff_to_print = 1;
-		}
 
-		if(stuff_to_print && last_draw_too_old()) {
-			stuff_to_print = 0;
-			draw();
-		}
+		draw();
 
 		while(XPending(xw.dpy)) {
 			XNextEvent(xw.dpy, &ev);

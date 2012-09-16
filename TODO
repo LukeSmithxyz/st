@@ -15,7 +15,6 @@ code & interface
 
 * clean selection code
 * clean and complete terminfo entry
-* remove the timeouts in the main loop
 
 bugs
 ----
