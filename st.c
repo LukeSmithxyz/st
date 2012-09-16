@@ -2150,6 +2150,7 @@ redraw(void) {
 	struct timespec tv = {0, REDRAW_TIMEOUT * 1000};
 	tfulldirt();
 	draw();
+	XSync(xw.dpy, False); /* necessary for a good tput flash */
 	nanosleep(&tv, NULL);
 }
 
