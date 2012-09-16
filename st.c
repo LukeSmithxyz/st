@@ -2329,13 +2329,13 @@ run(void) {
 	XEvent ev;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dpy), i;
-	struct timeval drawtimeout;
+	struct timeval drawtimeout, *tv = NULL;
 
-	for(;;) {
+	for(i = 0;; i++) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
-		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, NULL) < 0) {
+		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, tv) < 0) {
 			if(errno == EINTR)
 				continue;
 			die("select failed: %s\n", SERRNO);
@@ -2345,23 +2345,20 @@ run(void) {
 		 * Stop after a certain number of reads so the user does not
 		 * feel like the system is stuttering.
 		 */
-		for(i = 0; i < 1000 && FD_ISSET(cmdfd, &rfd); i++) {
+		if(i < 1000 && FD_ISSET(cmdfd, &rfd)) {
 			ttyread();
 
-			FD_ZERO(&rfd);
-			FD_SET(cmdfd, &rfd);
 			/*
 			 * Just wait a bit so it isn't disturbing the
 			 * user and the system is able to write something.
 			 */
 			drawtimeout.tv_sec = 0;
 			drawtimeout.tv_usec = 5;
-			if(select(cmdfd+1, &rfd, NULL, NULL, &drawtimeout) < 0) {
-				if(errno == EINTR)
-					continue;
-				die("select failed: %s\n", SERRNO);
-			}
+			tv = &drawtimeout;
+			continue;
 		}
+		i = 0;
+		tv = NULL;
 
 		while(XPending(xw.dpy)) {
 			XNextEvent(xw.dpy, &ev);
