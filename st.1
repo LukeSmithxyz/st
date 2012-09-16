@@ -38,7 +38,8 @@ prints version information to stderr, then exits.
 .TP
 .BI \-f " file"
 writes all the I/O to
-.I file
+.I file.
+This feature is useful when recording st sessions.
 .TP
 .BI \-e " program " [ " arguments " "... ]"
 st executes
@@ -46,3 +47,16 @@ st executes
 instead of the shell.  If this is used it
 .B must be the last option
 on the command line, as in xterm / rxvt.
+.SH CUSTOMIZATION
+.B st
+can be customized by creating a custom config.h and (re)compiling the source
+code. This keeps it fast, secure and simple.
+.SH AUTHORS
+See the LICENSE file for the authors.
+.SH LICENSE
+See the LICENSE file for the terms of redistribution.
+.SH SEE ALSO
+.BR tabbed (1)
+.SH BUGS
+See the TODO file in the distribution.
+
