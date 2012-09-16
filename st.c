@@ -561,8 +561,11 @@ bpress(XEvent *e) {
 	if(IS_SET(MODE_MOUSE))
 		mousereport(e);
 	else if(e->xbutton.button == Button1) {
-		if(sel.bx != -1)
+		if(sel.bx != -1) {
+			sel.bx = -1;
 			tsetdirt(sel.b.y, sel.e.y);
+			draw();
+		}
 		sel.mode = 1;
 		sel.ex = sel.bx = X2COL(e->xbutton.x);
 		sel.ey = sel.by = Y2ROW(e->xbutton.y);
