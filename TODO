@@ -9,22 +9,26 @@ vt emulation
 	* kend, kel, kent, kfnd, ked, kext
 	* kNXT, kPRV
 	* ka1, ka3, kb2
+* add arrow keys handling
 
 code & interface
 ----------------
 
 * clean selection code
 * clean and complete terminfo entry
+* add border around cursor, when it could be hard to read
+	* white border when not selected would suffice
+	* + definition in config.h
 
 bugs
 ----
 
 * handle XOpenMI() errors
 * fix shift up/down (shift selection in emacs)
-* fix selection click
 * fix selection paste for xatom STRING
 * fix umlaut handling in settitle
-* fix the scrolling issues in less 
+* fix rows and column definition in fixed geometry
+* clear the borders of the st window, if something has drawn on it
 
 misc
 ----
