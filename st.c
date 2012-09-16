@@ -288,7 +288,6 @@ static void ttywrite(const char *, size_t);
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
-static void xcopy(void);
 static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
@@ -635,7 +634,6 @@ void selclear(XEvent *e) {
 		return;
 	sel.bx = -1;
 	tsetdirt(sel.b.y, sel.e.y);
-	draw();
 }
 
 void
@@ -685,8 +683,6 @@ xsetsel(char *str) {
 
 	clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
 	XSetSelectionOwner(xw.dpy, clipboard, xw.win, CurrentTime);
-
-	XFlush(xw.dpy);
 }
 
 void
@@ -729,7 +725,6 @@ brelease(XEvent *e) {
 	}
 	memcpy(&sel.tclick2, &sel.tclick1, sizeof(struct timeval));
 	gettimeofday(&sel.tclick1, NULL);
-	draw();
 }
 
 void
@@ -746,7 +741,6 @@ bmotion(XEvent *e) {
 			int starty = MIN(oldey, sel.ey);
 			int endy = MAX(oldey, sel.ey);
 			tsetdirt(starty, endy);
-			draw();
 		}
 	}
 }
@@ -2091,13 +2085,6 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		XDrawLine(xw.dpy, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
 }
 
-/* copy buffer pixmap to screen pixmap */
-void
-xcopy() {
-	XdbeSwapInfo swpinfo[1] = {{xw.win, XdbeCopied}};
-	XdbeSwapBuffers(xw.dpy, swpinfo, 1);
-}
-
 void
 xdrawcursor(void) {
 	static int oldx = 0;
@@ -2118,8 +2105,6 @@ xdrawcursor(void) {
 	} else
 		xclear(oldx, oldy, oldx, oldy);
 
-	xcopy();
-
 	/* draw the new one */
 	if(!(term.c.state & CURSOR_HIDE)) {
 		if(!(xw.state & WIN_FOCUSED))
@@ -2132,8 +2117,6 @@ xdrawcursor(void) {
 		xdraws(g.c, g, term.c.x, term.c.y, 1, sl);
 		oldx = term.c.x, oldy = term.c.y;
 	}
-
-	xcopy();
 }
 
 void
@@ -2152,8 +2135,10 @@ redraw(void) {
 
 void
 draw() {
+	XdbeSwapInfo swpinfo[1] = {{xw.win, XdbeCopied}};
+
 	drawregion(0, 0, term.col, term.row);
-	xcopy();
+	XdbeSwapBuffers(xw.dpy, swpinfo, 1);
 }
 
 void
@@ -2208,7 +2193,6 @@ expose(XEvent *ev) {
 		if(!e->count)
 			xw.state &= ~WIN_REDRAW;
 	}
-	xcopy();
 }
 
 void
@@ -2241,7 +2225,6 @@ focus(XEvent *ev) {
 		xseturgency(0);
 	} else
 		xw.state &= ~WIN_FOCUSED;
-	draw();
 }
 
 char*
@@ -2317,7 +2300,6 @@ cmessage(XEvent *e) {
 		} else if(e->xclient.data.l[1] == XEMBED_FOCUS_OUT) {
 			xw.state &= ~WIN_FOCUSED;
 		}
-		draw();
 	}
 }
 
@@ -2358,8 +2340,6 @@ run(void) {
 		if(FD_ISSET(cmdfd, &rfd))
 			ttyread();
 
-		draw();
-
 		while(XPending(xw.dpy)) {
 			XNextEvent(xw.dpy, &ev);
 			if(XFilterEvent(&ev, xw.win))
@@ -2367,6 +2347,9 @@ run(void) {
 			if(handler[ev.type])
 				(handler[ev.type])(&ev);
 		}
+
+		draw();
+		XFlush(xw.dpy);
 	}
 }
 
