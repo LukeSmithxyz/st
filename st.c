@@ -2319,8 +2319,7 @@ resize(XEvent *e) {
 	row = (xw.h - 2*BORDER) / xw.ch;
 	if(col == term.col && row == term.row)
 		return;
-	if(tresize(col, row))
-		draw();
+	tresize(col, row);
 	xresize(col, row);
 	ttyresize(col, row);
 }
