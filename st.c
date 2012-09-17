@@ -1839,6 +1839,9 @@ void
 xresize(int col, int row) {
 	xw.w = MAX(1, 2*BORDER + col * xw.cw);
 	xw.h = MAX(1, 2*BORDER + row * xw.ch);
+	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0,
+		       DisplayWidth(xw.dpy, xw.scr),
+		       DisplayHeight(xw.dpy, xw.scr));
 }
 
 void
