@@ -198,6 +198,7 @@ typedef struct {
 	int scr;
 	Bool isfixed; /* is fixed geometry? */
 	int fx, fy, fw, fh; /* fixed geometry */
+	int tw, th; /* tty width and height */
 	int w;	/* window width */
 	int h;	/* window height */
 	int ch; /* char height */
@@ -894,8 +895,8 @@ ttyresize(int x, int y) {
 
 	w.ws_row = term.row;
 	w.ws_col = term.col;
-	w.ws_xpixel = xw.w;
-	w.ws_ypixel = xw.h;
+	w.ws_xpixel = xw.tw;
+	w.ws_ypixel = xw.th;
 	if(ioctl(cmdfd, TIOCSWINSZ, &w) < 0)
 		fprintf(stderr, "Couldn't set window size: %s\n", SERRNO);
 }
@@ -1837,11 +1838,8 @@ tresize(int col, int row) {
 
 void
 xresize(int col, int row) {
-	xw.w = MAX(1, 2*BORDER + col * xw.cw);
-	xw.h = MAX(1, 2*BORDER + row * xw.ch);
-	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0,
-		       DisplayWidth(xw.dpy, xw.scr),
-		       DisplayHeight(xw.dpy, xw.scr));
+	xw.tw = MAX(1, 2*BORDER + col * xw.cw);
+	xw.th = MAX(1, 2*BORDER + row * xw.ch);
 }
 
 void
@@ -2145,6 +2143,8 @@ xresettitle(void) {
 void
 redraw(void) {
 	struct timespec tv = {0, REDRAW_TIMEOUT * 1000};
+
+	xclear(0, 0, xw.w, xw.h);
 	tfulldirt();
 	draw();
 	XSync(xw.dpy, False); /* necessary for a good tput flash */
@@ -2334,6 +2334,8 @@ resize(XEvent *e) {
 	row = (xw.h - 2*BORDER) / xw.ch;
 	if(col == term.col && row == term.row)
 		return;
+
+	xclear(0, 0, xw.w, xw.h);
 	tresize(col, row);
 	xresize(col, row);
 	ttyresize(col, row);
