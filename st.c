@@ -324,6 +324,7 @@ static int isfullutf8(char *, int);
 
 static void *xmalloc(size_t);
 static void *xrealloc(void *, size_t);
+static void *xcalloc(size_t nmemb, size_t size);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
@@ -370,6 +371,14 @@ void *
 xrealloc(void *p, size_t len) {
 	if((p = realloc(p, len)) == NULL)
 		die("Out of memory");
+	return p;
+}
+
+void *
+xcalloc(size_t nmemb, size_t size) {
+	void *p = calloc(nmemb, size);
+	if(!p)
+		die("Out of memory\n");
 	return p;
 }
 
@@ -1801,8 +1810,8 @@ tresize(int col, int row) {
 	/* allocate any new rows */
 	for(/* i == minrow */; i < row; i++) {
 		term.dirty[i] = 1;
-		term.line[i] = calloc(col, sizeof(Glyph));
-		term.alt [i] = calloc(col, sizeof(Glyph));
+		term.line[i] = xcalloc(col, sizeof(Glyph));
+		term.alt [i] = xcalloc(col, sizeof(Glyph));
 	}
 	if(col > term.col) {
 		bool *bp = term.tabs + term.col;
