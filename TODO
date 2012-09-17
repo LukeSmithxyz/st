@@ -28,7 +28,6 @@ bugs
 * fix selection paste for xatom STRING
 * fix umlaut handling in settitle
 * fix rows and column definition in fixed geometry
-* clear the borders of the st window, if something has drawn on it
 
 misc
 ----
