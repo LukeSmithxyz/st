@@ -596,14 +596,17 @@ selcopy(void) {
 		/* append every set & selected glyph to the selection */
 		for(y = 0; y < term.row; y++) {
 			for(x = 0; x < term.col; x++) {
-				is_selected = selected(x, y);
-				if((term.line[y][x].state & GLYPH_SET) && is_selected) {
-					int size = utf8size(term.line[y][x].c);
-					memcpy(ptr, term.line[y][x].c, size);
-					ptr += size;
-				}
-			}
+				int size;
+				char *p;
+				Glyph *gp = &term.line[y][x];
 
+				if(!(is_selected = selected(x, y)))
+					continue;
+				p = (gp->state & GLYPH_SET) ? gp->c : " ";
+				size = utf8size(p);
+				memcpy(ptr, p, size);
+				ptr += size;
+			}
 			/* \n at the end of every selected line except for the last one */
 			if(is_selected && y < sel.e.y)
 				*ptr++ = '\n';
