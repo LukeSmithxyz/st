@@ -363,14 +363,14 @@ void *
 xmalloc(size_t len) {
 	void *p = malloc(len);
 	if(!p)
-		die("Out of memory");
+		die("Out of memory\n");
 	return p;
 }
 
 void *
 xrealloc(void *p, size_t len) {
 	if((p = realloc(p, len)) == NULL)
-		die("Out of memory");
+		die("Out of memory\n");
 	return p;
 }
 
