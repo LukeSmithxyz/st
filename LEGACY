@@ -7,7 +7,7 @@ developed a graphical vt100 emulator at that time.
 
 One  goal  of  st is to only support what is really needed. When you en‐
 counter a sequence which you really need, implement it.  But  while  you
-are  add it, do not add the other cruft you might encounter while sneek‐
+are  at it,  do not add the other cruft you might encounter while sneek‐
 ing at other terminal emulators. History has bloated them and  there  is
 no real evidence that most of the sequences are used today.
 
