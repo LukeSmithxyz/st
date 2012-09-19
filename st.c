@@ -196,7 +196,7 @@ typedef struct {
 	XIM xim;
 	XIC xic;
 	int scr;
-	Bool isfixed; /* is fixed geometry? */
+	bool isfixed; /* is fixed geometry? */
 	int fx, fy, fw, fh; /* fixed geometry */
 	int tw, th; /* tty width and height */
 	int w;	/* window width */
@@ -931,7 +931,7 @@ tcursor(int mode) {
 
 void
 treset(void) {
-	unsigned i;
+	uint i;
 	term.c = (TCursor){{
 		.mode = ATTR_NULL,
 		.fg = DefaultFG,
@@ -1594,7 +1594,7 @@ strreset(void) {
 
 void
 tputtab(bool forward) {
-	unsigned x = term.c.x;
+	uint x = term.c.x;
 
 	if(forward) {
 		if(x == term.col)
@@ -2393,7 +2393,7 @@ run(void) {
 int
 main(int argc, char *argv[]) {
 	int i, bitm, xr, yr;
-	unsigned int wr, hr;
+	uint wr, hr;
 
 	xw.fw = xw.fh = xw.fx = xw.fy = 0;
 	xw.isfixed = False;
