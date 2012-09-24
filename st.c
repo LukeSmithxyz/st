@@ -292,7 +292,7 @@ static void tfulldirt(void);
 
 static void ttynew(void);
 static void ttyread(void);
-static void ttyresize(int, int);
+static void ttyresize(void);
 static void ttywrite(const char *, size_t);
 
 static void xdraws(char *, Glyph, int, int, int, int);
@@ -899,7 +899,7 @@ ttywrite(const char *s, size_t n) {
 }
 
 void
-ttyresize(int x, int y) {
+ttyresize(void) {
 	struct winsize w;
 
 	w.ws_row = term.row;
@@ -2327,7 +2327,7 @@ resize(XEvent *e) {
 	xclear(0, 0, xw.w, xw.h);
 	tresize(col, row);
 	xresize(col, row);
-	ttyresize(col, row);
+	ttyresize();
 }
 
 void
