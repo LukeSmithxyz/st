@@ -110,7 +110,8 @@ enum term_mode {
 	MODE_MOUSEBTN    = 32,
 	MODE_MOUSEMOTION = 64,
 	MODE_MOUSE       = 32|64,
-	MODE_REVERSE     = 128
+	MODE_REVERSE     = 128,
+	MODE_KBDLOCK     = 256
 };
 
 enum escape_state {
@@ -1328,6 +1329,9 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			}
 		} else {
 			switch(*args) {
+			case 2:
+				MODBIT(term.mode, set, MODE_KBDLOCK);
+				break;
 			case 4:
 				MODBIT(term.mode, set, MODE_INSERT);
 				break;
@@ -2257,6 +2261,8 @@ kpress(XEvent *ev) {
 	int shift;
 	Status status;
 
+	if (IS_SET(MODE_KBDLOCK))
+		return;
 	meta = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
 	len = XmbLookupString(xw.xic, e, buf, sizeof(buf), &ksym, &status);
