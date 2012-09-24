@@ -1292,9 +1292,6 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 7:
 				MODBIT(term.mode, set, MODE_WRAP);
 				break;
-			case 20:
-				MODBIT(term.mode, set, MODE_CRLF);
-				break;
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				break;
 			case 25:
@@ -1334,6 +1331,9 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				break;
 			case 4:
 				MODBIT(term.mode, set, MODE_INSERT);
+				break;
+			case 20:
+				MODBIT(term.mode, set, MODE_CRLF);
 				break;
 			default:
 				fprintf(stderr,
