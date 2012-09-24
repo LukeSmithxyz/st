@@ -1280,7 +1280,8 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 	for(lim = args + narg; args < lim; ++args) {
 		if(priv) {
 			switch(*args) {
-			case 1:
+				break;
+			case 1: /* DECCKM -- Cursor key */
 				MODBIT(term.mode, set, MODE_APPKEYPAD);
 				break;
 			case 5: /* DECSCNM -- Reverve video */
@@ -1289,9 +1290,14 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				if(mode != term.mode)
 					redraw();
 				break;
-			case 7:
+			case 6: /* XXX: DECOM -- Origin */
+				break;
+			case 7: /* DECAWM -- Auto wrap */
 				MODBIT(term.mode, set, MODE_WRAP);
 				break;
+			case 8: /* XXX: DECARM -- Auto repeat */
+				break;
+			case 0:  /* Error (IGNORED) */
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				break;
 			case 25:
@@ -1319,6 +1325,12 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
 				break;
 			default:
+			/* case 2:  DECANM -- ANSI/VT52 (NOT SUPPOURTED) */
+			/* case 3:  DECCOLM -- Column  (NOT SUPPORTED) */
+			/* case 4:  DECSCLM -- Scroll (NOT SUPPORTED) */
+			/* case 18: DECPFF -- Printer feed (NOT SUPPORTED) */
+			/* case 19: DECPEX -- Printer extent (NOT SUPPORTED) */
+			/* case 42: DECNRCM -- National characters (NOT SUPPORTED) */
 				fprintf(stderr,
 					"erresc: unknown private set/reset mode %d\n",
 					*args);
@@ -1326,13 +1338,17 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			}
 		} else {
 			switch(*args) {
-			case 2:
+			case 0:  /* Error (IGNORED) */
+				break;
+			case 2:  /* KAM -- keyboard action */
 				MODBIT(term.mode, set, MODE_KBDLOCK);
 				break;
-			case 4:
+			case 4:  /* IRM -- Insertion-replacement */
 				MODBIT(term.mode, set, MODE_INSERT);
 				break;
-			case 20:
+			case 12: /* XXX: SRM -- Send/Receive */
+				break;
+			case 20: /* LNM -- Linefeed/new line */
 				MODBIT(term.mode, set, MODE_CRLF);
 				break;
 			default:
