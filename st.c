@@ -952,6 +952,7 @@ treset(void) {
 		term.tabs[i] = 1;
 	term.top = 0, term.bot = term.row - 1;
 	term.mode = MODE_WRAP;
+	xclear(0, 0, xw.w, xw.h);
 	tclearregion(0, 0, term.col-1, term.row-1);
 }
 
@@ -2433,9 +2434,9 @@ main(int argc, char *argv[]) {
 
  run:
 	setlocale(LC_CTYPE, "");
+	xinit();
 	tnew(80, 24);
 	ttynew();
-	xinit();
 	selinit();
 	run();
 	return 0;
