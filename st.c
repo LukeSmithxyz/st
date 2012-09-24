@@ -25,6 +25,9 @@
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <X11/extensions/Xdbe.h>
+#include <X11/Xft/Xft.h>
+#define Glyph Glyph_
+#define Font Font_
 
 #if   defined(__linux)
  #include <pty.h>
@@ -195,6 +198,8 @@ typedef struct {
 	Atom xembed;
 	XIM xim;
 	XIC xic;
+	XftDraw *xft_draw;
+	Visual *vis;
 	int scr;
 	Bool isfixed; /* is fixed geometry? */
 	int fx, fy, fw, fh; /* fixed geometry */
@@ -212,7 +217,6 @@ typedef struct {
 	char s[ESC_BUF_SIZ];
 } Key;
 
-
 /* TODO: use better name for vars... */
 typedef struct {
 	int mode;
@@ -228,17 +232,22 @@ typedef struct {
 
 #include "config.h"
 
+/* Font structure */
+typedef struct {
+	int ascent;
+	int descent;
+	short lbearing;
+	short rbearing;
+	XFontSet set;
+	XftFont* xft_set;
+} Font;
+
 /* Drawing Context */
 typedef struct {
 	ulong col[LEN(colorname) < 256 ? 256 : LEN(colorname)];
+	XftColor xft_col[LEN(colorname) < 256 ? 256 : LEN(colorname)];
 	GC gc;
-	struct {
-		int ascent;
-		int descent;
-		short lbearing;
-		short rbearing;
-		XFontSet set;
-	} font, bfont, ifont, ibfont;
+	Font font, bfont, ifont, ibfont;
 } DC;
 
 static void die(const char*, ...);
@@ -1840,47 +1849,49 @@ void
 xresize(int col, int row) {
 	xw.tw = MAX(1, 2*BORDER + col * xw.cw);
 	xw.th = MAX(1, 2*BORDER + row * xw.ch);
+
+	XftDrawChange(xw.xft_draw, xw.buf);
 }
 
 void
 xloadcols(void) {
 	int i, r, g, b;
-	XColor color;
+	XRenderColor xft_color = { .alpha = 0 };
 	ulong white = WhitePixel(xw.dpy, xw.scr);
 
 	/* load colors [0-15] colors and [256-LEN(colorname)[ (config.h) */
 	for(i = 0; i < LEN(colorname); i++) {
 		if(!colorname[i])
 			continue;
-		if(!XAllocNamedColor(xw.dpy, xw.cmap, colorname[i], &color, &color)) {
+		if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, colorname[i], &dc.xft_col[i])) {
 			dc.col[i] = white;
 			fprintf(stderr, "Could not allocate color '%s'\n", colorname[i]);
 		} else
-			dc.col[i] = color.pixel;
+			dc.col[i] = dc.xft_col[i].pixel;
 	}
 
 	/* load colors [16-255] ; same colors as xterm */
 	for(i = 16, r = 0; r < 6; r++)
 		for(g = 0; g < 6; g++)
 			for(b = 0; b < 6; b++) {
-				color.red = r == 0 ? 0 : 0x3737 + 0x2828 * r;
-				color.green = g == 0 ? 0 : 0x3737 + 0x2828 * g;
-				color.blue = b == 0 ? 0 : 0x3737 + 0x2828 * b;
-				if(!XAllocColor(xw.dpy, xw.cmap, &color)) {
+				xft_color.red = r == 0 ? 0 : 0x3737 + 0x2828 * r;
+				xft_color.green = g == 0 ? 0 : 0x3737 + 0x2828 * g;
+				xft_color.blue = b == 0 ? 0 : 0x3737 + 0x2828 * b;
+				if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &xft_color, &dc.xft_col[i])) {
 					dc.col[i] = white;
 					fprintf(stderr, "Could not allocate color %d\n", i);
 				} else
-					dc.col[i] = color.pixel;
+					dc.col[i] = dc.xft_col[i].pixel;
 				i++;
 			}
 
 	for(r = 0; r < 24; r++, i++) {
-		color.red = color.green = color.blue = 0x0808 + 0x0a0a * r;
-		if(!XAllocColor(xw.dpy, xw.cmap, &color)) {
+		xft_color.red = xft_color.green = xft_color.blue = 0x0808 + 0x0a0a * r;
+		if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &xft_color, &dc.xft_col[i])) {
 			dc.col[i] = white;
 			fprintf(stderr, "Could not allocate color %d\n", i);
 		} else
-			dc.col[i] = color.pixel;
+			dc.col[i] = dc.xft_col[i].pixel;
 	}
 }
 
@@ -1917,58 +1928,25 @@ xhints(void) {
 	XFree(sizeh);
 }
 
-XFontSet
-xinitfont(char *fontstr) {
-	XFontSet set;
-	char *def, **missing;
-	int n;
-
-	missing = NULL;
-	set = XCreateFontSet(xw.dpy, fontstr, &missing, &n, &def);
-	if(missing) {
-		while(n--)
-			fprintf(stderr, "st: missing fontset: %s\n", missing[n]);
-		XFreeStringList(missing);
-	}
-	return set;
-}
-
 void
-xgetfontinfo(XFontSet set, int *ascent, int *descent, short *lbearing, short *rbearing) {
-	XFontStruct **xfonts;
-	char **font_names;
-	int i, n;
+xinitfont(Font *f, char *fontstr) {
+	f->xft_set = XftFontOpenName(xw.dpy, xw.scr, fontstr);
 
-	*ascent = *descent = *lbearing = *rbearing = 0;
-	n = XFontsOfFontSet(set, &xfonts, &font_names);
-	for(i = 0; i < n; i++) {
-		*ascent = MAX(*ascent, (*xfonts)->ascent);
-		*descent = MAX(*descent, (*xfonts)->descent);
-		*lbearing = MAX(*lbearing, (*xfonts)->min_bounds.lbearing);
-		*rbearing = MAX(*rbearing, (*xfonts)->max_bounds.rbearing);
-		xfonts++;
-	}
+	if(!f->xft_set)
+		die("st: can't open font %s.\n", fontstr);
+
+	f->ascent = f->xft_set->ascent;
+	f->descent = f->xft_set->descent;
+	f->lbearing = 0;
+	f->rbearing = f->xft_set->max_advance_width;
 }
 
 void
 initfonts(char *fontstr, char *bfontstr, char *ifontstr, char *ibfontstr) {
-	if((dc.font.set = xinitfont(fontstr)) == NULL)
-		die("Can't load font %s\n", fontstr);
-	if((dc.bfont.set = xinitfont(bfontstr)) == NULL)
-		die("Can't load bfont %s\n", bfontstr);
-	if((dc.ifont.set = xinitfont(ifontstr)) == NULL)
-		die("Can't load ifont %s\n", ifontstr);
-	if((dc.ibfont.set = xinitfont(ibfontstr)) == NULL)
-		die("Can't load ibfont %s\n", ibfontstr);
-
-	xgetfontinfo(dc.font.set, &dc.font.ascent, &dc.font.descent,
-	    &dc.font.lbearing, &dc.font.rbearing);
-	xgetfontinfo(dc.bfont.set, &dc.bfont.ascent, &dc.bfont.descent,
-	    &dc.bfont.lbearing, &dc.bfont.rbearing);
-	xgetfontinfo(dc.ifont.set, &dc.ifont.ascent, &dc.ifont.descent,
-	    &dc.ifont.lbearing, &dc.ifont.rbearing);
-	xgetfontinfo(dc.ibfont.set, &dc.ibfont.ascent, &dc.ibfont.descent,
-	    &dc.ibfont.lbearing, &dc.ibfont.rbearing);
+	xinitfont(&dc.font, fontstr);
+	xinitfont(&dc.bfont, bfontstr);
+	xinitfont(&dc.ifont, ifontstr);
+	xinitfont(&dc.ibfont, ibfontstr);
 }
 
 void
@@ -1981,6 +1959,7 @@ xinit(void) {
 	if(!(xw.dpy = XOpenDisplay(NULL)))
 		die("Can't open display\n");
 	xw.scr = XDefaultScreen(xw.dpy);
+	xw.vis = XDefaultVisual(xw.dpy, xw.scr);
 
 	/* font */
 	initfonts(FONT, BOLDFONT, ITALICFONT, ITALICBOLDFONT);
@@ -2023,13 +2002,18 @@ xinit(void) {
 	parent = opt_embed ? strtol(opt_embed, NULL, 0) : XRootWindow(xw.dpy, xw.scr);
 	xw.win = XCreateWindow(xw.dpy, parent, xw.fx, xw.fy,
 			xw.w, xw.h, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
-			XDefaultVisual(xw.dpy, xw.scr),
+			xw.vis,
 			CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask
 			| CWColormap,
 			&attrs);
+
+	/* double buffering */
 	if(!XdbeQueryExtension(xw.dpy, &major, &minor))
 		die("Xdbe extension is not present\n");
 	xw.buf = XdbeAllocateBackBufferName(xw.dpy, xw.win, XdbeCopied);
+
+	/* Xft rendering context */
+	xw.xft_draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
 
 	/* input methods */
 	xw.xim = XOpenIM(xw.dpy, NULL, NULL, NULL);
@@ -2058,7 +2042,8 @@ void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	int fg = base.fg, bg = base.bg, temp;
 	int winx = BORDER+x*xw.cw, winy = BORDER+y*xw.ch + dc.font.ascent, width = charlen*xw.cw;
-	XFontSet fontset = dc.font.set;
+	Font *font = &dc.font;
+	XGlyphInfo extents;
 	int i;
 
 	/* only switch default fg/bg if term is in RV mode */
@@ -2074,13 +2059,13 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	if(base.mode & ATTR_BOLD) {
 		fg += 8;
-		fontset = dc.bfont.set;
+		font = &dc.bfont;
 	}
 
 	if(base.mode & ATTR_ITALIC)
-		fontset = dc.ifont.set;
+		font = &dc.ifont;
 	if(base.mode & (ATTR_ITALIC|ATTR_ITALIC))
-		fontset = dc.ibfont.set;
+		font = &dc.ibfont;
 
 	XSetBackground(xw.dpy, dc.gc, dc.col[bg]);
 	XSetForeground(xw.dpy, dc.gc, dc.col[fg]);
@@ -2095,7 +2080,10 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		}
 	}
 
-	XmbDrawImageString(xw.dpy, xw.buf, fontset, dc.gc, winx, winy, s, bytelen);
+	XftTextExtentsUtf8(xw.dpy, font->xft_set, (FcChar8 *)s, bytelen, &extents);
+	width = extents.xOff;
+	XftDrawRect(xw.xft_draw, &dc.xft_col[bg], winx, winy - font->ascent, width, xw.ch);
+	XftDrawStringUtf8(xw.xft_draw, &dc.xft_col[fg], font->xft_set, winx, winy, (FcChar8 *)s, bytelen);
 
 	if(base.mode & ATTR_UNDERLINE)
 		XDrawLine(xw.dpy, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);

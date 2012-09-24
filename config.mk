@@ -11,8 +11,8 @@ X11INC = /usr/X11R6/include
 X11LIB = /usr/X11R6/lib
 
 # includes and libs
-INCS = -I. -I/usr/include -I${X11INC}
-LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 -lutil -lXext
+INCS = -I. -I/usr/include -I${X11INC} -I/usr/include/freetype2
+LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 -lutil -lXext -lXft
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"

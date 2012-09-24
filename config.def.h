@@ -1,9 +1,8 @@
 
-#define FONT "-*-*-medium-r-*-*-*-120-75-75-*-70-*-*"
-#define BOLDFONT "-*-*-bold-r-*-*-*-120-75-75-*-70-*-*"
-/* If italic is not available, fall back to bold. */
-#define ITALICFONT "-*-*-medium-o-*-*-*-120-75-75-*-70-*-*," BOLDFONT
-#define ITALICBOLDFONT "-*-*-bold-o-*-*-*-120-75-75-*-70-*-*," BOLDFONT
+#define FONT "Bitstream Vera Sans Mono:pixelsize=12:antialias=false:autohint=true"
+#define BOLDFONT FONT ":weight=bold"
+#define ITALICFONT FONT ":slant=italic,oblique"
+#define ITALICBOLDFONT BOLDFONT ":slant=italic,oblique"
 
 /* Space in pixels around the terminal buffer */
 #define BORDER 2
