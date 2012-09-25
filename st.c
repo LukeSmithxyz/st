@@ -278,7 +278,7 @@ static void tmoveto(int, int);
 static void tnew(int, int);
 static void tnewline(int);
 static void tputtab(bool);
-static void tputc(char*);
+static void tputc(char*, int);
 static void treset(void);
 static int tresize(int, int);
 static void tscrollup(int, int);
@@ -884,7 +884,7 @@ ttyread(void) {
 	while(buflen >= UTF_SIZ || isfullutf8(ptr,buflen)) {
 		charsize = utf8decode(ptr, &utf8c);
 		utf8encode(&utf8c, s);
-		tputc(s);
+		tputc(s, charsize);
 		ptr    += charsize;
 		buflen -= charsize;
 	}
@@ -1641,11 +1641,11 @@ tputtab(bool forward) {
 }
 
 void
-tputc(char *c) {
+tputc(char *c, int len) {
 	char ascii = *c;
 
 	if(iofd != -1)
-		write(iofd, c, 1);
+		write(iofd, c, len);
 
 	if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
