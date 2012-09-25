@@ -1177,7 +1177,7 @@ tsetattr(int *attr, int l) {
 		switch(attr[i]) {
 		case 0:
 			term.c.attr.mode &= ~(ATTR_REVERSE | ATTR_UNDERLINE | ATTR_BOLD \
-					| ATTR_ITALIC | ATTR_BLINK);
+					| ATTR_ITALIC | ATTR_BLINK | ATTR_GFX);
 			term.c.attr.fg = DefaultFG;
 			term.c.attr.bg = DefaultBG;
 			break;
