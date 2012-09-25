@@ -1700,6 +1700,7 @@ tputc(char *c, int len) {
 				strescseq.type = ascii;
 				term.esc |= ESC_STR;
 				break;
+			case ')':
 			case '(':
 				term.esc |= ESC_ALTCHARSET;
 				break;
