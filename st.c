@@ -1663,7 +1663,7 @@ tputtab(bool forward) {
 
 void
 tputc(char *c, int len) {
-	char ascii = *c;
+	uchar ascii = *c;
 
 	if(iofd != -1)
 		write(iofd, c, len);
@@ -1792,8 +1792,6 @@ tputc(char *c, int len) {
 		if(sel.bx != -1 && BETWEEN(term.c.y, sel.by, sel.ey))
 			sel.bx = -1;
 		switch(ascii) {
-		case '\0': /* padding character, do nothing */
-			break;
 		case '\t':
 			tputtab(1);
 			break;
@@ -1818,13 +1816,15 @@ tputc(char *c, int len) {
 			term.esc = ESC_START;
 			break;
 		default:
-			if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
-				tnewline(1); /* always go to first col */
-			tsetchar(c);
-			if(term.c.x+1 < term.col)
-				tmoveto(term.c.x+1, term.c.y);
-			else
-				term.c.state |= CURSOR_WRAPNEXT;
+			if(ascii >= '\020' || term.c.attr.mode & ATTR_GFX) {
+				if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
+					tnewline(1); /* always go to first col */
+				tsetchar(c);
+				if(term.c.x+1 < term.col)
+					tmoveto(term.c.x+1, term.c.y);
+				else
+					term.c.state |= CURSOR_WRAPNEXT;
+			}
 		}
 	}
 }
