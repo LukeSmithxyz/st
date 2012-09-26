@@ -1668,6 +1668,32 @@ tputc(char *c, int len) {
 	if(iofd != -1)
 		write(iofd, c, len);
 
+	switch(ascii) {
+	case '\t':
+		tputtab(1);
+		return;
+	case '\b':
+		tmoveto(term.c.x-1, term.c.y);
+		return;
+	case '\r':
+		tmoveto(0, term.c.y);
+		return;
+	case '\f':
+	case '\v':
+	case '\n':
+		/* go to first col if the mode is set */
+		tnewline(IS_SET(MODE_CRLF));
+		return;
+	case '\a':
+		if(!(xw.state & WIN_FOCUSED))
+			xseturgency(1);
+		return;
+	case '\033':
+		csireset();
+		term.esc = ESC_START;
+		return;
+	}
+
 	if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
 			csiescseq.buf[csiescseq.len++] = ascii;
@@ -1791,40 +1817,14 @@ tputc(char *c, int len) {
 	} else {
 		if(sel.bx != -1 && BETWEEN(term.c.y, sel.by, sel.ey))
 			sel.bx = -1;
-		switch(ascii) {
-		case '\t':
-			tputtab(1);
-			break;
-		case '\b':
-			tmoveto(term.c.x-1, term.c.y);
-			break;
-		case '\r':
-			tmoveto(0, term.c.y);
-			break;
-		case '\f':
-		case '\v':
-		case '\n':
-			/* go to first col if the mode is set */
-			tnewline(IS_SET(MODE_CRLF));
-			break;
-		case '\a':
-			if(!(xw.state & WIN_FOCUSED))
-				xseturgency(1);
-			break;
-		case '\033':
-			csireset();
-			term.esc = ESC_START;
-			break;
-		default:
-			if(ascii >= '\020' || term.c.attr.mode & ATTR_GFX) {
-				if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
-					tnewline(1); /* always go to first col */
-				tsetchar(c);
-				if(term.c.x+1 < term.col)
-					tmoveto(term.c.x+1, term.c.y);
-				else
-					term.c.state |= CURSOR_WRAPNEXT;
-			}
+		if(ascii >= '\020' || term.c.attr.mode & ATTR_GFX) {
+			if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
+				tnewline(1); /* always go to first col */
+			tsetchar(c);
+			if(term.c.x+1 < term.col)
+				tmoveto(term.c.x+1, term.c.y);
+			else
+				term.c.state |= CURSOR_WRAPNEXT;
 		}
 	}
 }
