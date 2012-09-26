@@ -79,14 +79,6 @@ static Key key[] = {
 /* Set TERM to this */
 #define TNAME "st-256color"
 
-/* Line drawing characters (sometime specific to each font...) */
-static char gfx[] = {
-	['f'] = 'o',
-	['g'] = '+',
-	['i'] = '#',
-	[255] = 0,
-};
-
 /* double-click timeout (in milliseconds) between clicks for selection */
 #define DOUBLECLICK_TIMEOUT 300
 #define TRIPLECLICK_TIMEOUT (2*DOUBLECLICK_TIMEOUT)

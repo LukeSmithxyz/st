@@ -1094,6 +1094,27 @@ tmoveto(int x, int y) {
 
 void
 tsetchar(char *c) {
+	/*
+	 * The table is proudly stolen from rxvt.
+	 */
+	if(term.c.attr.mode & ATTR_GFX) {
+		char *vt100_0[62] = { /* 0x41 - 0x7e */
+			"↑", "↓", "→", "←", "█", "▚", "☃", /* A - G */
+			0, 0, 0, 0, 0, 0, 0, 0, /* H - O */
+			0, 0, 0, 0, 0, 0, 0, 0, /* P - W */
+			0, 0, 0, 0, 0, 0, 0, " ", /* X - _ */
+			"◆", "▒", "␉", "␌", "␍", "␊", "°", "±", /* ` - g */
+			"␤", "␋", "┘", "┐", "┌", "└", "┼", "⎺", /* h - o */
+			"⎻", "─", "⎼", "⎽", "├", "┤", "┴", "┬", /* p - w */
+			"│", "≤", "≥", "π", "≠", "£", "·", /* x - ~ */
+		};
+
+		if(c[0] >= 0x41 && c[0] <= 0x7e
+				&& vt100_0[c[0] - 0x41]) {
+			c = vt100_0[c[0] - 0x41];
+		}
+	}
+
 	term.dirty[term.c.y] = 1;
 	term.line[term.c.y][term.c.x] = term.c.attr;
 	memcpy(term.line[term.c.y][term.c.x].c, c, UTF_SIZ);
@@ -1177,7 +1198,7 @@ tsetattr(int *attr, int l) {
 		switch(attr[i]) {
 		case 0:
 			term.c.attr.mode &= ~(ATTR_REVERSE | ATTR_UNDERLINE | ATTR_BOLD \
-					| ATTR_ITALIC | ATTR_BLINK | ATTR_GFX);
+					| ATTR_ITALIC | ATTR_BLINK);
 			term.c.attr.fg = DefaultFG;
 			term.c.attr.bg = DefaultBG;
 			break;
@@ -1676,11 +1697,17 @@ tputc(char *c, int len) {
 				strhandle();
 		} else if(term.esc & ESC_ALTCHARSET) {
 			switch(ascii) {
-			case '0': /* Line drawing crap */
+			case '0': /* Line drawing set */
 				term.c.attr.mode |= ATTR_GFX;
 				break;
-			case 'B': /* Back to regular text */
+			case 'B': /* USASCII */
 				term.c.attr.mode &= ~ATTR_GFX;
+				break;
+			case 'A': /* UK (IGNORED) */
+			case '<': /* multinational charset (IGNORED) */
+			case '5': /* Finnish (IGNORED) */
+			case 'C': /* Finnish (IGNORED) */
+			case 'K': /* German (IGNORED) */
 				break;
 			default:
 				fprintf(stderr, "esc unhandled charset: ESC ( %c\n", ascii);
@@ -1700,9 +1727,13 @@ tputc(char *c, int len) {
 				strescseq.type = ascii;
 				term.esc |= ESC_STR;
 				break;
-			case ')':
-			case '(':
+			case '(': /* set primary charset G0 */
 				term.esc |= ESC_ALTCHARSET;
+				break;
+			case ')': /* set secondary charset G1 (IGNORED) */
+			case '*': /* set tertiary charset G2 (IGNORED) */
+			case '+': /* set quaternary charset G3 (IGNORED) */
+				term.esc = 0;
 				break;
 			case 'D': /* IND -- Linefeed */
 				if(term.c.y == term.bot)
@@ -2067,7 +2098,6 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	int winx = BORDER+x*xw.cw, winy = BORDER+y*xw.ch + dc.font.ascent, width = charlen*xw.cw;
 	Font *font = &dc.font;
 	XGlyphInfo extents;
-	int i;
 
 	/* only switch default fg/bg if term is in RV mode */
 	if(IS_SET(MODE_REVERSE)) {
@@ -2092,16 +2122,6 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	XSetBackground(xw.dpy, dc.gc, dc.col[bg]);
 	XSetForeground(xw.dpy, dc.gc, dc.col[fg]);
-
-	if(base.mode & ATTR_GFX) {
-		for(i = 0; i < bytelen; i++) {
-			char c = gfx[(uint)s[i] % 256];
-			if(c)
-				s[i] = c;
-			else if(s[i] > 0x5f)
-				s[i] -= 0x5f;
-		}
-	}
 
 	XftTextExtentsUtf8(xw.dpy, font->xft_set, (FcChar8 *)s, bytelen, &extents);
 	width = extents.xOff;
