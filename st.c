@@ -1685,6 +1685,9 @@ tputc(char *c, int len) {
 		tnewline(IS_SET(MODE_CRLF));
 		return;
 	case '\a':
+		if(term.esc & ESC_STR)
+			break;
+
 		if(!(xw.state & WIN_FOCUSED))
 			xseturgency(1);
 		return;
