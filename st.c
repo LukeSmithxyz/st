@@ -239,13 +239,11 @@ typedef struct {
 	int descent;
 	short lbearing;
 	short rbearing;
-	XFontSet set;
 	XftFont* xft_set;
 } Font;
 
 /* Drawing Context */
 typedef struct {
-	ulong col[LEN(colorname) < 256 ? 256 : LEN(colorname)];
 	XftColor xft_col[LEN(colorname) < 256 ? 256 : LEN(colorname)];
 	GC gc;
 	Font font, bfont, ifont, ibfont;
@@ -299,12 +297,14 @@ static void ttywrite(const char *, size_t);
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
+static void xclearborders(void);
 static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
 static void xresettitle(void);
 static void xseturgency(int);
 static void xsetsel(char*);
+static void xtermclear(int, int, int, int);
 static void xresize(int, int);
 
 static void expose(XEvent *);
@@ -1307,7 +1307,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				break;
 			case 5: /* DECSCNM -- Reverve video */
 				mode = term.mode;
-				MODBIT(term.mode,set, MODE_REVERSE);
+				MODBIT(term.mode, set, MODE_REVERSE);
 				if(mode != term.mode)
 					redraw();
 				break;
@@ -1789,7 +1789,7 @@ tputc(char *c, int len) {
 			case 'c': /* RIS -- Reset to inital state */
 				treset();
 				term.esc = 0;
-				xclear(0, 0, xw.w, xw.h);
+				xclearborders();
 				xresettitle();
 				break;
 			case '=': /* DECPAM -- Application keypad */
@@ -1914,17 +1914,19 @@ void
 xloadcols(void) {
 	int i, r, g, b;
 	XRenderColor xft_color = { .alpha = 0 };
-	ulong white = WhitePixel(xw.dpy, xw.scr);
+
+	/* load default white color */
+	if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, colorname[256], &dc.xft_col[256]))
+		die("Could not allocate color '%s'\n", colorname[256]);
 
 	/* load colors [0-15] colors and [256-LEN(colorname)[ (config.h) */
 	for(i = 0; i < LEN(colorname); i++) {
 		if(!colorname[i])
 			continue;
 		if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, colorname[i], &dc.xft_col[i])) {
-			dc.col[i] = white;
+			dc.xft_col[i] = dc.xft_col[256];
 			fprintf(stderr, "Could not allocate color '%s'\n", colorname[i]);
-		} else
-			dc.col[i] = dc.xft_col[i].pixel;
+		}
 	}
 
 	/* load colors [16-255] ; same colors as xterm */
@@ -1935,29 +1937,51 @@ xloadcols(void) {
 				xft_color.green = g == 0 ? 0 : 0x3737 + 0x2828 * g;
 				xft_color.blue = b == 0 ? 0 : 0x3737 + 0x2828 * b;
 				if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &xft_color, &dc.xft_col[i])) {
-					dc.col[i] = white;
+					dc.xft_col[i] = dc.xft_col[256];
 					fprintf(stderr, "Could not allocate color %d\n", i);
-				} else
-					dc.col[i] = dc.xft_col[i].pixel;
+				}
 				i++;
 			}
 
 	for(r = 0; r < 24; r++, i++) {
 		xft_color.red = xft_color.green = xft_color.blue = 0x0808 + 0x0a0a * r;
 		if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &xft_color, &dc.xft_col[i])) {
-			dc.col[i] = white;
+			dc.xft_col[i] = dc.xft_col[256];
 			fprintf(stderr, "Could not allocate color %d\n", i);
-		} else
-			dc.col[i] = dc.xft_col[i].pixel;
+		}
 	}
 }
 
 void
+xtermclear(int col1, int row1, int col2, int row2) {
+	XftDrawRect(xw.xft_draw,
+			&dc.xft_col[IS_SET(MODE_REVERSE) ? DefaultFG : DefaultBG],
+			BORDER + col1 * xw.cw,
+			BORDER + row1 * xw.ch,
+			(col2-col1+1) * xw.cw,
+			(row2-row1+1) * xw.ch);
+}
+
+/*
+ * Absolute coordinates.
+ */
+void
 xclear(int x1, int y1, int x2, int y2) {
-	XSetForeground(xw.dpy, dc.gc, dc.col[IS_SET(MODE_REVERSE) ? DefaultFG : DefaultBG]);
-	XFillRectangle(xw.dpy, xw.buf, dc.gc,
-		       BORDER + x1 * xw.cw, BORDER + y1 * xw.ch,
-		       (x2-x1+1) * xw.cw, (y2-y1+1) * xw.ch);
+	XftDrawRect(xw.xft_draw,
+			&dc.xft_col[IS_SET(MODE_REVERSE) ? DefaultFG : DefaultBG],
+			x1, y1, x2-x1, y2-y1);
+}
+
+void
+xclearborders(void) {
+	/* top and left border */
+	xclear(0, 0, BORDER, xw.h);
+	xclear(0, 0, xw.w, BORDER);
+
+	/* lower and right border */
+	xclear(BORDER, xw.th - 1, xw.w, xw.h);
+	/* Will just draw what hasn't been drawn by the previous call. */
+	xclear(xw.tw - 1, BORDER, xw.w, xw.h - xw.th - 2);
 }
 
 void
@@ -2048,8 +2072,8 @@ xinit(void) {
 		xw.fy = 0;
 	}
 
-	attrs.background_pixel = dc.col[DefaultBG];
-	attrs.border_pixel = dc.col[DefaultBG];
+	attrs.background_pixel = dc.xft_col[DefaultBG].pixel;
+	attrs.border_pixel = dc.xft_col[DefaultBG].pixel;
 	attrs.bit_gravity = NorthWestGravity;
 	attrs.event_mask = FocusChangeMask | KeyPressMask
 		| ExposureMask | VisibilityChangeMask | StructureNotifyMask
@@ -2123,16 +2147,15 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	if(base.mode & (ATTR_ITALIC|ATTR_ITALIC))
 		font = &dc.ibfont;
 
-	XSetBackground(xw.dpy, dc.gc, dc.col[bg]);
-	XSetForeground(xw.dpy, dc.gc, dc.col[fg]);
-
 	XftTextExtentsUtf8(xw.dpy, font->xft_set, (FcChar8 *)s, bytelen, &extents);
 	width = extents.xOff;
 	XftDrawRect(xw.xft_draw, &dc.xft_col[bg], winx, winy - font->ascent, width, xw.ch);
 	XftDrawStringUtf8(xw.xft_draw, &dc.xft_col[fg], font->xft_set, winx, winy, (FcChar8 *)s, bytelen);
 
-	if(base.mode & ATTR_UNDERLINE)
-		XDrawLine(xw.dpy, xw.buf, dc.gc, winx, winy+1, winx+width-1, winy+1);
+	if(base.mode & ATTR_UNDERLINE) {
+		XftDrawRect(xw.xft_draw, &dc.xft_col[fg], winx, winy+1,
+				width, 1);
+	}
 }
 
 void
@@ -2153,7 +2176,7 @@ xdrawcursor(void) {
 		sl = utf8size(term.line[oldy][oldx].c);
 		xdraws(term.line[oldy][oldx].c, term.line[oldy][oldx], oldx, oldy, 1, sl);
 	} else
-		xclear(oldx, oldy, oldx, oldy);
+		xtermclear(oldx, oldy, oldx, oldy);
 
 	/* draw the new one */
 	if(!(term.c.state & CURSOR_HIDE)) {
@@ -2178,7 +2201,7 @@ void
 redraw(void) {
 	struct timespec tv = {0, REDRAW_TIMEOUT * 1000};
 
-	xclear(0, 0, xw.w, xw.h);
+	xclearborders();
 	tfulldirt();
 	draw();
 	XSync(xw.dpy, False); /* necessary for a good tput flash */
@@ -2186,7 +2209,7 @@ redraw(void) {
 }
 
 void
-draw() {
+draw(void) {
 	XdbeSwapInfo swpinfo[1] = {{xw.win, XdbeCopied}};
 
 	drawregion(0, 0, term.col, term.row);
@@ -2208,7 +2231,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 	for(y = y1; y < y2; y++) {
 		if(!term.dirty[y])
 			continue;
-		xclear(0, y, term.col, y);
+		xtermclear(0, y, term.col, y);
 		term.dirty[y] = 0;
 		base = term.line[y][0];
 		ic = ib = ox = 0;
@@ -2371,9 +2394,9 @@ resize(XEvent *e) {
 	if(col == term.col && row == term.row)
 		return;
 
-	xclear(0, 0, xw.w, xw.h);
 	tresize(col, row);
 	xresize(col, row);
+	xclearborders();
 	ttyresize();
 }
 
