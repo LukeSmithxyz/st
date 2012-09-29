@@ -1915,17 +1915,12 @@ xloadcols(void) {
 	int i, r, g, b;
 	XRenderColor xft_color = { .alpha = 0 };
 
-	/* load default white color */
-	if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, colorname[256], &dc.xft_col[256]))
-		die("Could not allocate color '%s'\n", colorname[256]);
-
 	/* load colors [0-15] colors and [256-LEN(colorname)[ (config.h) */
 	for(i = 0; i < LEN(colorname); i++) {
 		if(!colorname[i])
 			continue;
 		if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, colorname[i], &dc.xft_col[i])) {
-			dc.xft_col[i] = dc.xft_col[256];
-			fprintf(stderr, "Could not allocate color '%s'\n", colorname[i]);
+			die("Could not allocate color '%s'\n", colorname[i]);
 		}
 	}
 
@@ -1937,8 +1932,7 @@ xloadcols(void) {
 				xft_color.green = g == 0 ? 0 : 0x3737 + 0x2828 * g;
 				xft_color.blue = b == 0 ? 0 : 0x3737 + 0x2828 * b;
 				if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &xft_color, &dc.xft_col[i])) {
-					dc.xft_col[i] = dc.xft_col[256];
-					fprintf(stderr, "Could not allocate color %d\n", i);
+					die("Could not allocate color %d\n", i);
 				}
 				i++;
 			}
