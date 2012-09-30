@@ -39,8 +39,8 @@
 
 #define USAGE \
 	"st " VERSION " (c) 2010-2012 st engineers\n" \
-	"usage: st [-t title] [-c class] [-g geometry]" \
-	" [-w windowid] [-v] [-f file] [-e command...]\n"
+	"usage: st [-v] [-c class] [-f font] [-g geometry] [-o file]" \
+	" [-t title] [-w windowid] [-e command ...]\n"
 
 /* XEMBED messages */
 #define XEMBED_FOCUS_IN  4
@@ -365,11 +365,12 @@ static int cmdfd;
 static pid_t pid;
 static Selection sel;
 static int iofd = -1;
-static char **opt_cmd  = NULL;
-static char *opt_io    = NULL;
+static char **opt_cmd = NULL;
+static char *opt_io = NULL;
 static char *opt_title = NULL;
 static char *opt_embed = NULL;
 static char *opt_class = NULL;
+static char *opt_font = NULL;
 
 void *
 xmalloc(size_t len) {
@@ -2087,7 +2088,7 @@ xinit(void) {
 	xw.vis = XDefaultVisual(xw.dpy, xw.scr);
 
 	/* font */
-	initfonts(FONT);
+	initfonts((opt_font != NULL)? opt_font : FONT);
 
 	/* XXX: Assuming same size for bold font */
 	xw.cw = dc.font.rbearing - dc.font.lbearing;
@@ -2503,22 +2504,19 @@ main(int argc, char *argv[]) {
 
 	for(i = 1; i < argc; i++) {
 		switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
-		case 't':
-			if(++i < argc) opt_title = argv[i];
-			break;
 		case 'c':
-			if(++i < argc) opt_class = argv[i];
-			break;
-		case 'w':
-			if(++i < argc) opt_embed = argv[i];
-			break;
-		case 'f':
-			if(++i < argc) opt_io = argv[i];
+			if(++i < argc)
+				opt_class = argv[i];
 			break;
 		case 'e':
 			/* eat every remaining arguments */
-			if(++i < argc) opt_cmd = &argv[i];
+			if(++i < argc)
+				opt_cmd = &argv[i];
 			goto run;
+		case 'f':
+			if(++i < argc)
+				opt_font = argv[i];
+			break;
 		case 'g':
 			if(++i >= argc)
 				break;
@@ -2540,9 +2538,21 @@ main(int argc, char *argv[]) {
 			if(xw.fh != 0 && xw.fw != 0)
 				xw.isfixed = True;
 			break;
+		case 'o':
+			if(++i < argc)
+				opt_io = argv[i];
+			break;
+		case 't':
+			if(++i < argc)
+				opt_title = argv[i];
+			break;
 		case 'v':
 		default:
 			die(USAGE);
+		case 'w':
+			if(++i < argc)
+				opt_embed = argv[i];
+			break;
 		}
 	}
 

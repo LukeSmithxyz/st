@@ -5,15 +5,17 @@ st \- simple terminal
 .B st
 .RB [ \-c
 .IR class ]
+.RB [ \-f
+.IR font ]
 .RB [ \-g
 .IR geometry ]
+.RB [ \-o
+.IR file ]
 .RB [ \-t 
 .IR title ]
 .RB [ \-w 
 .IR windowid ]
 .RB [ \-v ]
-.RB [ \-f
-.IR file ]
 .RB [ \-e
 .IR command ...]
 .SH DESCRIPTION
@@ -21,25 +23,32 @@ st \- simple terminal
 is a simple terminal emulator.
 .SH OPTIONS
 .TP
-.BI \-t " title"
-defines the window title (default 'st').
-.TP
 .BI \-c " class"
 defines the window class (default $TERM).
+.TP
+.BI \-f " font"
+defines the
+.I font
+to use when st is run.
+.TP
+.BI \-g " geometry"
+defines the X11 geometry string, which will fixate the height and width of st. 
+.TP
+.BI \-o " file"
+writes all the I/O to
+.I file.
+This feature is useful when recording st sessions. A value of "-" means
+standard output.
+.TP
+.BI \-t " title"
+defines the window title (default 'st').
 .TP
 .BI \-w " windowid"
 embeds st within the window identified by 
 .I windowid
 .TP
-.B \-g " geometry"
-defines the X11 geometry string, which will fixate the height and width of st. 
 .B \-v
 prints version information to stderr, then exits.
-.TP
-.BI \-f " file"
-writes all the I/O to
-.I file.
-This feature is useful when recording st sessions.
 .TP
 .BI \-e " program " [ " arguments " "... ]"
 st executes
