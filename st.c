@@ -336,6 +336,7 @@ static int isfullutf8(char *, int);
 static void *xmalloc(size_t);
 static void *xrealloc(void *, size_t);
 static void *xcalloc(size_t nmemb, size_t size);
+static char *smstrcat(char *, ...);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
@@ -391,6 +392,44 @@ xcalloc(size_t nmemb, size_t size) {
 	if(!p)
 		die("Out of memory\n");
 	return p;
+}
+
+char *
+smstrcat(char *src, ...)
+{
+	va_list fmtargs;
+	char *ret, *p, *v;
+	int len, slen, flen;
+
+	len = slen = strlen(src);
+
+	va_start(fmtargs, src);
+	for(;;) {
+		v = va_arg(fmtargs, char *);
+		if(v == NULL)
+			break;
+		len += strlen(v);
+	}
+	va_end(fmtargs);
+
+	p = ret = xmalloc(len+1);
+	memmove(p, src, slen);
+	p += slen;
+
+	va_start(fmtargs, src);
+	for(;;) {
+		v = va_arg(fmtargs, char *);
+		if(v == NULL)
+			break;
+		flen = strlen(v);
+		memmove(p, v, flen);
+		p += flen;
+	}
+	va_end(fmtargs);
+
+	ret[len] = '\0';
+
+	return ret;
 }
 
 int
@@ -2017,11 +2056,22 @@ xinitfont(Font *f, char *fontstr) {
 }
 
 void
-initfonts(char *fontstr, char *bfontstr, char *ifontstr, char *ibfontstr) {
+initfonts(char *fontstr) {
+	char *fstr;
+
 	xinitfont(&dc.font, fontstr);
-	xinitfont(&dc.bfont, bfontstr);
-	xinitfont(&dc.ifont, ifontstr);
-	xinitfont(&dc.ibfont, ibfontstr);
+
+	fstr = smstrcat(fontstr, ":weight=bold", NULL);
+	xinitfont(&dc.bfont, fstr);
+	free(fstr);
+
+	fstr = smstrcat(fontstr, ":slant=italic,oblique", NULL);
+	xinitfont(&dc.ifont, fstr);
+	free(fstr);
+
+	fstr = smstrcat(fontstr, ":weight=bold:slant=italic,oblique", NULL);
+	xinitfont(&dc.ibfont, fstr);
+	free(fstr);
 }
 
 void
@@ -2037,7 +2087,7 @@ xinit(void) {
 	xw.vis = XDefaultVisual(xw.dpy, xw.scr);
 
 	/* font */
-	initfonts(FONT, BOLDFONT, ITALICFONT, ITALICBOLDFONT);
+	initfonts(FONT);
 
 	/* XXX: Assuming same size for bold font */
 	xw.cw = dc.font.rbearing - dc.font.lbearing;
