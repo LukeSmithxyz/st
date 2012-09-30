@@ -1,8 +1,5 @@
 
 #define FONT "Liberation Mono:pixelsize=12:antialias=true:autohint=true"
-#define BOLDFONT FONT ":weight=bold"
-#define ITALICFONT FONT ":slant=italic,oblique"
-#define ITALICBOLDFONT BOLDFONT ":slant=italic,oblique"
 
 /* Space in pixels around the terminal buffer */
 #define BORDER 2
