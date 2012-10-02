@@ -2182,10 +2182,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	if(base.mode & ATTR_REVERSE)
 		temp = fg, fg = bg, bg = temp;
 
-	if(base.mode & ATTR_BOLD) {
-		fg += 8;
+	if(base.mode & ATTR_BOLD)
 		font = &dc.bfont;
-	}
 
 	if(base.mode & ATTR_ITALIC)
 		font = &dc.ifont;
