@@ -26,6 +26,7 @@
 #include <X11/keysym.h>
 #include <X11/extensions/Xdbe.h>
 #include <X11/Xft/Xft.h>
+#include <fontconfig/fontconfig.h>
 #define Glyph Glyph_
 #define Font Font_
 
@@ -235,6 +236,8 @@ typedef struct {
 
 /* Font structure */
 typedef struct {
+	int height;
+	int width;
 	int ascent;
 	int descent;
 	short lbearing;
@@ -1345,7 +1348,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 1: /* DECCKM -- Cursor key */
 				MODBIT(term.mode, set, MODE_APPKEYPAD);
 				break;
-			case 5: /* DECSCNM -- Reverve video */
+			case 5: /* DECSCNM -- Reverse video */
 				mode = term.mode;
 				MODBIT(term.mode, set, MODE_REVERSE);
 				if(mode != term.mode)
@@ -1965,8 +1968,8 @@ xloadcols(void) {
 	}
 
 	/* load colors [16-255] ; same colors as xterm */
-	for(i = 16, r = 0; r < 6; r++)
-		for(g = 0; g < 6; g++)
+	for(i = 16, r = 0; r < 6; r++) {
+		for(g = 0; g < 6; g++) {
 			for(b = 0; b < 6; b++) {
 				xft_color.red = r == 0 ? 0 : 0x3737 + 0x2828 * r;
 				xft_color.green = g == 0 ? 0 : 0x3737 + 0x2828 * g;
@@ -1976,12 +1979,13 @@ xloadcols(void) {
 				}
 				i++;
 			}
+		}
+	}
 
 	for(r = 0; r < 24; r++, i++) {
 		xft_color.red = xft_color.green = xft_color.blue = 0x0808 + 0x0a0a * r;
 		if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &xft_color, &dc.xft_col[i])) {
-			dc.xft_col[i] = dc.xft_col[256];
-			fprintf(stderr, "Could not allocate color %d\n", i);
+			die("Could not allocate color %d\n", i);
 		}
 	}
 }
@@ -2045,15 +2049,29 @@ xhints(void) {
 
 void
 xinitfont(Font *f, char *fontstr) {
-	f->xft_set = XftFontOpenName(xw.dpy, xw.scr, fontstr);
+	FcPattern *pattern, *match;
+	FcResult result;
 
-	if(!f->xft_set)
+	pattern = FcNameParse((FcChar8 *)fontstr);
+	if(!pattern)
+		die("st: can't open font %s\n", fontstr);
+
+	match = XftFontMatch(xw.dpy, xw.scr, pattern, &result);
+	FcPatternDestroy(pattern);
+	if(!match)
+		die("st: can't open font %s\n", fontstr);
+	if(!(f->xft_set = XftFontOpenPattern(xw.dpy, match))) {
+		FcPatternDestroy(match);
 		die("st: can't open font %s.\n", fontstr);
+	}
 
 	f->ascent = f->xft_set->ascent;
 	f->descent = f->xft_set->descent;
 	f->lbearing = 0;
 	f->rbearing = f->xft_set->max_advance_width;
+
+	f->height = f->xft_set->height;
+	f->width = f->lbearing + f->rbearing;
 }
 
 void
@@ -2061,6 +2079,8 @@ initfonts(char *fontstr) {
 	char *fstr;
 
 	xinitfont(&dc.font, fontstr);
+	xw.cw = dc.font.width;
+	xw.ch = dc.font.height;
 
 	fstr = smstrcat(fontstr, ":weight=bold", NULL);
 	xinitfont(&dc.bfont, fstr);
@@ -2089,10 +2109,6 @@ xinit(void) {
 
 	/* font */
 	initfonts((opt_font != NULL)? opt_font : FONT);
-
-	/* XXX: Assuming same size for bold font */
-	xw.cw = dc.font.rbearing - dc.font.lbearing;
-	xw.ch = dc.font.ascent + dc.font.descent;
 
 	/* colors */
 	xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
@@ -2166,37 +2182,59 @@ xinit(void) {
 
 void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
-	int fg = base.fg, bg = base.bg, temp;
-	int winx = BORDER+x*xw.cw, winy = BORDER+y*xw.ch + dc.font.ascent, width = charlen*xw.cw;
+	int winx = BORDER+x*xw.cw, winy = BORDER+y*xw.ch,
+	    width = charlen*xw.cw;
 	Font *font = &dc.font;
 	XGlyphInfo extents;
-
-	/* only switch default fg/bg if term is in RV mode */
-	if(IS_SET(MODE_REVERSE)) {
-		if(fg == DefaultFG)
-			fg = DefaultBG;
-		if(bg == DefaultBG)
-			bg = DefaultFG;
-	}
+	XftColor *fg = &dc.xft_col[base.fg], *bg = &dc.xft_col[base.bg],
+		 *temp, revfg, revbg;
+	XRenderColor colfg, colbg;
 
 	if(base.mode & ATTR_REVERSE)
 		temp = fg, fg = bg, bg = temp;
-
-	if(base.mode & ATTR_BOLD)
+	if(base.mode & ATTR_BOLD) {
+		fg = &dc.xft_col[base.fg + 8];
 		font = &dc.bfont;
-
+	}
 	if(base.mode & ATTR_ITALIC)
 		font = &dc.ifont;
 	if(base.mode & (ATTR_ITALIC|ATTR_ITALIC))
 		font = &dc.ibfont;
 
-	XftTextExtentsUtf8(xw.dpy, font->xft_set, (FcChar8 *)s, bytelen, &extents);
+	if(IS_SET(MODE_REVERSE)) {
+		if(fg == &dc.xft_col[DefaultFG]) {
+			fg = &dc.xft_col[DefaultBG];
+		} else {
+			colfg.red = ~fg->color.red;
+			colfg.green = ~fg->color.green;
+			colfg.blue = ~fg->color.blue;
+			colfg.alpha = fg->color.alpha;
+			XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &colfg, &revfg);
+			fg = &revfg;
+		}
+
+		if(bg == &dc.xft_col[DefaultBG]) {
+			bg = &dc.xft_col[DefaultFG];
+		} else {
+			colbg.red = ~bg->color.red;
+			colbg.green = ~bg->color.green;
+			colbg.blue = ~bg->color.blue;
+			colbg.alpha = bg->color.alpha;
+			XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &colbg, &revbg);
+			bg = &revbg;
+		}
+	}
+
+	XftTextExtentsUtf8(xw.dpy, font->xft_set, (FcChar8 *)s, bytelen,
+			&extents);
 	width = extents.xOff;
-	XftDrawRect(xw.xft_draw, &dc.xft_col[bg], winx, winy - font->ascent, width, xw.ch);
-	XftDrawStringUtf8(xw.xft_draw, &dc.xft_col[fg], font->xft_set, winx, winy, (FcChar8 *)s, bytelen);
+
+	XftDrawRect(xw.xft_draw, bg, winx, winy, width, xw.ch);
+	XftDrawStringUtf8(xw.xft_draw, fg, font->xft_set, winx,
+			winy + font->ascent, (FcChar8 *)s, bytelen);
 
 	if(base.mode & ATTR_UNDERLINE) {
-		XftDrawRect(xw.xft_draw, &dc.xft_col[fg], winx, winy+1,
+		XftDrawRect(xw.xft_draw, fg, winx, winy+1,
 				width, 1);
 	}
 }

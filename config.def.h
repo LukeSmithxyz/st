@@ -1,5 +1,5 @@
 
-#define FONT "Liberation Mono:pixelsize=12:antialias=true:autohint=true"
+#define FONT "Liberation Mono:pixelsize=12:antialias=true:autohint=false"
 
 /* Space in pixels around the terminal buffer */
 #define BORDER 2
