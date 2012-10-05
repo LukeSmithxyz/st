@@ -2192,10 +2192,27 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	if(base.mode & ATTR_REVERSE)
 		temp = fg, fg = bg, bg = temp;
+
 	if(base.mode & ATTR_BOLD) {
-		fg = &dc.xft_col[base.fg + 8];
+		if(BETWEEN(base.fg, 0, 7)) {
+			/* basic system colors */
+			fg = &dc.xft_col[base.fg + 8];
+		} else if(BETWEEN(base.fg, 16, 195)) {
+			/* 256 colors */
+			fg = &dc.xft_col[base.fg + 36];
+		} else if(BETWEEN(base.fg, 232, 251)) {
+			/* greyscale */
+			fg = &dc.xft_col[base.fg + 4];
+		}
+		/*
+		 * Those ranges will not be brightened:
+		 *	8 - 15 – bright system colors
+		 *	196 - 231 – highest 256 color cube
+		 *	252 - 255 – brightest colors in grescale
+		 */
 		font = &dc.bfont;
 	}
+
 	if(base.mode & ATTR_ITALIC)
 		font = &dc.ifont;
 	if(base.mode & (ATTR_ITALIC|ATTR_ITALIC))
