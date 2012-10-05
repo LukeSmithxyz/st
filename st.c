@@ -197,7 +197,7 @@ typedef struct {
 	Colormap cmap;
 	Window win;
 	XdbeBackBuffer buf;
-	Atom xembed;
+	Atom xembed, wmdeletewin;
 	XIM xim;
 	XIC xic;
 	XftDraw *xft_draw;
@@ -850,12 +850,15 @@ execsh(void) {
 void
 sigchld(int a) {
 	int stat = 0;
+
 	if(waitpid(pid, &stat, 0) < 0)
 		die("Waiting for pid %hd failed: %s\n",	pid, SERRNO);
-	if(WIFEXITED(stat))
+
+	if(WIFEXITED(stat)) {
 		exit(WEXITSTATUS(stat));
-	else
+	} else {
 		exit(EXIT_FAILURE);
+	}
 }
 
 void
@@ -2173,6 +2176,8 @@ xinit(void) {
 		&(XColor){.red = 0x0000, .green = 0x0000, .blue = 0x0000});
 
 	xw.xembed = XInternAtom(xw.dpy, "_XEMBED", False);
+	xw.wmdeletewin = XInternAtom(xw.dpy, "WM_DELETE_WINDOW", False);
+	XSetWMProtocols(xw.dpy, xw.win, &xw.wmdeletewin, 1);
 
 	xresettitle();
 	XMapWindow(xw.dpy, xw.win);
@@ -2475,6 +2480,10 @@ cmessage(XEvent *e) {
 		} else if(e->xclient.data.l[1] == XEMBED_FOCUS_OUT) {
 			xw.state &= ~WIN_FOCUSED;
 		}
+	} else if(e->xclient.data.l[0] == xw.wmdeletewin) {
+		/* Send SIGHUP to shell */
+		kill(pid, SIGHUP);
+		exit(EXIT_SUCCESS);
 	}
 }
 
