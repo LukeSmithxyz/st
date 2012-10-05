@@ -2234,7 +2234,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			winy + font->ascent, (FcChar8 *)s, bytelen);
 
 	if(base.mode & ATTR_UNDERLINE) {
-		XftDrawRect(xw.xft_draw, fg, winx, winy+1,
+		XftDrawRect(xw.xft_draw, fg, winx, winy + font->ascent + 1,
 				width, 1);
 	}
 }
