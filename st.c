@@ -2310,7 +2310,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		 * Those ranges will not be brightened:
 		 *	8 - 15 – bright system colors
 		 *	196 - 231 – highest 256 color cube
-		 *	252 - 255 – brightest colors in grescale
+		 *	252 - 255 – brightest colors in greyscale
 		 */
 		font = &dc.bfont;
 	}
