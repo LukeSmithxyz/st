@@ -1784,78 +1784,86 @@ tputtab(bool forward) {
 void
 tputc(char *c, int len) {
 	uchar ascii = *c;
+	bool control = ascii < '\x20' || ascii == 0177;
 
 	if(iofd != -1)
 		write(iofd, c, len);
-
-	switch(ascii) {
-	case '\t':	/* HT */
-		tputtab(1);
-		return;
-	case '\b':	/* BS */
-		tmoveto(term.c.x-1, term.c.y);
-		return;
-	case '\r':	/* CR */
-		tmoveto(0, term.c.y);
-		return;
-	case '\f':	/* LF */
-	case '\v':	/* VT */
-	case '\n':	/* LF */
-		/* go to first col if the mode is set */
-		tnewline(IS_SET(MODE_CRLF));
-		return;
-	case '\a':	/* BEL */
-		if(term.esc & ESC_STR)
+	/*
+	 * STR sequences must be checked before of anything
+	 * because it can use some control codes as part of the sequence
+	 */
+	if(term.esc & ESC_STR) {
+		switch(ascii) {
+		case '\033':
+			term.esc = ESC_START | ESC_STR_END;
 			break;
-		if(!(xw.state & WIN_FOCUSED))
-			xseturgency(1);
+		case '\a': /* backwards compatibility to xterm */
+			term.esc = 0;
+			strhandle();
+			break;
+		default:
+			strescseq.buf[strescseq.len++] = ascii;
+			if(strescseq.len+1 >= STR_BUF_SIZ) {
+				term.esc = 0;
+				strhandle();
+			}
+		}
 		return;
-	case '\033':	/* ESC */
-		csireset();
-		term.esc = ESC_START;
-		return;
-	case '\016':	/* SO */
-		term.c.attr.mode |= ATTR_GFX;
-		break;
-	case '\017':	/* SI */
-		term.c.attr.mode &= ~ATTR_GFX;
-		return;
-	case '\032':	/* SUB */
-	case '\030':	/* CAN */
-		csireset();
-		return;
-	default:
-	/* case '\005':	ENQ (IGNORED) */
-	/* case '\000':	NUL (IGNORED) */
-	/* case '\021':	XON (IGNORED) */
-	/* case '\023':	XOFF (IGNORED) */
-	/* case 0177:	DEL (IGNORED) */
-		break;
 	}
-
-	if(term.esc & ESC_START) {
+	/*
+	 * Actions of control codes must be performed as soon they arrive
+	 * because they can be embedded inside a control sequence, and
+	 * they must not cause conflicts with sequences.
+	 */
+	if(control) {
+		switch(ascii) {
+		case '\t':	/* HT */
+			tputtab(1);
+			return;
+		case '\b':	/* BS */
+			tmoveto(term.c.x-1, term.c.y);
+			return;
+		case '\r':	/* CR */
+			tmoveto(0, term.c.y);
+			return;
+		case '\f':	/* LF */
+		case '\v':	/* VT */
+		case '\n':	/* LF */
+			/* go to first col if the mode is set */
+			tnewline(IS_SET(MODE_CRLF));
+			return;
+		case '\a':	/* BEL */
+			if(!(xw.state & WIN_FOCUSED))
+				xseturgency(1);
+			return;
+		case '\033':	/* ESC */
+			csireset();
+			term.esc = ESC_START;
+			return;
+		case '\016':	/* SO */
+			term.c.attr.mode |= ATTR_GFX;
+			return;
+		case '\017':	/* SI */
+			term.c.attr.mode &= ~ATTR_GFX;
+			return;
+		case '\032':	/* SUB */
+		case '\030':	/* CAN */
+			csireset();
+			return;
+		 case '\005':	/* ENQ (IGNORED) */
+		 case '\000':	/* NUL (IGNORED) */
+		 case '\021':	/* XON (IGNORED) */
+		 case '\023':	/* XOFF (IGNORED) */
+		 case 0177:	/* DEL (IGNORED) */
+			return;
+		}
+	} else if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
 			csiescseq.buf[csiescseq.len++] = ascii;
 			if(BETWEEN(ascii, 0x40, 0x7E)
 					|| csiescseq.len >= ESC_BUF_SIZ) {
 				term.esc = 0;
 				csiparse(), csihandle();
-			}
-		} else if(term.esc & ESC_STR) {
-			switch(ascii) {
-			case '\033':
-				term.esc = ESC_START | ESC_STR_END;
-				break;
-			case '\a': /* backwards compatibility to xterm */
-				term.esc = 0;
-				strhandle();
-				break;
-			default:
-				strescseq.buf[strescseq.len++] = ascii;
-				if(strescseq.len+1 >= STR_BUF_SIZ) {
-					term.esc = 0;
-					strhandle();
-				}
 			}
 		} else if(term.esc & ESC_STR_END) {
 			term.esc = 0;
@@ -1955,20 +1963,26 @@ tputc(char *c, int len) {
 				term.esc = 0;
 			}
 		}
-	} else {
-		if(sel.bx != -1 && BETWEEN(term.c.y, sel.by, sel.ey))
-			sel.bx = -1;
-		if(ascii >= '\020' || term.c.attr.mode & ATTR_GFX) {
-			if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
-				tnewline(1); /* always go to first col */
-			tsetchar(c);
-			if(term.c.x+1 < term.col) {
-				tmoveto(term.c.x+1, term.c.y);
-			} else {
-				term.c.state |= CURSOR_WRAPNEXT;
-			}
-		}
+		/*
+		 * All characters which forms part of a sequence are not
+		 * printed
+		 */
+		return;
 	}
+	/*
+	 * Display control codes only if we are in graphic mode
+	 */
+	if(control && !(term.c.attr.mode & ATTR_GFX))
+		return;
+	if(sel.bx != -1 && BETWEEN(term.c.y, sel.by, sel.ey))
+		sel.bx = -1;
+	if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
+		tnewline(1); /* always go to first col */
+	tsetchar(c);
+	if(term.c.x+1 < term.col)
+		tmoveto(term.c.x+1, term.c.y);
+	else
+		term.c.state |= CURSOR_WRAPNEXT;
 }
 
 int
