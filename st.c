@@ -2355,7 +2355,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	}
 	if(x + charlen >= term.col-1) {
 		xclear(winx + width, (y == 0)? 0 : winy, xw.w,
-			winy + xw.ch + (y == term.row-1)? xw.h : 0);
+			(y == term.row-1)? xw.h : (winy + xw.ch));
 	}
 	if(y == 0)
 		xclear(winx, 0, winx + width, BORDER);
