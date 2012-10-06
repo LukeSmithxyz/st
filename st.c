@@ -1814,9 +1814,12 @@ tputc(char *c, int len) {
 		csireset();
 		term.esc = ESC_START;
 		return;
-	case '\016':	/* XXX: SO */
-	case '\017':	/* XXX: SI */
+	case '\016':	/* SO */
+		term.c.attr.mode |= ATTR_GFX;
 		break;
+	case '\017':	/* SI */
+		term.c.attr.mode &= ~ATTR_GFX;
+		return;
 	case '\032':	/* SUB */
 	case '\030':	/* CAN */
 		csireset();
