@@ -302,7 +302,6 @@ static void ttywrite(const char *, size_t);
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
-static void xclearborders(void);
 static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
