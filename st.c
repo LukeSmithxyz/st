@@ -1816,8 +1816,11 @@ tputc(char *c, int len) {
 		return;
 	case '\016':	/* XXX: SO */
 	case '\017':	/* XXX: SI */
-	case '\032':	/* XXX: SUB */
-	case '\030':	/* XXX: CAN */
+		break;
+	case '\032':	/* SUB */
+	case '\030':	/* CAN */
+		csireset();
+		return;
 	default:
 	/* case '\005':	ENQ (IGNORED) */
 	/* case '\000':	NUL (IGNORED) */
