@@ -72,6 +72,8 @@
 #define X2COL(x) (((x) - BORDER)/xw.cw)
 #define Y2ROW(y) (((y) - BORDER)/xw.ch)
 
+#define VT102ID "\033[?6c"
+
 enum glyph_attribute {
 	ATTR_NULL      = 0,
 	ATTR_REVERSE   = 1,
@@ -1510,6 +1512,10 @@ csihandle(void) {
 		DEFAULT(csiescseq.arg[0], 1);
 		tmoveto(term.c.x, term.c.y+csiescseq.arg[0]);
 		break;
+	case 'c': /* DA -- Device Attributes */
+		if(csiescseq.arg[0] == 0)
+			ttywrite(VT102ID, sizeof(VT102ID));
+		break;
 	case 'C': /* CUF -- Cursor <n> Forward */
 	case 'a':
 		DEFAULT(csiescseq.arg[0], 1);
@@ -1932,6 +1938,9 @@ tputc(char *c, int len) {
 					tmoveto(term.c.x, term.c.y-1);
 				}
 				term.esc = 0;
+				break;
+			case 'Z': /* DECID -- Identify Terminal */
+				ttywrite(VT102ID, sizeof(VT102ID));
 				break;
 			case 'c': /* RIS -- Reset to inital state */
 				treset();
