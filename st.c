@@ -1789,32 +1789,42 @@ tputc(char *c, int len) {
 		write(iofd, c, len);
 
 	switch(ascii) {
-	case '\t':
+	case '\t':	/* HT */
 		tputtab(1);
 		return;
-	case '\b':
+	case '\b':	/* BS */
 		tmoveto(term.c.x-1, term.c.y);
 		return;
-	case '\r':
+	case '\r':	/* CR */
 		tmoveto(0, term.c.y);
 		return;
-	case '\f':
-	case '\v':
-	case '\n':
+	case '\f':	/* LF */
+	case '\v':	/* VT */
+	case '\n':	/* LF */
 		/* go to first col if the mode is set */
 		tnewline(IS_SET(MODE_CRLF));
 		return;
-	case '\a':
+	case '\a':	/* BEL */
 		if(term.esc & ESC_STR)
 			break;
-
 		if(!(xw.state & WIN_FOCUSED))
 			xseturgency(1);
 		return;
-	case '\033':
+	case '\033':	/* ESC */
 		csireset();
 		term.esc = ESC_START;
 		return;
+	case '\016':	/* XXX: SO */
+	case '\017':	/* XXX: SI */
+	case '\032':	/* XXX: SUB */
+	case '\030':	/* XXX: CAN */
+	default:
+	/* case '\005':	ENQ (IGNORED) */
+	/* case '\000':	NUL (IGNORED) */
+	/* case '\021':	XON (IGNORED) */
+	/* case '\023':	XOFF (IGNORED) */
+	/* case 0177:	DEL (IGNORED) */
+		break;
 	}
 
 	if(term.esc & ESC_START) {
