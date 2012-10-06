@@ -224,7 +224,9 @@ typedef struct {
 	int mode;
 	int bx, by;
 	int ex, ey;
-	struct {int x, y;} b, e;
+	struct {
+		int x, y;
+	} b, e;
 	char *clip;
 	Atom xtarget;
 	bool alt;
@@ -587,10 +589,10 @@ selected(int x, int y) {
 		return BETWEEN(x, bx, ex);
 	}
 
-	return ((sel.b.y < y&&y < sel.e.y)
-			|| (y==sel.e.y && x<=sel.e.x))
-			|| (y==sel.b.y && x>=sel.b.x
-					&& (x<=sel.e.x || sel.b.y!=sel.e.y));
+	return ((sel.b.y < y && y < sel.e.y)
+			|| (y == sel.e.y && x <= sel.e.x))
+			|| (y == sel.b.y && x >= sel.b.x
+				&& (x <= sel.e.x || sel.b.y != sel.e.y));
 }
 
 void
@@ -803,12 +805,12 @@ brelease(XEvent *e) {
 				/* double click to select word */
 				sel.bx = sel.ex;
 				while(sel.bx > 0 && term.line[sel.ey][sel.bx-1].state & GLYPH_SET &&
-					  term.line[sel.ey][sel.bx-1].c[0] != ' ') {
+						term.line[sel.ey][sel.bx-1].c[0] != ' ') {
 					sel.bx--;
 				}
 				sel.b.x = sel.bx;
 				while(sel.ex < term.col-1 && term.line[sel.ey][sel.ex+1].state & GLYPH_SET &&
-					  term.line[sel.ey][sel.ex+1].c[0] != ' ') {
+						term.line[sel.ey][sel.ex+1].c[0] != ' ') {
 					sel.ex++;
 				}
 				sel.e.x = sel.ex;
@@ -1031,7 +1033,8 @@ treset(void) {
 	memset(term.tabs, 0, term.col * sizeof(*term.tabs));
 	for(i = TAB; i < term.col; i += TAB)
 		term.tabs[i] = 1;
-	term.top = 0, term.bot = term.row - 1;
+	term.top = 0;
+	term.bot = term.row - 1;
 	term.mode = MODE_WRAP;
 
 	tclearregion(0, 0, term.col-1, term.row-1);
@@ -1040,7 +1043,8 @@ treset(void) {
 void
 tnew(int col, int row) {
 	/* set screen size */
-	term.row = row, term.col = col;
+	term.row = row;
+	term.col = col;
 	term.line = xmalloc(term.row * sizeof(Line));
 	term.alt  = xmalloc(term.row * sizeof(Line));
 	term.dirty = xmalloc(term.row * sizeof(*term.dirty));
@@ -1437,8 +1441,8 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				if(IS_SET(MODE_ALTSCREEN))
 					tclearregion(0, 0, term.col-1, term.row-1);
 				if((set && !IS_SET(MODE_ALTSCREEN)) ||
-				    (!set && IS_SET(MODE_ALTSCREEN))) {
-					    tswapscreen();
+						(!set && IS_SET(MODE_ALTSCREEN))) {
+					tswapscreen();
 				}
 				if(*args != 1049)
 					break;
@@ -1909,7 +1913,6 @@ tputc(char *c, int len) {
 			case 'c': /* RIS -- Reset to inital state */
 				treset();
 				term.esc = 0;
-				xclearborders();
 				xresettitle();
 				break;
 			case '=': /* DECPAM -- Application keypad */
@@ -2091,18 +2094,6 @@ xclear(int x1, int y1, int x2, int y2) {
 }
 
 void
-xclearborders(void) {
-	/* top and left border */
-	xclear(0, 0, BORDER, xw.h);
-	xclear(0, 0, xw.w, BORDER);
-
-	/* lower and right border */
-	xclear(BORDER, xw.th - 1, xw.w, xw.h);
-	/* Will just draw what hasn't been drawn by the previous call. */
-	xclear(xw.tw - 1, BORDER, xw.w, xw.h - xw.th - 2);
-}
-
-void
 xhints(void) {
 	XClassHint class = {opt_class ? opt_class : TNAME, TNAME};
 	XWMHints wm = {.flags = InputHint, .input = 1};
@@ -2264,8 +2255,8 @@ xinit(void) {
 
 void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
-	int winx = BORDER+x*xw.cw, winy = BORDER+y*xw.ch,
-	    width = charlen*xw.cw;
+	int winx = BORDER + x * xw.cw, winy = BORDER + y * xw.ch,
+	    width = charlen * xw.cw;
 	Font *font = &dc.font;
 	XGlyphInfo extents;
 	XftColor *fg = &dc.xft_col[base.fg], *bg = &dc.xft_col[base.bg],
@@ -2328,6 +2319,20 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			&extents);
 	width = extents.xOff;
 
+	/* Intelligent cleaning up of the borders. */
+	if(x == 0) {
+		xclear(0, (y == 0)? 0 : winy, BORDER,
+			winy + xw.ch + (y == term.row-1)? xw.h : 0);
+	}
+	if(x + charlen >= term.col-1) {
+		xclear(winx + width, (y == 0)? 0 : winy, xw.w,
+			winy + xw.ch + (y == term.row-1)? xw.h : 0);
+	}
+	if(y == 0)
+		xclear(winx, 0, winx + width, BORDER);
+	if(y == term.row-1)
+		xclear(winx, winy + xw.ch, winx + width, xw.h);
+
 	XftDrawRect(xw.xft_draw, bg, winx, winy, width, xw.ch);
 	XftDrawStringUtf8(xw.xft_draw, fg, font->xft_set, winx,
 			winy + font->ascent, (FcChar8 *)s, bytelen);
@@ -2382,7 +2387,6 @@ void
 redraw(void) {
 	struct timespec tv = {0, REDRAW_TIMEOUT * 1000};
 
-	xclearborders();
 	tfulldirt();
 	draw();
 	XSync(xw.dpy, False); /* necessary for a good tput flash */
@@ -2598,7 +2602,6 @@ resize(XEvent *e) {
 
 	tresize(col, row);
 	xresize(col, row);
-	xclearborders();
 	ttyresize();
 }
 
