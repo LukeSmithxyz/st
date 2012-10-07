@@ -1514,7 +1514,7 @@ csihandle(void) {
 		break;
 	case 'c': /* DA -- Device Attributes */
 		if(csiescseq.arg[0] == 0)
-			ttywrite(VT102ID, sizeof(VT102ID));
+			ttywrite(VT102ID, sizeof(VT102ID) - 1);
 		break;
 	case 'C': /* CUF -- Cursor <n> Forward */
 	case 'a':
@@ -1940,7 +1940,8 @@ tputc(char *c, int len) {
 				term.esc = 0;
 				break;
 			case 'Z': /* DECID -- Identify Terminal */
-				ttywrite(VT102ID, sizeof(VT102ID));
+				ttywrite(VT102ID, sizeof(VT102ID) - 1);
+				term.esc = 0;
 				break;
 			case 'c': /* RIS -- Reset to inital state */
 				treset();
