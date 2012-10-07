@@ -123,6 +123,7 @@ enum escape_state {
 	ESC_STR	= 4, /* DSC, OSC, PM, APC */
 	ESC_ALTCHARSET = 8,
 	ESC_STR_END    = 16, /* a final string was encountered */
+	ESC_TEST       = 32, /* Enter in test mode */
 };
 
 enum window_state {
@@ -289,7 +290,7 @@ static int tresize(int, int);
 static void tscrollup(int, int);
 static void tscrolldown(int, int);
 static void tsetattr(int*, int);
-static void tsetchar(char*);
+static void tsetchar(char *, Glyph *, int, int);
 static void tsetscroll(int, int);
 static void tswapscreen(void);
 static void tsetdirt(int, int);
@@ -1182,7 +1183,7 @@ tmoveto(int x, int y) {
 }
 
 void
-tsetchar(char *c) {
+tsetchar(char *c, Glyph *attr, int x, int y) {
 	static char *vt100_0[62] = { /* 0x41 - 0x7e */
 		"↑", "↓", "→", "←", "█", "▚", "☃", /* A - G */
 		0, 0, 0, 0, 0, 0, 0, 0, /* H - O */
@@ -1197,17 +1198,17 @@ tsetchar(char *c) {
 	/*
 	 * The table is proudly stolen from rxvt.
 	 */
-	if(term.c.attr.mode & ATTR_GFX) {
+	if(attr->mode & ATTR_GFX) {
 		if(c[0] >= 0x41 && c[0] <= 0x7e
 				&& vt100_0[c[0] - 0x41]) {
 			c = vt100_0[c[0] - 0x41];
 		}
 	}
 
-	term.dirty[term.c.y] = 1;
-	term.line[term.c.y][term.c.x] = term.c.attr;
-	memcpy(term.line[term.c.y][term.c.x].c, c, UTF_SIZ);
-	term.line[term.c.y][term.c.x].state |= GLYPH_SET;
+	term.dirty[y] = 1;
+	term.line[y][x] = *attr;
+	memcpy(term.line[y][x].c, c, UTF_SIZ);
+	term.line[y][x].state |= GLYPH_SET;
 }
 
 void
@@ -1893,10 +1894,24 @@ tputc(char *c, int len) {
 				fprintf(stderr, "esc unhandled charset: ESC ( %c\n", ascii);
 			}
 			term.esc = 0;
+		} else if(term.esc & ESC_TEST) {
+			if(ascii == '8') { /* DEC screen alignment test. */
+				char E[UTF_SIZ] = "E";
+				int x, y;
+
+				for(x = 0; x < term.col; ++x) {
+					for(y = 0; y < term.row; ++y)
+						tsetchar(E, &term.c.attr, x, y);
+				}
+			}
+			term.esc = 0;
 		} else {
 			switch(ascii) {
 			case '[':
 				term.esc |= ESC_CSI;
+				break;
+			case '#':
+				term.esc |= ESC_TEST;
 				break;
 			case 'P': /* DCS -- Device Control String */
 			case '_': /* APC -- Application Program Command */
@@ -1988,7 +2003,7 @@ tputc(char *c, int len) {
 		sel.bx = -1;
 	if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
 		tnewline(1); /* always go to first col */
-	tsetchar(c);
+	tsetchar(c, &term.c.attr, term.c.x, term.c.y);
 	if(term.c.x+1 < term.col)
 		tmoveto(term.c.x+1, term.c.y);
 	else
