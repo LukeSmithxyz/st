@@ -865,6 +865,9 @@ execsh(void) {
 	char **args;
 	char *envshell = getenv("SHELL");
 
+	if (envshell == NULL)
+		envshell ="/bin/sh";
+
 	unsetenv("COLUMNS");
 	unsetenv("LINES");
 	unsetenv("TERMCAP");
