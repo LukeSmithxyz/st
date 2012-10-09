@@ -865,9 +865,6 @@ execsh(void) {
 	char **args;
 	char *envshell = getenv("SHELL");
 
-	if (envshell == NULL)
-		envshell ="/bin/sh";
-
 	unsetenv("COLUMNS");
 	unsetenv("LINES");
 	unsetenv("TERMCAP");
@@ -881,7 +878,7 @@ execsh(void) {
 
 	DEFAULT(envshell, SHELL);
 	putenv("TERM="TNAME);
-	args = opt_cmd ? opt_cmd : (char*[]){envshell, "-i", NULL};
+	args = opt_cmd ? opt_cmd : (char *[]){envshell, "-i", NULL};
 	execvp(args[0], args);
 	exit(EXIT_FAILURE);
 }
