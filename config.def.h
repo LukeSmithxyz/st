@@ -1,8 +1,4 @@
 
-/*
- * Do not include the »pixelsize« parameter in your font definition. It is
- * used to calculate zooming.
- */
 #define FONT "Liberation Mono:pixelsize=12:antialias=false:autohint=false"
 
 /* Space in pixels around the terminal buffer */
