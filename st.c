@@ -340,6 +340,7 @@ static int utf8encode(long *, char *);
 static int utf8size(char *);
 static int isfullutf8(char *, int);
 
+static ssize_t xwrite(int, char *, size_t);
 static void *xmalloc(size_t);
 static void *xrealloc(void *, size_t);
 static void *xcalloc(size_t nmemb, size_t size);
@@ -378,6 +379,21 @@ static char *opt_title = NULL;
 static char *opt_embed = NULL;
 static char *opt_class = NULL;
 static char *opt_font = NULL;
+
+
+ssize_t
+xwrite(int fd, char *s, size_t len) {
+	size_t aux = len;
+
+	while(len > 0) {
+		ssize_t r = write(fd, s, len);
+		if(r < 0)
+			return r;
+		len -= r;
+		s += r;
+	}
+	return aux;
+}
 
 void *
 xmalloc(size_t len) {
@@ -926,13 +942,12 @@ ttynew(void) {
 		cmdfd = m;
 		signal(SIGCHLD, sigchld);
 		if(opt_io) {
-			if(!strcmp(opt_io, "-")) {
-				iofd = STDOUT_FILENO;
-			} else {
-				if((iofd = open(opt_io, O_WRONLY | O_CREAT, 0666)) < 0) {
-					fprintf(stderr, "Error opening %s:%s\n",
-						opt_io, strerror(errno));
-				}
+			iofd = (!strcmp(opt_io, "-")) ?
+				  STDOUT_FILENO :
+				  open(opt_io, O_WRONLY | O_CREAT, 0666);
+			if(iofd < 0) {
+				fprintf(stderr, "Error opening %s:%s\n",
+					opt_io, strerror(errno));
 			}
 		}
 	}
@@ -1793,8 +1808,14 @@ tputc(char *c, int len) {
 	uchar ascii = *c;
 	bool control = ascii < '\x20' || ascii == 0177;
 
-	if(iofd != -1)
-		write(iofd, c, len);
+	if(iofd != -1) {
+		if (xwrite(iofd, c, len) < 0) {
+			fprintf(stderr, "Error writting in %s:%s\n",
+				opt_io, strerror(errno));
+			close(iofd);
+			iofd = -1;
+		}
+	}
 	/*
 	 * STR sequences must be checked before of anything
 	 * because it can use some control codes as part of the sequence
