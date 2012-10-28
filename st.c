@@ -663,9 +663,9 @@ bpress(XEvent *e) {
 
 void
 selcopy(void) {
-	char *str, *ptr;
+	char *str, *ptr, *p;
 	int x, y, bufsize, is_selected = 0, size;
-	Glyph *gp;
+	Glyph *gp, *last;
 
 	if(sel.bx == -1) {
 		str = NULL;
@@ -675,15 +675,19 @@ selcopy(void) {
 
 		/* append every set & selected glyph to the selection */
 		for(y = 0; y < term.row; y++) {
-			for(x = 0; x < term.col; x++) {
-				gp = &term.line[y][x];
+			gp = &term.line[y][0];
+			last = gp + term.col;
 
-				if(!(is_selected = selected(x, y))
-						|| !(gp->state & GLYPH_SET)) {
+			while(--last >= gp && !(last->state & GLYPH_SET))
+				/* nothing */;
+
+			for(x = 0; gp <= last; x++, ++gp) {
+				if(!(is_selected = selected(x, y)))
 					continue;
-				}
-				size = utf8size(gp->c);
-				memcpy(ptr, gp->c, size);
+
+				p = (gp->state & GLYPH_SET) ? gp->c : " ";
+				size = utf8size(p);
+				memcpy(ptr, p, size);
 				ptr += size;
 			}
 			/* \n at the end of every selected line except for the last one */
