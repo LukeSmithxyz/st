@@ -678,7 +678,7 @@ bpress(XEvent *e) {
 
 void
 selcopy(void) {
-	char *str, *ptr, *p;
+	char *str, *ptr;
 	int x, y, bufsize, is_selected = 0, size;
 	Glyph *gp;
 
@@ -693,11 +693,12 @@ selcopy(void) {
 			for(x = 0; x < term.col; x++) {
 				gp = &term.line[y][x];
 
-				if(!(is_selected = selected(x, y)))
+				if(!(is_selected = selected(x, y))
+						|| !(gp->state & GLYPH_SET)) {
 					continue;
-				p = (gp->state & GLYPH_SET) ? gp->c : " ";
-				size = utf8size(p);
-				memcpy(ptr, p, size);
+				}
+				size = utf8size(gp->c);
+				memcpy(ptr, gp->c, size);
 				ptr += size;
 			}
 			/* \n at the end of every selected line except for the last one */
