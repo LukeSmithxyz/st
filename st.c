@@ -2602,9 +2602,11 @@ xseturgency(int add) {
 void
 focus(XEvent *ev) {
 	if(ev->type == FocusIn) {
+		XSetICFocus(xw.xic);
 		xw.state |= WIN_FOCUSED;
 		xseturgency(0);
 	} else {
+		XUnsetICFocus(xw.xic);
 		xw.state &= ~WIN_FOCUSED;
 	}
 }
@@ -2774,7 +2776,7 @@ run(void) {
 
 		while(XPending(xw.dpy)) {
 			XNextEvent(xw.dpy, &ev);
-			if(XFilterEvent(&ev, xw.win))
+			if(XFilterEvent(&ev, None))
 				continue;
 			if(handler[ev.type])
 				(handler[ev.type])(&ev);
@@ -2849,6 +2851,7 @@ main(int argc, char *argv[]) {
 
 run:
 	setlocale(LC_CTYPE, "");
+	XSetLocaleModifiers("");
 	tnew(80, 24);
 	xinit();
 	ttynew();
