@@ -60,6 +60,8 @@
 
 #define REDRAW_TIMEOUT (80*1000) /* 80 ms */
 
+/* macros */
+#define CLEANMASK(mask) (mask & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
 #define SERRNO strerror(errno)
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
 #define MAX(a, b)  ((a) < (b) ? (b) : (a))
@@ -238,6 +240,24 @@ typedef struct {
 	struct timeval tclick2;
 } Selection;
 
+typedef union {
+	int i;
+	unsigned int ui;
+	float f;
+	const void *v;
+} Arg;
+
+typedef struct {
+	unsigned int mod;
+	KeySym keysym;
+	void (*func)(const Arg *);
+	const Arg arg;
+} Shortcut;
+
+/* function definitions used in config.h */
+static void xzoom(const Arg *);
+
+/* Config.h for applying patches and the configuration. */
 #include "config.h"
 
 /* Font structure */
@@ -321,6 +341,7 @@ static void unmap(XEvent *);
 static char *kmap(KeySym, uint);
 static void kpress(XEvent *);
 static void cmessage(XEvent *);
+static void cresize(int width, int height);
 static void resize(XEvent *);
 static void focus(XEvent *);
 static void brelease(XEvent *);
@@ -345,7 +366,6 @@ static ssize_t xwrite(int, char *, size_t);
 static void *xmalloc(size_t);
 static void *xrealloc(void *, size_t);
 static void *xcalloc(size_t nmemb, size_t size);
-static char *smstrcat(char *, ...);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
@@ -381,6 +401,8 @@ static char *opt_embed = NULL;
 static char *opt_class = NULL;
 static char *opt_font = NULL;
 
+static char *usedfont = NULL;
+static int usedfontsize = 0;
 
 ssize_t
 xwrite(int fd, char *s, size_t len) {
@@ -422,44 +444,6 @@ xcalloc(size_t nmemb, size_t size) {
 		die("Out of memory\n");
 
 	return p;
-}
-
-char *
-smstrcat(char *src, ...)
-{
-	va_list fmtargs;
-	char *ret, *p, *v;
-	int len, slen, flen;
-
-	len = slen = strlen(src);
-
-	va_start(fmtargs, src);
-	for(;;) {
-		v = va_arg(fmtargs, char *);
-		if(v == NULL)
-			break;
-		len += strlen(v);
-	}
-	va_end(fmtargs);
-
-	p = ret = xmalloc(len+1);
-	memmove(p, src, slen);
-	p += slen;
-
-	va_start(fmtargs, src);
-	for(;;) {
-		v = va_arg(fmtargs, char *);
-		if(v == NULL)
-			break;
-		flen = strlen(v);
-		memmove(p, v, flen);
-		p += flen;
-	}
-	va_end(fmtargs);
-
-	ret[len] = '\0';
-
-	return ret;
 }
 
 int
@@ -2107,7 +2091,8 @@ tresize(int col, int row) {
 			*bp = 1;
 	}
 	/* update terminal size */
-	term.col = col, term.row = row;
+	term.col = col;
+	term.row = row;
 	/* make use of the LIMIT in tmoveto */
 	tmoveto(term.c.x, term.c.y);
 	/* reset scrolling region */
@@ -2207,22 +2192,17 @@ xhints(void) {
 	XFree(sizeh);
 }
 
-void
-xinitfont(Font *f, char *fontstr) {
-	FcPattern *pattern, *match;
+int
+xloadfont(Font *f, FcPattern *pattern) {
+	FcPattern *match;
 	FcResult result;
 
-	pattern = FcNameParse((FcChar8 *)fontstr);
-	if(!pattern)
-		die("st: can't open font %s\n", fontstr);
-
 	match = XftFontMatch(xw.dpy, xw.scr, pattern, &result);
-	FcPatternDestroy(pattern);
 	if(!match)
-		die("st: can't open font %s\n", fontstr);
+		return 1;
 	if(!(f->xft_set = XftFontOpenPattern(xw.dpy, match))) {
 		FcPatternDestroy(match);
-		die("st: can't open font %s.\n", fontstr);
+		return 1;
 	}
 
 	f->ascent = f->xft_set->ascent;
@@ -2232,27 +2212,68 @@ xinitfont(Font *f, char *fontstr) {
 
 	f->height = f->xft_set->height;
 	f->width = f->lbearing + f->rbearing;
+
+	return 0;
 }
 
 void
-initfonts(char *fontstr) {
-	char *fstr;
+xloadfonts(char *fontstr, int fontsize) {
+	FcPattern *pattern;
+	FcResult result;
+	double fontval;
 
-	xinitfont(&dc.font, fontstr);
+	pattern = FcNameParse((FcChar8 *)fontstr);
+	if(!pattern)
+		die("st: can't open font %s\n", fontstr);
+
+	if(fontsize > 0) {
+		FcPatternDel(pattern, FC_PIXEL_SIZE);
+		FcPatternAddDouble(pattern, FC_PIXEL_SIZE, (double)fontsize);
+		usedfontsize = fontsize;
+	} else {
+		result = FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &fontval);
+		if(result == FcResultMatch) {
+			usedfontsize = (int)fontval;
+		} else {
+			/*
+			 * Default font size is 12, if none given. This is to
+			 * have a known usedfontsize value.
+			 */
+			FcPatternAddDouble(pattern, FC_PIXEL_SIZE, 12);
+			usedfontsize = 12;
+		}
+	}
+
+	if(xloadfont(&dc.font, pattern))
+		die("st: can't open font %s\n", fontstr);
+
+	/* Setting character width and height. */
 	xw.cw = dc.font.width;
 	xw.ch = dc.font.height;
 
-	fstr = smstrcat(fontstr, ":weight=bold", NULL);
-	xinitfont(&dc.bfont, fstr);
-	free(fstr);
+	FcPatternDel(pattern, FC_WEIGHT);
+	FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_BOLD);
+	if(xloadfont(&dc.bfont, pattern))
+		die("st: can't open font %s\n", fontstr);
 
-	fstr = smstrcat(fontstr, ":slant=italic,oblique", NULL);
-	xinitfont(&dc.ifont, fstr);
-	free(fstr);
+	FcPatternDel(pattern, FC_SLANT);
+	FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC);
+	if(xloadfont(&dc.ibfont, pattern))
+		die("st: can't open font %s\n", fontstr);
 
-	fstr = smstrcat(fontstr, ":weight=bold:slant=italic,oblique", NULL);
-	xinitfont(&dc.ibfont, fstr);
-	free(fstr);
+	FcPatternDel(pattern, FC_WEIGHT);
+	if(xloadfont(&dc.ifont, pattern))
+		die("st: can't open font %s\n", fontstr);
+
+	FcPatternDestroy(pattern);
+}
+
+void
+xzoom(const Arg *arg)
+{
+	xloadfonts(usedfont, usedfontsize + arg->i);
+	cresize(0, 0);
+	draw();
 }
 
 void
@@ -2268,7 +2289,8 @@ xinit(void) {
 	xw.vis = XDefaultVisual(xw.dpy, xw.scr);
 
 	/* font */
-	initfonts((opt_font != NULL)? opt_font : FONT);
+	usedfont = (opt_font == NULL)? FONT : opt_font;
+	xloadfonts(usedfont, 0);
 
 	/* colors */
 	xw.cmap = XDefaultColormap(xw.dpy, xw.scr);
@@ -2604,11 +2626,8 @@ void
 kpress(XEvent *ev) {
 	XKeyEvent *e = &ev->xkey;
 	KeySym ksym;
-	char buf[32];
-	char *customkey;
-	int len;
-	int meta;
-	int shift;
+	char buf[32], *customkey;
+	int len, meta, shift, i;
 	Status status;
 
 	if (IS_SET(MODE_KBDLOCK))
@@ -2618,7 +2637,17 @@ kpress(XEvent *ev) {
 	shift = e->state & ShiftMask;
 	len = XmbLookupString(xw.xic, e, buf, sizeof(buf), &ksym, &status);
 
-	/* 1. custom keys from config.h */
+	/* 1. shortcuts */
+	for(i = 0; i < LEN(shortcuts); i++) {
+		if((ksym == shortcuts[i].keysym)
+				&& (CLEANMASK(shortcuts[i].mod) == \
+					CLEANMASK(e->state))
+				&& shortcuts[i].func) {
+			shortcuts[i].func(&(shortcuts[i].arg));
+		}
+	}
+
+	/* 2. custom keys from config.h */
 	if((customkey = kmap(ksym, e->state))) {
 		ttywrite(customkey, strlen(customkey));
 	/* 2. hardcoded (overrides X lookup) */
@@ -2676,14 +2705,15 @@ cmessage(XEvent *e) {
 }
 
 void
-resize(XEvent *e) {
+cresize(int width, int height)
+{
 	int col, row;
 
-	if(e->xconfigure.width == xw.w && e->xconfigure.height == xw.h)
-		return;
+	if(width != 0)
+		xw.w = width;
+	if(height != 0)
+		xw.h = height;
 
-	xw.w = e->xconfigure.width;
-	xw.h = e->xconfigure.height;
 	col = (xw.w - 2*BORDER) / xw.cw;
 	row = (xw.h - 2*BORDER) / xw.ch;
 	if(col == term.col && row == term.row)
@@ -2692,6 +2722,14 @@ resize(XEvent *e) {
 	tresize(col, row);
 	xresize(col, row);
 	ttyresize();
+}
+
+void
+resize(XEvent *e) {
+	if(e->xconfigure.width == xw.w && e->xconfigure.height == xw.h)
+		return;
+
+	cresize(e->xconfigure.width, e->xconfigure.height);
 }
 
 void

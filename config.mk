@@ -16,8 +16,8 @@ LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 -lutil -lXext -lXft -lfontconfig
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
-CFLAGS += -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
-LDFLAGS += -s ${LIBS}
+CFLAGS += -g -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
+LDFLAGS += -g ${LIBS}
 
 # compiler and linker
 CC ?= cc

@@ -1,4 +1,8 @@
 
+/*
+ * Do not include the »pixelsize« parameter in your font definition. It is
+ * used to calculate zooming.
+ */
 #define FONT "Liberation Mono:pixelsize=12:antialias=false:autohint=false"
 
 /* Space in pixels around the terminal buffer */
@@ -73,6 +77,15 @@ static Key key[] = {
 	{ XK_F12,       XK_NO_MOD, "\033[24~" },
 };
 
+/* Internal shortcuts. */
+#define MODKEY Mod1Mask
+
+static Shortcut shortcuts[] = {
+	/* modifier		key		function	argument */
+	{ MODKEY|ShiftMask,	XK_Prior,	xzoom,		{.i = +1} },
+	{ MODKEY|ShiftMask,	XK_Next,	xzoom,		{.i = -1} },
+};
+
 /* Set TERM to this */
 #define TNAME "st-256color"
 
@@ -81,3 +94,4 @@ static Key key[] = {
 #define TRIPLECLICK_TIMEOUT (2*DOUBLECLICK_TIMEOUT)
 
 #define TAB 8
+
