@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <locale.h>
+#include <pwd.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -881,10 +882,22 @@ void
 execsh(void) {
 	char **args;
 	char *envshell = getenv("SHELL");
+	const struct passwd *pass = getpwuid(getuid());
+	char buf[sizeof(long) * 8 + 1];
 
 	unsetenv("COLUMNS");
 	unsetenv("LINES");
 	unsetenv("TERMCAP");
+
+	if(pass) {
+		setenv("LOGNAME", pass->pw_name, 1);
+		setenv("USER", pass->pw_name, 1);
+		setenv("SHELL", pass->pw_shell, 0);
+		setenv("HOME", pass->pw_dir, 0);
+	}
+
+	snprintf(buf, sizeof(buf), "%lu", xw.win);
+	setenv("WINDOWID", buf, 1);
 
 	signal(SIGCHLD, SIG_DFL);
 	signal(SIGHUP, SIG_DFL);
@@ -2795,8 +2808,8 @@ main(int argc, char *argv[]) {
 run:
 	setlocale(LC_CTYPE, "");
 	tnew(80, 24);
-	ttynew();
 	xinit();
+	ttynew();
 	selinit();
 	run();
 	return 0;
