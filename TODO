@@ -14,11 +14,7 @@ vt emulation
 code & interface
 ----------------
 
-* clean selection code
 * clean and complete terminfo entry
-* add border around cursor, when it could be hard to read
-	* white border when not selected would suffice
-	* + definition in config.h
 * add fallback fonts for the restricted xft code
 
 bugs
