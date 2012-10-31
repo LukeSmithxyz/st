@@ -1,0 +1,8 @@
+--
+Why does st not handle utmp entries?
+
+Use the excellent tool of utmp[0] for this task.
+
+[0] http://hg.suckless.org/utmp/
+--
+
