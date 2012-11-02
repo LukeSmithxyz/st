@@ -1,11 +1,19 @@
+/* See LICENSE file for copyright and license details. */
 
-#define FONT "Liberation Mono:pixelsize=12:antialias=false:autohint=false"
+/* appearance */
+static char font[] = "Liberation Mono:pixelsize=12:antialias=false:autohint=false";
+static unsigned int borderpx = 2;
+static char shell[] = "/bin/sh";
 
-/* Space in pixels around the terminal buffer */
-#define BORDER 2
+/* double-click timeout (in milliseconds) between clicks for selection */
+static unsigned int doubleclicktimeout = 300;
+static unsigned int tripleclicktimeout = 600;
 
-/* Default shell to use if SHELL is not set in the env */
-#define SHELL "/bin/sh"
+/* TERM value */
+static char termname[] = "st-256color";
+
+static unsigned int tabspaces = 8;
+
 
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
@@ -36,21 +44,26 @@ static const char *colorname[] = {
 	"#333333",
 };
 
-/* Default colors (colorname index)
-   foreground, background, cursor, unfocused cursor */
-#define DefaultFG  7
-#define DefaultBG  0
-#define DefaultCS  256
-#define DefaultUCS 257
 
-/* Special keys (change & recompile st.info accordingly)
-   Keep in mind that kpress() in st.c hardcodes some keys.
+/*
+ * Default colors (colorname index)
+ * foreground, background, cursor, unfocused cursor
+ */
+static unsigned int defaultfg = 7;
+static unsigned int defaultbg = 0;
+static unsigned int defaultcs = 256;
+static unsigned int defaultucs = 257;
 
-   Mask value:
-   * Use XK_ANY_MOD to match the key no matter modifiers state
-   * Use XK_NO_MOD to match the key alone (no modifiers)
+/*
+ * Special keys (change & recompile st.info accordingly)
+ * Keep in mind that kpress() in st.c hardcodes some keys.
+ *
+ * Mask value:
+ * * Use XK_ANY_MOD to match the key no matter modifiers state
+ * * Use XK_NO_MOD to match the key alone (no modifiers)
+ */
 
-      key,        mask,  output */
+/* key, mask, output */
 static Key key[] = {
 	{ XK_BackSpace, XK_NO_MOD, "\177" },
 	{ XK_Insert,    XK_NO_MOD, "\033[2~" },
@@ -81,13 +94,4 @@ static Shortcut shortcuts[] = {
 	{ MODKEY|ShiftMask,	XK_Prior,	xzoom,		{.i = +1} },
 	{ MODKEY|ShiftMask,	XK_Next,	xzoom,		{.i = -1} },
 };
-
-/* Set TERM to this */
-#define TNAME "st-256color"
-
-/* double-click timeout (in milliseconds) between clicks for selection */
-#define DOUBLECLICK_TIMEOUT 300
-#define TRIPLECLICK_TIMEOUT (2*DOUBLECLICK_TIMEOUT)
-
-#define TAB 8
 

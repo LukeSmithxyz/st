@@ -72,8 +72,8 @@
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) (term.mode & (flag))
 #define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_usec-t2.tv_usec)/1000)
-#define X2COL(x) (((x) - BORDER)/xw.cw)
-#define Y2ROW(y) (((y) - BORDER)/xw.ch)
+#define X2COL(x) (((x) - borderpx)/xw.cw)
+#define Y2ROW(y) (((y) - borderpx)/xw.ch)
 
 #define VT102ID "\033[?6c"
 
@@ -803,13 +803,13 @@ brelease(XEvent *e) {
 			sel.bx = -1;
 			gettimeofday(&now, NULL);
 
-			if(TIMEDIFF(now, sel.tclick2) <= TRIPLECLICK_TIMEOUT) {
+			if(TIMEDIFF(now, sel.tclick2) <= tripleclicktimeout) {
 				/* triple click on the line */
 				sel.b.x = sel.bx = 0;
 				sel.e.x = sel.ex = term.col;
 				sel.b.y = sel.e.y = sel.ey;
 				selcopy();
-			} else if(TIMEDIFF(now, sel.tclick1) <= DOUBLECLICK_TIMEOUT) {
+			} else if(TIMEDIFF(now, sel.tclick1) <= doubleclicktimeout) {
 				/* double click to select word */
 				sel.bx = sel.ex;
 				while(sel.bx > 0 && term.line[sel.ey][sel.bx-1].state & GLYPH_SET &&
@@ -894,8 +894,8 @@ execsh(void) {
 	signal(SIGTERM, SIG_DFL);
 	signal(SIGALRM, SIG_DFL);
 
-	DEFAULT(envshell, SHELL);
-	putenv("TERM="TNAME);
+	DEFAULT(envshell, shell);
+	setenv("TERM", termname, 1);
 	args = opt_cmd ? opt_cmd : (char *[]){envshell, "-i", NULL};
 	execvp(args[0], args);
 	exit(EXIT_FAILURE);
@@ -1045,12 +1045,12 @@ treset(void) {
 
 	term.c = (TCursor){{
 		.mode = ATTR_NULL,
-		.fg = DefaultFG,
-		.bg = DefaultBG
+		.fg = defaultfg,
+		.bg = defaultbg
 	}, .x = 0, .y = 0, .state = CURSOR_DEFAULT};
 
 	memset(term.tabs, 0, term.col * sizeof(*term.tabs));
-	for(i = TAB; i < term.col; i += TAB)
+	for(i = tabspaces; i < term.col; i += tabspaces)
 		term.tabs[i] = 1;
 	term.top = 0;
 	term.bot = term.row - 1;
@@ -1310,8 +1310,8 @@ tsetattr(int *attr, int l) {
 		case 0:
 			term.c.attr.mode &= ~(ATTR_REVERSE | ATTR_UNDERLINE | ATTR_BOLD \
 					| ATTR_ITALIC | ATTR_BLINK);
-			term.c.attr.fg = DefaultFG;
-			term.c.attr.bg = DefaultBG;
+			term.c.attr.fg = defaultfg;
+			term.c.attr.bg = defaultbg;
 			break;
 		case 1:
 			term.c.attr.mode |= ATTR_BOLD;
@@ -1361,7 +1361,7 @@ tsetattr(int *attr, int l) {
 			}
 			break;
 		case 39:
-			term.c.attr.fg = DefaultFG;
+			term.c.attr.fg = defaultfg;
 			break;
 		case 48:
 			if(i + 2 < l && attr[i + 1] == 5) {
@@ -1380,7 +1380,7 @@ tsetattr(int *attr, int l) {
 			}
 			break;
 		case 49:
-			term.c.attr.bg = DefaultBG;
+			term.c.attr.bg = defaultbg;
 			break;
 		default:
 			if(BETWEEN(attr[i], 30, 37)) {
@@ -2091,7 +2091,7 @@ tresize(int col, int row) {
 		memset(bp, 0, sizeof(*term.tabs) * (col - term.col));
 		while(--bp > term.tabs && !*bp)
 			/* nothing */ ;
-		for(bp += TAB; bp < term.tabs + col; bp += TAB)
+		for(bp += tabspaces; bp < term.tabs + col; bp += tabspaces)
 			*bp = 1;
 	}
 	/* update terminal size */
@@ -2107,8 +2107,8 @@ tresize(int col, int row) {
 
 void
 xresize(int col, int row) {
-	xw.tw = MAX(1, 2*BORDER + col * xw.cw);
-	xw.th = MAX(1, 2*BORDER + row * xw.ch);
+	xw.tw = MAX(1, 2*borderpx + col * xw.cw);
+	xw.th = MAX(1, 2*borderpx + row * xw.ch);
 
 	XftDrawChange(xw.xft_draw, xw.buf);
 }
@@ -2154,9 +2154,9 @@ xloadcols(void) {
 void
 xtermclear(int col1, int row1, int col2, int row2) {
 	XftDrawRect(xw.xft_draw,
-			&dc.xft_col[IS_SET(MODE_REVERSE) ? DefaultFG : DefaultBG],
-			BORDER + col1 * xw.cw,
-			BORDER + row1 * xw.ch,
+			&dc.xft_col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg],
+			borderpx + col1 * xw.cw,
+			borderpx + row1 * xw.ch,
 			(col2-col1+1) * xw.cw,
 			(row2-row1+1) * xw.ch);
 }
@@ -2167,13 +2167,13 @@ xtermclear(int col1, int row1, int col2, int row2) {
 void
 xclear(int x1, int y1, int x2, int y2) {
 	XftDrawRect(xw.xft_draw,
-			&dc.xft_col[IS_SET(MODE_REVERSE) ? DefaultFG : DefaultBG],
+			&dc.xft_col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg],
 			x1, y1, x2-x1, y2-y1);
 }
 
 void
 xhints(void) {
-	XClassHint class = {opt_class ? opt_class : TNAME, TNAME};
+	XClassHint class = {opt_class ? opt_class : termname, termname};
 	XWMHints wm = {.flags = InputHint, .input = 1};
 	XSizeHints *sizeh = NULL;
 
@@ -2184,8 +2184,8 @@ xhints(void) {
 		sizeh->width = xw.w;
 		sizeh->height_inc = xw.ch;
 		sizeh->width_inc = xw.cw;
-		sizeh->base_height = 2*BORDER;
-		sizeh->base_width = 2*BORDER;
+		sizeh->base_height = 2*borderpx;
+		sizeh->base_width = 2*borderpx;
 	} else {
 		sizeh->flags = PMaxSize | PMinSize;
 		sizeh->min_width = sizeh->max_width = xw.fw;
@@ -2293,7 +2293,7 @@ xinit(void) {
 	xw.vis = XDefaultVisual(xw.dpy, xw.scr);
 
 	/* font */
-	usedfont = (opt_font == NULL)? FONT : opt_font;
+	usedfont = (opt_font == NULL)? font : opt_font;
 	xloadfonts(usedfont, 0);
 
 	/* colors */
@@ -2313,14 +2313,14 @@ xinit(void) {
 		xw.w = xw.fw;
 	} else {
 		/* window - default size */
-		xw.h = 2*BORDER + term.row * xw.ch;
-		xw.w = 2*BORDER + term.col * xw.cw;
+		xw.h = 2*borderpx + term.row * xw.ch;
+		xw.w = 2*borderpx + term.col * xw.cw;
 		xw.fx = 0;
 		xw.fy = 0;
 	}
 
-	attrs.background_pixel = dc.xft_col[DefaultBG].pixel;
-	attrs.border_pixel = dc.xft_col[DefaultBG].pixel;
+	attrs.background_pixel = dc.xft_col[defaultbg].pixel;
+	attrs.border_pixel = dc.xft_col[defaultbg].pixel;
 	attrs.bit_gravity = NorthWestGravity;
 	attrs.event_mask = FocusChangeMask | KeyPressMask
 		| ExposureMask | VisibilityChangeMask | StructureNotifyMask
@@ -2370,7 +2370,7 @@ xinit(void) {
 
 void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
-	int winx = BORDER + x * xw.cw, winy = BORDER + y * xw.ch,
+	int winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch,
 	    width = charlen * xw.cw;
 	Font *font = &dc.font;
 	XGlyphInfo extents;
@@ -2407,8 +2407,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		font = &dc.ibfont;
 
 	if(IS_SET(MODE_REVERSE)) {
-		if(fg == &dc.xft_col[DefaultFG]) {
-			fg = &dc.xft_col[DefaultBG];
+		if(fg == &dc.xft_col[defaultfg]) {
+			fg = &dc.xft_col[defaultbg];
 		} else {
 			colfg.red = ~fg->color.red;
 			colfg.green = ~fg->color.green;
@@ -2418,8 +2418,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			fg = &revfg;
 		}
 
-		if(bg == &dc.xft_col[DefaultBG]) {
-			bg = &dc.xft_col[DefaultFG];
+		if(bg == &dc.xft_col[defaultbg]) {
+			bg = &dc.xft_col[defaultfg];
 		} else {
 			colbg.red = ~bg->color.red;
 			colbg.green = ~bg->color.green;
@@ -2436,7 +2436,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	/* Intelligent cleaning up of the borders. */
 	if(x == 0) {
-		xclear(0, (y == 0)? 0 : winy, BORDER,
+		xclear(0, (y == 0)? 0 : winy, borderpx,
 			winy + xw.ch + (y == term.row-1)? xw.h : 0);
 	}
 	if(x + charlen >= term.col-1) {
@@ -2444,7 +2444,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			(y == term.row-1)? xw.h : (winy + xw.ch));
 	}
 	if(y == 0)
-		xclear(winx, 0, winx + width, BORDER);
+		xclear(winx, 0, winx + width, borderpx);
 	if(y == term.row-1)
 		xclear(winx, winy + xw.ch, winx + width, xw.h);
 
@@ -2462,7 +2462,7 @@ void
 xdrawcursor(void) {
 	static int oldx = 0, oldy = 0;
 	int sl;
-	Glyph g = {{' '}, ATTR_NULL, DefaultBG, DefaultCS, 0};
+	Glyph g = {{' '}, ATTR_NULL, defaultbg, defaultcs, 0};
 
 	LIMIT(oldx, 0, term.col-1);
 	LIMIT(oldy, 0, term.row-1);
@@ -2482,10 +2482,10 @@ xdrawcursor(void) {
 	/* draw the new one */
 	if(!(term.c.state & CURSOR_HIDE)) {
 		if(!(xw.state & WIN_FOCUSED))
-			g.bg = DefaultUCS;
+			g.bg = defaultucs;
 
 		if(IS_SET(MODE_REVERSE))
-			g.mode |= ATTR_REVERSE, g.fg = DefaultCS, g.bg = DefaultFG;
+			g.mode |= ATTR_REVERSE, g.fg = defaultcs, g.bg = defaultfg;
 
 		sl = utf8size(g.c);
 		xdraws(g.c, g, term.c.x, term.c.y, 1, sl);
@@ -2720,8 +2720,8 @@ cresize(int width, int height)
 	if(height != 0)
 		xw.h = height;
 
-	col = (xw.w - 2*BORDER) / xw.cw;
-	row = (xw.h - 2*BORDER) / xw.ch;
+	col = (xw.w - 2*borderpx) / xw.cw;
+	row = (xw.h - 2*borderpx) / xw.ch;
 	if(col == term.col && row == term.row)
 		return;
 
