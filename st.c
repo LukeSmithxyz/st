@@ -2226,7 +2226,12 @@ xloadfonts(char *fontstr, int fontsize) {
 	FcResult result;
 	double fontval;
 
-	pattern = FcNameParse((FcChar8 *)fontstr);
+	if(fontstr[0] == '-') {
+		pattern = XftXlfdParse(fontstr, False, False);
+	} else {
+		pattern = FcNameParse((FcChar8 *)fontstr);
+	}
+
 	if(!pattern)
 		die("st: can't open font %s\n", fontstr);
 
