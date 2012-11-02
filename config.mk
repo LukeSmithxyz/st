@@ -1,5 +1,5 @@
 # st version
-VERSION = 0.2.1-tip
+VERSION = 0.3
 
 # Customize below to fit your system
 
