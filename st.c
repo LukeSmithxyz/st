@@ -2398,9 +2398,6 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		 *temp, revfg, revbg;
 	XRenderColor colfg, colbg;
 
-	if(base.mode & ATTR_REVERSE)
-		temp = fg, fg = bg, bg = temp;
-
 	if(base.mode & ATTR_BOLD) {
 		if(BETWEEN(base.fg, 0, 7)) {
 			/* basic system colors */
@@ -2449,6 +2446,9 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			bg = &revbg;
 		}
 	}
+
+	if(base.mode & ATTR_REVERSE)
+		temp = fg, fg = bg, bg = temp;
 
 	XftTextExtentsUtf8(xw.dpy, font->xft_set, (FcChar8 *)s, bytelen,
 			&extents);
