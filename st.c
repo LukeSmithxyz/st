@@ -2742,8 +2742,6 @@ cresize(int width, int height)
 
 	col = (xw.w - 2*borderpx) / xw.cw;
 	row = (xw.h - 2*borderpx) / xw.ch;
-	if(col == term.col && row == term.row)
-		return;
 
 	tresize(col, row);
 	xresize(col, row);
@@ -2752,6 +2750,8 @@ cresize(int width, int height)
 
 void
 resize(XEvent *e) {
+	fprintf(stderr, "resize -> %d,%d\n", e->xconfigure.width,
+			e->xconfigure.height);
 	if(e->xconfigure.width == xw.w && e->xconfigure.height == xw.h)
 		return;
 
