@@ -2694,6 +2694,9 @@ kpress(XEvent *ev) {
 				selpaste();
 			break;
 		case XK_Return:
+			if(meta)
+				ttywrite("\033", 1);
+
 			if(IS_SET(MODE_CRLF)) {
 				ttywrite("\r\n", 2);
 			} else {
