@@ -2750,8 +2750,6 @@ cresize(int width, int height)
 
 void
 resize(XEvent *e) {
-	fprintf(stderr, "resize -> %d,%d\n", e->xconfigure.width,
-			e->xconfigure.height);
 	if(e->xconfigure.width == xw.w && e->xconfigure.height == xw.h)
 		return;
 
