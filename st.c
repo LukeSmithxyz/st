@@ -2423,7 +2423,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	if(base.mode & ATTR_ITALIC)
 		font = &dc.ifont;
-	if(base.mode & (ATTR_ITALIC|ATTR_BOLD))
+	if((base.mode & ATTR_ITALIC) && (base.mode & ATTR_BOLD))
 		font = &dc.ibfont;
 
 	if(IS_SET(MODE_REVERSE)) {
