@@ -72,8 +72,6 @@
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) (term.mode & (flag))
 #define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_usec-t2.tv_usec)/1000)
-#define X2COL(x) (((x) - borderpx)/xw.cw)
-#define Y2ROW(y) (((y) - borderpx)/xw.ch)
 
 #define VT102ID "\033[?6c"
 
@@ -582,6 +580,22 @@ selinit(void) {
 		sel.xtarget = XA_STRING;
 }
 
+static int
+x2col(int x) {
+	x -= borderpx;
+	x /= xw.cw;
+
+	return LIMIT(x, 0, term.col-1);
+}
+
+static int
+y2row(int y) {
+	y -= borderpx;
+	y /= xw.ch;
+
+	return LIMIT(y, 0, term.row-1);
+}
+
 static inline bool
 selected(int x, int y) {
 	int bx, ex;
@@ -603,8 +617,9 @@ getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 	if(b)
 		*b = e->xbutton.button;
 
-	*x = X2COL(e->xbutton.x);
-	*y = Y2ROW(e->xbutton.y);
+	*x = x2col(e->xbutton.x);
+	*y = y2row(e->xbutton.y);
+
 	sel.b.x = sel.by < sel.ey ? sel.bx : sel.ex;
 	sel.b.y = MIN(sel.by, sel.ey);
 	sel.e.x = sel.by < sel.ey ? sel.ex : sel.bx;
@@ -613,8 +628,8 @@ getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
 
 void
 mousereport(XEvent *e) {
-	int x = X2COL(e->xbutton.x);
-	int y = Y2ROW(e->xbutton.y);
+	int x = x2col(e->xbutton.x);
+	int y = y2row(e->xbutton.y);
 	int button = e->xbutton.button;
 	int state = e->xbutton.state;
 	char buf[] = { '\033', '[', 'M', 0, 32+x+1, 32+y+1 };
@@ -656,8 +671,8 @@ bpress(XEvent *e) {
 			draw();
 		}
 		sel.mode = 1;
-		sel.ex = sel.bx = X2COL(e->xbutton.x);
-		sel.ey = sel.by = Y2ROW(e->xbutton.y);
+		sel.ex = sel.bx = x2col(e->xbutton.x);
+		sel.ey = sel.by = y2row(e->xbutton.y);
 	}
 }
 

@@ -2,7 +2,7 @@
 
 /* appearance */
 static char font[] = "Liberation Mono:pixelsize=12:antialias=false:autohint=false";
-static unsigned int borderpx = 2;
+static int borderpx = 2;
 static char shell[] = "/bin/sh";
 
 /* double-click timeout (in milliseconds) between clicks for selection */
