@@ -673,6 +673,10 @@ bpress(XEvent *e) {
 		sel.mode = 1;
 		sel.ex = sel.bx = x2col(e->xbutton.x);
 		sel.ey = sel.by = y2row(e->xbutton.y);
+	} else if(e->xbutton.button == Button4) {
+		ttywrite("\031", 1);
+	} else if(e->xbutton.button == Button5) {
+		ttywrite("\005", 1);
 	}
 }
 
@@ -1834,8 +1838,8 @@ tputc(char *c, int len) {
 		}
 	}
 	/*
-	 * STR sequences must be checked before of anything
-	 * because it can use some control codes as part of the sequence
+	 * STR sequences must be checked before anything else
+	 * because it can use some control codes as part of the sequence.
 	 */
 	if(term.esc & ESC_STR) {
 		switch(ascii) {
@@ -1855,6 +1859,7 @@ tputc(char *c, int len) {
 		}
 		return;
 	}
+
 	/*
 	 * Actions of control codes must be performed as soon they arrive
 	 * because they can be embedded inside a control sequence, and
@@ -1895,11 +1900,11 @@ tputc(char *c, int len) {
 		case '\030':	/* CAN */
 			csireset();
 			return;
-		 case '\005':	/* ENQ (IGNORED) */
-		 case '\000':	/* NUL (IGNORED) */
-		 case '\021':	/* XON (IGNORED) */
-		 case '\023':	/* XOFF (IGNORED) */
-		 case 0177:	/* DEL (IGNORED) */
+		case '\005':	/* ENQ (IGNORED) */
+		case '\000':	/* NUL (IGNORED) */
+		case '\021':	/* XON (IGNORED) */
+		case '\023':	/* XOFF (IGNORED) */
+		case 0177:	/* DEL (IGNORED) */
 			return;
 		}
 	} else if(term.esc & ESC_START) {
