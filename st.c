@@ -96,8 +96,7 @@ enum cursor_movement {
 
 enum cursor_state {
 	CURSOR_DEFAULT  = 0,
-	CURSOR_HIDE     = 1,
-	CURSOR_WRAPNEXT = 2
+	CURSOR_WRAPNEXT = 1,
 };
 
 enum glyph_state {
@@ -115,7 +114,8 @@ enum term_mode {
 	MODE_MOUSEMOTION = 64,
 	MODE_MOUSE       = 32|64,
 	MODE_REVERSE     = 128,
-	MODE_KBDLOCK     = 256
+	MODE_KBDLOCK     = 256,
+	MODE_HIDE      = 512
 };
 
 enum escape_state {
@@ -1464,8 +1464,8 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 0:  /* Error (IGNORED) */
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				break;
-			case 25:
-				MODBIT(term.c.state, !set, CURSOR_HIDE);
+			case 25: /* DECTCEM -- Text Cursor Enable Mode */
+				MODBIT(term.mode, !set, MODE_HIDE);
 				break;
 			case 1000: /* 1000,1002: enable xterm mouse report */
 				MODBIT(term.mode, set, MODE_MOUSEBTN);
@@ -2505,7 +2505,7 @@ xdrawcursor(void) {
 	}
 
 	/* draw the new one */
-	if(!(term.c.state & CURSOR_HIDE)) {
+	if(!(IS_SET(MODE_HIDE))) {
 		if(!(xw.state & WIN_FOCUSED))
 			g.bg = defaultucs;
 
