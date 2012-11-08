@@ -1475,15 +1475,15 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				break;
 			case 1049: /* = 1047 and 1048 */
 			case 47:
-			case 1047:
-				if(IS_SET(MODE_ALTSCREEN))
+			case 1047: {
+				bool alt = IS_SET(MODE_ALTSCREEN) != 0;
+				if(alt)
 					tclearregion(0, 0, term.col-1, term.row-1);
-				if((set && !IS_SET(MODE_ALTSCREEN)) ||
-						(!set && IS_SET(MODE_ALTSCREEN))) {
+				if(set ^ alt)		/* set is always 1 or 0 */
 					tswapscreen();
-				}
 				if(*args != 1049)
 					break;
+			}
 				/* pass through */
 			case 1048:
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
@@ -2546,9 +2546,9 @@ drawregion(int x1, int y1, int x2, int y2) {
 	int ic, ib, x, y, ox, sl;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
-	bool ena_sel = sel.bx != -1, alt = IS_SET(MODE_ALTSCREEN);
+	bool ena_sel = sel.bx != -1, alt = IS_SET(MODE_ALTSCREEN) != 0;
 
-	if((sel.alt && !alt) || (!sel.alt && alt))
+	if((sel.alt != 0) ^ alt)
 		ena_sel = 0;
 	if(!(xw.state & WIN_VISIBLE))
 		return;
