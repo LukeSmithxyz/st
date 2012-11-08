@@ -1459,6 +1459,7 @@ tsetscroll(int t, int b) {
 void
 tsetmode(bool priv, bool set, int *args, int narg) {
 	int *lim, mode;
+	bool alt;
 
 	for(lim = args + narg; args < lim; ++args) {
 		if(priv) {
@@ -1502,7 +1503,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 1049: /* = 1047 and 1048 */
 			case 47:
 			case 1047: {
-				bool alt = IS_SET(MODE_ALTSCREEN) != 0;
+				alt = IS_SET(MODE_ALTSCREEN) != 0;
 				if(alt)
 					tclearregion(0, 0, term.col-1, term.row-1);
 				if(set ^ alt)		/* set is always 1 or 0 */
