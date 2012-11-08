@@ -1076,6 +1076,8 @@ treset(void) {
 	term.mode = MODE_WRAP;
 
 	tclearregion(0, 0, term.col-1, term.row-1);
+	tmoveto(0, 0);
+	tcursor(CURSOR_SAVE);
 }
 
 void
