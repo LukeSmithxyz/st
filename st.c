@@ -1480,8 +1480,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 7: /* DECAWM -- Auto wrap */
 				MODBIT(term.mode, set, MODE_WRAP);
 				break;
-			case 8: /* XXX: DECARM -- Auto repeat */
-				break;
+			case 8:  /* DECARM -- Auto repeat (IGNORED) */
 			case 0:  /* Error (IGNORED) */
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				break;
