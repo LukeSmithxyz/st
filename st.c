@@ -1562,11 +1562,11 @@ csihandle(void) {
 		tinsertblank(csiescseq.arg[0]);
 		break;
 	case 'A': /* CUU -- Cursor <n> Up */
-	case 'e':
 		DEFAULT(csiescseq.arg[0], 1);
 		tmoveto(term.c.x, term.c.y-csiescseq.arg[0]);
 		break;
 	case 'B': /* CUD -- Cursor <n> Down */
+	case 'e': /* VPR --Cursor <n> Down */
 		DEFAULT(csiescseq.arg[0], 1);
 		tmoveto(term.c.x, term.c.y+csiescseq.arg[0]);
 		break;
@@ -1575,7 +1575,7 @@ csihandle(void) {
 			ttywrite(VT102ID, sizeof(VT102ID) - 1);
 		break;
 	case 'C': /* CUF -- Cursor <n> Forward */
-	case 'a':
+	case 'a': /* HPR -- Cursor <n> Forward */
 		DEFAULT(csiescseq.arg[0], 1);
 		tmoveto(term.c.x+csiescseq.arg[0], term.c.y);
 		break;
