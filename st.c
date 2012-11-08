@@ -97,6 +97,7 @@ enum cursor_movement {
 enum cursor_state {
 	CURSOR_DEFAULT  = 0,
 	CURSOR_WRAPNEXT = 1,
+	CURSOR_ORIGIN	= 2
 };
 
 enum glyph_state {
@@ -300,6 +301,7 @@ static void tdeleteline(int);
 static void tinsertblank(int);
 static void tinsertblankline(int);
 static void tmoveto(int, int);
+static void tmoveato(int x, int y);
 static void tnew(int, int);
 static void tnewline(int);
 static void tputtab(bool);
@@ -1211,10 +1213,25 @@ csiparse(void) {
 	}
 }
 
+/* for absolute user moves, when decom is set */
+void
+tmoveato(int x, int y) {
+	tmoveto(x, y + ((term.c.state & CURSOR_ORIGIN) ? term.top: 0));
+}
+
 void
 tmoveto(int x, int y) {
+	int miny, maxy;
+
+	if(term.c.state & CURSOR_ORIGIN) {
+		miny = term.top;
+		maxy = term.bot;
+	} else {
+		miny = 0;
+		maxy = term.row - 1;
+	}
 	LIMIT(x, 0, term.col-1);
-	LIMIT(y, 0, term.row-1);
+	LIMIT(y, miny, maxy);
 	term.c.state &= ~CURSOR_WRAPNEXT;
 	term.c.x = x;
 	term.c.y = y;
@@ -1456,7 +1473,9 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				if(mode != term.mode)
 					redraw();
 				break;
-			case 6: /* XXX: DECOM -- Origin */
+			case 6: /* DECOM -- Origin */
+				MODBIT(term.c.state, set, CURSOR_ORIGIN);
+				tmoveato(0, 0);
 				break;
 			case 7: /* DECAWM -- Auto wrap */
 				MODBIT(term.mode, set, MODE_WRAP);
@@ -1593,7 +1612,7 @@ csihandle(void) {
 	case 'f': /* HVP */
 		DEFAULT(csiescseq.arg[0], 1);
 		DEFAULT(csiescseq.arg[1], 1);
-		tmoveto(csiescseq.arg[1]-1, csiescseq.arg[0]-1);
+		tmoveato(csiescseq.arg[1]-1, csiescseq.arg[0]-1);
 		break;
 	case 'I': /* CHT -- Cursor Forward Tabulation <n> tab stops */
 		DEFAULT(csiescseq.arg[0], 1);
@@ -1667,7 +1686,7 @@ csihandle(void) {
 		break;
 	case 'd': /* VPA -- Move to <row> */
 		DEFAULT(csiescseq.arg[0], 1);
-		tmoveto(term.c.x, csiescseq.arg[0]-1);
+		tmoveato(term.c.x, csiescseq.arg[0]-1);
 		break;
 	case 'h': /* SM -- Set terminal mode */
 		tsetmode(csiescseq.priv, 1, csiescseq.arg, csiescseq.narg);
@@ -1682,7 +1701,7 @@ csihandle(void) {
 			DEFAULT(csiescseq.arg[0], 1);
 			DEFAULT(csiescseq.arg[1], term.row);
 			tsetscroll(csiescseq.arg[0]-1, csiescseq.arg[1]-1);
-			tmoveto(0, 0);
+			tmoveato(0, 0);
 		}
 		break;
 	case 's': /* DECSC -- Save cursor position (ANSI.SYS) */
@@ -2119,10 +2138,10 @@ tresize(int col, int row) {
 	/* update terminal size */
 	term.col = col;
 	term.row = row;
-	/* make use of the LIMIT in tmoveto */
-	tmoveto(term.c.x, term.c.y);
 	/* reset scrolling region */
 	tsetscroll(0, row-1);
+	/* make use of the LIMIT in tmoveto */
+	tmoveto(term.c.x, term.c.y);
 
 	return (slide > 0);
 }
