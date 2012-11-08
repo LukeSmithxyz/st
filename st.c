@@ -1480,8 +1480,14 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 7: /* DECAWM -- Auto wrap */
 				MODBIT(term.mode, set, MODE_WRAP);
 				break;
-			case 8:  /* DECARM -- Auto repeat (IGNORED) */
 			case 0:  /* Error (IGNORED) */
+			case 2:  /* DECANM -- ANSI/VT52 (IGNORED) */
+			case 3:  /* DECCOLM -- Column  (IGNORED) */
+			case 4:  /* DECSCLM -- Scroll (IGNORED) */
+			case 8:  /* DECARM -- Auto repeat (IGNORED) */
+			case 18: /* DECPFF -- Printer feed (IGNORED) */
+			case 19: /* DECPEX -- Printer extent (IGNORED) */
+			case 42: /* DECNRCM -- National characters (IGNORED) */
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				break;
 			case 25: /* DECTCEM -- Text Cursor Enable Mode */
@@ -1509,12 +1515,6 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
 				break;
 			default:
-			/* case 2:  DECANM -- ANSI/VT52 (NOT SUPPOURTED) */
-			/* case 3:  DECCOLM -- Column  (NOT SUPPORTED) */
-			/* case 4:  DECSCLM -- Scroll (NOT SUPPORTED) */
-			/* case 18: DECPFF -- Printer feed (NOT SUPPORTED) */
-			/* case 19: DECPEX -- Printer extent (NOT SUPPORTED) */
-			/* case 42: DECNRCM -- National characters (NOT SUPPORTED) */
 				fprintf(stderr,
 					"erresc: unknown private set/reset mode %d\n",
 					*args);
