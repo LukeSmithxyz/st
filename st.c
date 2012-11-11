@@ -277,7 +277,6 @@ typedef struct {
 /* Drawing Context */
 typedef struct {
 	Colour col[LEN(colorname) < 256 ? 256 : LEN(colorname)];
-	GC gc;
 	Font font, bfont, ifont, ibfont;
 } DC;
 
@@ -2398,8 +2397,6 @@ xinit(void) {
 	xw.xic = XCreateIC(xw.xim, XNInputStyle, XIMPreeditNothing
 					   | XIMStatusNothing, XNClientWindow, xw.win,
 					   XNFocusWindow, xw.win, NULL);
-	/* gc */
-	dc.gc = XCreateGC(xw.dpy, xw.win, 0, NULL);
 
 	/* white cursor, black outline */
 	cursor = XCreateFontCursor(xw.dpy, XC_xterm);
