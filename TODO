@@ -5,11 +5,7 @@ vt emulation
 * color definition in CSI
 	* implement CSI parsing
 * make the keypad keys really work
-	* kf0 .. kf44
-	* kend, kel, kent, kfnd, ked, kext
-	* kNXT, kPRV
-	* ka1, ka3, kb2
-* add arrow keys handling
+	* kel, kfnd, ked, kext
 
 code & interface
 ----------------
