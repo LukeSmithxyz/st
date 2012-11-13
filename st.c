@@ -228,6 +228,10 @@ typedef struct {
 	KeySym k;
 	uint mask;
 	char s[ESC_BUF_SIZ];
+	/* three valued logic variables: 0 indifferent, 1 on, -1 off */
+	signed char appkey;		/* application keypad */
+	signed char appcursor;		/* application cursor */
+	signed char crlf;		/* crlf mode          */
 } Key;
 
 /* TODO: use better name for vars... */
@@ -2686,17 +2690,29 @@ focus(XEvent *ev) {
 
 char*
 kmap(KeySym k, uint state) {
-	int i;
 	uint mask;
+	Key *kp;
 
 	state &= ~Mod2Mask;
-	for(i = 0; i < LEN(key); i++) {
-		mask = key[i].mask;
+	for(kp = key; kp < key + LEN(key); kp++) {
+		mask = kp->mask;
 
-		if(key[i].k == k && ((state & mask) == mask
-				|| (mask == XK_NO_MOD && !state))) {
-			return (char*)key[i].s;
-		}
+		if(kp->k != k)
+			continue;
+		if((state & mask) != mask &&
+		   (mask == XK_NO_MOD && state))
+			continue;
+		if((kp->appkey < 0 && IS_SET(MODE_APPKEYPAD)) ||
+		   (kp->appkey > 0 && !IS_SET(MODE_APPKEYPAD)))
+			continue;
+		if((kp->appcursor < 0 && IS_SET(MODE_APPCURSOR)) ||
+		   (kp->appcursor > 0 && !IS_SET(MODE_APPCURSOR)))
+			continue;
+		if((kp->crlf < 0 && IS_SET(MODE_CRLF)) ||
+		   (kp->crlf > 0 && !IS_SET(MODE_CRLF)))
+			continue;
+
+		return kp->s;
 	}
 	return NULL;
 }
@@ -2706,14 +2722,12 @@ kpress(XEvent *ev) {
 	XKeyEvent *e = &ev->xkey;
 	KeySym ksym;
 	char xstr[31], buf[32], *customkey, *cp = buf;
-	int len, meta, shift, i;
+	int len, i;
 	Status status;
 
 	if (IS_SET(MODE_KBDLOCK))
 		return;
 
-	meta = e->state & Mod1Mask;
-	shift = e->state & ShiftMask;
 	len = XmbLookupString(xw.xic, e, xstr, sizeof(xstr), &ksym, &status);
 
 	/* 1. shortcuts */
@@ -2732,39 +2746,14 @@ kpress(XEvent *ev) {
 		memcpy(buf, customkey, len);
 	/* 2. hardcoded (overrides X lookup) */
 	} else {
-		switch(ksym) {
-		case XK_Up:
-		case XK_Down:
-		case XK_Left:
-		case XK_Right:
-			/* XXX: shift up/down doesn't work */
-			sprintf(buf, "\033%c%c",
-				IS_SET(MODE_APPKEYPAD) ? 'O' : '[',
-				(shift ? "dacb":"DACB")[ksym - XK_Left]);
-			len = 3;
-			break;
-		case XK_Return:
-			len = 0;
-			if(meta)
-				*cp++ = '\033', len++;
+		if(len == 0)
+			return;
 
-			*cp++ = '\r', len++;
+		if (len == 1 && e->state & Mod1Mask)
+			*cp++ = '\033';
 
-			if(IS_SET(MODE_CRLF))
-				*cp = '\n', len++;
-			break;
-			/* 3. X lookup  */
-		default:
-			if(len == 0)
-				return;
-
-			if (len == 1 && meta)
-				*cp++ = '\033';
-
-			memcpy(cp, xstr, len);
-			len = cp - buf + len;
-			break;
-		}
+		memcpy(cp, xstr, len);
+		len = cp - buf + len;
 	}
 	ttywrite(buf, len);
 	if(IS_SET(MODE_ECHO))
