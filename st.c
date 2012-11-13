@@ -110,17 +110,18 @@ enum glyph_state {
 };
 
 enum term_mode {
-	MODE_WRAP	= 1,
+	MODE_WRAP	 = 1,
 	MODE_INSERT      = 2,
 	MODE_APPKEYPAD   = 4,
 	MODE_ALTSCREEN   = 8,
-	MODE_CRLF	= 16,
+	MODE_CRLF	 = 16,
 	MODE_MOUSEBTN    = 32,
 	MODE_MOUSEMOTION = 64,
 	MODE_MOUSE       = 32|64,
 	MODE_REVERSE     = 128,
 	MODE_KBDLOCK     = 256,
-	MODE_HIDE      = 512
+	MODE_HIDE	 = 512,
+	MODE_ECHO	 = 1024
 };
 
 enum escape_state {
@@ -320,6 +321,7 @@ static void tswapscreen(void);
 static void tsetdirt(int, int);
 static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
+static void techo(char *, int);
 
 static void ttynew(void);
 static void ttyread(void);
@@ -1534,7 +1536,8 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 4:  /* IRM -- Insertion-replacement */
 				MODBIT(term.mode, set, MODE_INSERT);
 				break;
-			case 12: /* XXX: SRM -- Send/Receive */
+			case 12: /* SRM -- Send/Receive */
+				MODBIT(term.mode, !set, MODE_ECHO);
 				break;
 			case 20: /* LNM -- Linefeed/new line */
 				MODBIT(term.mode, set, MODE_CRLF);
@@ -1846,6 +1849,28 @@ tputtab(bool forward) {
 			/* nothing */ ;
 	}
 	tmoveto(x, term.c.y);
+}
+
+void
+techo(char *buf, int len) {
+	for(; len > 0; buf++, len--) {
+		char c = *buf;
+
+		if(c == '\033') {		/* escape */
+			tputc("^", 1);
+			tputc("[", 1);
+		} else if (c < '\x20') {	/* control code */
+			if(c != '\n' && c != '\r' && c != '\t') {
+				c |= '\x40';
+				tputc("^", 1);
+			}
+			tputc(&c, 1);
+		} else {
+			break;
+		}
+	}
+	if (len)
+		tputc(buf, len);
 }
 
 void
@@ -2679,7 +2704,7 @@ void
 kpress(XEvent *ev) {
 	XKeyEvent *e = &ev->xkey;
 	KeySym ksym;
-	char buf[32], *customkey;
+	char xstr[31], buf[32], *customkey, *cp = buf;
 	int len, meta, shift, i;
 	Status status;
 
@@ -2688,7 +2713,7 @@ kpress(XEvent *ev) {
 
 	meta = e->state & Mod1Mask;
 	shift = e->state & ShiftMask;
-	len = XmbLookupString(xw.xic, e, buf, sizeof(buf), &ksym, &status);
+	len = XmbLookupString(xw.xic, e, xstr, sizeof(xstr), &ksym, &status);
 
 	/* 1. shortcuts */
 	for(i = 0; i < LEN(shortcuts); i++) {
@@ -2702,7 +2727,8 @@ kpress(XEvent *ev) {
 
 	/* 2. custom keys from config.h */
 	if((customkey = kmap(ksym, e->state))) {
-		ttywrite(customkey, strlen(customkey));
+		len = strlen(customkey);
+		memcpy(buf, customkey, len);
 	/* 2. hardcoded (overrides X lookup) */
 	} else {
 		switch(ksym) {
@@ -2714,33 +2740,43 @@ kpress(XEvent *ev) {
 			sprintf(buf, "\033%c%c",
 				IS_SET(MODE_APPKEYPAD) ? 'O' : '[',
 				(shift ? "dacb":"DACB")[ksym - XK_Left]);
-			ttywrite(buf, 3);
+			len = 3;
 			break;
 		case XK_Insert:
-			if(shift)
+			if(shift) {
 				selpaste();
+				return;
+			}
+			memcpy(buf, xstr, len);
 			break;
 		case XK_Return:
+			len = 0;
 			if(meta)
-				ttywrite("\033", 1);
+				*cp++ = '\033', len++;
 
-			if(IS_SET(MODE_CRLF)) {
-				ttywrite("\r\n", 2);
-			} else {
-				ttywrite("\r", 1);
-			}
+			*cp++ = '\r', len++;
+
+			if(IS_SET(MODE_CRLF))
+				*cp = '\n', len++;
 			break;
 			/* 3. X lookup  */
 		default:
-			if(len > 0) {
-				if(meta && len == 1)
-					ttywrite("\033", 1);
-				ttywrite(buf, len);
-			}
+			if(len == 0)
+				return;
+
+			if (len == 1 && meta)
+				*cp++ = '\033';
+
+			memcpy(cp, xstr, len);
+			len = cp - buf + len;
 			break;
 		}
 	}
+	ttywrite(buf, len);
+	if(IS_SET(MODE_ECHO))
+		techo(buf, len);
 }
+
 
 void
 cmessage(XEvent *e) {
