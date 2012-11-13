@@ -121,7 +121,8 @@ enum term_mode {
 	MODE_REVERSE     = 128,
 	MODE_KBDLOCK     = 256,
 	MODE_HIDE	 = 512,
-	MODE_ECHO	 = 1024
+	MODE_ECHO	 = 1024,
+	MODE_APPCURSOR	 = 2048
 };
 
 enum escape_state {
@@ -1471,7 +1472,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			switch(*args) {
 				break;
 			case 1: /* DECCKM -- Cursor key */
-				MODBIT(term.mode, set, MODE_APPKEYPAD);
+				MODBIT(term.mode, set, MODE_APPCURSOR);
 				break;
 			case 5: /* DECSCNM -- Reverse video */
 				mode = term.mode;
