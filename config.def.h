@@ -131,7 +131,7 @@ static Key key[] = {
 	{ XK_Down,          ShiftMask,      "\033[1;2B",     0,    0,    0},
 	{ XK_Down,          ControlMask,    "\033[1;5B",     0,    0,    0},
 	{ XK_Down,          Mod1Mask,       "\033[1;3B",     0,    0,    0},
-	{ XK_Left,     	    XK_NO_MOD,      "\033[D",        0,   -1,    0},
+	{ XK_Left,	    XK_NO_MOD,      "\033[D",        0,   -1,    0},
 	{ XK_Left,          XK_NO_MOD,      "\033OD",        0,   +1,    0},
 	{ XK_Left,          ShiftMask,      "\033[1;2D",     0,    0,    0},
 	{ XK_Left,          ControlMask,    "\033[1;5D",     0,    0,    0},

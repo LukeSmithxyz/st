@@ -2700,17 +2700,21 @@ kmap(KeySym k, uint state) {
 		if(kp->k != k)
 			continue;
 		if((state & mask) != mask &&
-		   (mask == XK_NO_MOD && state))
+				(mask == XK_NO_MOD && state)) {
 			continue;
+		}
 		if((kp->appkey < 0 && IS_SET(MODE_APPKEYPAD)) ||
-		   (kp->appkey > 0 && !IS_SET(MODE_APPKEYPAD)))
+				(kp->appkey > 0 && !IS_SET(MODE_APPKEYPAD))) {
 			continue;
+		}
 		if((kp->appcursor < 0 && IS_SET(MODE_APPCURSOR)) ||
-		   (kp->appcursor > 0 && !IS_SET(MODE_APPCURSOR)))
+				(kp->appcursor > 0 && !IS_SET(MODE_APPCURSOR))) {
 			continue;
+		}
 		if((kp->crlf < 0 && IS_SET(MODE_CRLF)) ||
-		   (kp->crlf > 0 && !IS_SET(MODE_CRLF)))
+				(kp->crlf > 0 && !IS_SET(MODE_CRLF))) {
 			continue;
+		}
 
 		return kp->s;
 	}
@@ -2755,6 +2759,7 @@ kpress(XEvent *ev) {
 		memcpy(cp, xstr, len);
 		len = cp - buf + len;
 	}
+
 	ttywrite(buf, len);
 	if(IS_SET(MODE_ECHO))
 		techo(buf, len);
@@ -2869,7 +2874,7 @@ main(int argc, char *argv[]) {
 				opt_class = argv[i];
 			break;
 		case 'e':
-			/* eat every remaining arguments */
+			/* eat all remaining arguments */
 			if(++i < argc)
 				opt_cmd = &argv[i];
 			goto run;
@@ -2924,6 +2929,7 @@ run:
 	ttynew();
 	selinit();
 	run();
+
 	return 0;
 }
 
