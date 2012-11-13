@@ -261,6 +261,7 @@ typedef struct {
 
 /* function definitions used in config.h */
 static void xzoom(const Arg *);
+static void selpaste(const Arg *);
 
 /* Config.h for applying patches and the configuration. */
 #include "config.h"
@@ -360,7 +361,6 @@ static void selrequest(XEvent *);
 static void selinit(void);
 static inline bool selected(int, int);
 static void selcopy(void);
-static void selpaste(void);
 static void selscroll(int, int);
 
 static int utf8decode(char *, long *);
@@ -750,7 +750,7 @@ selnotify(XEvent *e) {
 }
 
 void
-selpaste(void) {
+selpaste(const Arg *dummy) {
 	XConvertSelection(xw.dpy, XA_PRIMARY, sel.xtarget, XA_PRIMARY,
 			xw.win, CurrentTime);
 }
@@ -821,7 +821,7 @@ brelease(XEvent *e) {
 	}
 
 	if(e->xbutton.button == Button2) {
-		selpaste();
+		selpaste(NULL);
 	} else if(e->xbutton.button == Button1) {
 		sel.mode = 0;
 		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
@@ -2742,13 +2742,6 @@ kpress(XEvent *ev) {
 				IS_SET(MODE_APPKEYPAD) ? 'O' : '[',
 				(shift ? "dacb":"DACB")[ksym - XK_Left]);
 			len = 3;
-			break;
-		case XK_Insert:
-			if(shift) {
-				selpaste();
-				return;
-			}
-			memcpy(buf, xstr, len);
 			break;
 		case XK_Return:
 			len = 0;
