@@ -2700,7 +2700,7 @@ kmap(KeySym k, uint state) {
 		if(kp->k != k)
 			continue;
 
-		if((state & mask) != mask ||
+		if((state & mask) != mask &&
 				(mask == XK_NO_MOD && state)) {
 			continue;
 		}
