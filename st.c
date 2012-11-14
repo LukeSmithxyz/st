@@ -2699,18 +2699,22 @@ kmap(KeySym k, uint state) {
 
 		if(kp->k != k)
 			continue;
-		if((state & mask) != mask &&
+
+		if((state & mask) != mask ||
 				(mask == XK_NO_MOD && state)) {
 			continue;
 		}
+
 		if((kp->appkey < 0 && IS_SET(MODE_APPKEYPAD)) ||
 				(kp->appkey > 0 && !IS_SET(MODE_APPKEYPAD))) {
 			continue;
 		}
+
 		if((kp->appcursor < 0 && IS_SET(MODE_APPCURSOR)) ||
 				(kp->appcursor > 0 && !IS_SET(MODE_APPCURSOR))) {
 			continue;
 		}
+
 		if((kp->crlf < 0 && IS_SET(MODE_CRLF)) ||
 				(kp->crlf > 0 && !IS_SET(MODE_CRLF))) {
 			continue;
@@ -2718,6 +2722,7 @@ kmap(KeySym k, uint state) {
 
 		return kp->s;
 	}
+
 	return NULL;
 }
 
