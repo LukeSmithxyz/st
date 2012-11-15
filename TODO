@@ -4,14 +4,15 @@ vt emulation
 * implement BCE right
 * color definition in CSI
 	* implement CSI parsing
-* make the keypad keys really work
-	* kel, kfnd, ked, kext
+* wide-character support in conjunction with fallback xft code 
+* mouse selection support
 
 code & interface
 ----------------
 
 * clean and complete terminfo entry
 * add fallback fonts for the restricted xft code
+* add a simple way to do multiplexing
 
 bugs
 ----
@@ -21,6 +22,10 @@ bugs
 * fix selection paste for xatom STRING
 * fix umlaut handling in settitle
 * fix rows and column definition in fixed geometry
+* fix -e handling
+* remove DEC test sequence when appropriate
+* reverse cursor when drawin light on light background
+	* text should be readable
 
 misc
 ----
