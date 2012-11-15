@@ -2711,6 +2711,20 @@ char*
 kmap(KeySym k, uint state) {
 	uint mask;
 	Key *kp;
+	int i;
+
+	/* Check for mapped keys out of X11 function keys. */
+	for(i = 0; i < LEN(mappedkeys); i++) {
+		if(mappedkeys[i] == k) {
+			fprintf(stderr, "mapped function key.\n");
+			break;
+		}
+	}
+	if(i == LEN(mappedkeys)) {
+		if((k & 0xFFFF) < 0xFF00)
+			return NULL;
+	}
+	fprintf(stderr, "Function key.\n");
 
 	for(kp = key; kp < key + LEN(key); kp++) {
 		mask = kp->mask;

@@ -88,6 +88,12 @@ static Shortcut shortcuts[] = {
  * position for a key.
  */
 
+/*
+ * If you want something else but the function keys of X11 (0xFF00 - 0xFFFF)
+ * mapped below, add them to this array.
+ */
+static KeySym mappedkeys[] = { -1 };
+
 /* key, mask, output, keypad, cursor, crlf */
 static Key key[] = {
 	/* keysym             mask         string         keypad cursor crlf */
