@@ -2082,7 +2082,7 @@ tputc(char *c, int len) {
 			}
 		}
 		/*
-		 * All characters which forms part of a sequence are not
+		 * All characters which form part of a sequence are not
 		 * printed
 		 */
 		return;
