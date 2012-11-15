@@ -59,8 +59,8 @@
 #define STR_ARG_SIZ   16
 #define DRAW_BUF_SIZ  20*1024
 #define UTF_SIZ       4
-#define XK_NO_MOD     UINT_MAX
-#define XK_ANY_MOD    0
+#define XK_ANY_MOD    UINT_MAX
+#define XK_NO_MOD     0
 
 #define REDRAW_TIMEOUT (80*1000) /* 80 ms */
 
@@ -2700,10 +2700,12 @@ kmap(KeySym k, uint state) {
 		if(kp->k != k)
 			continue;
 
-		if((state & mask) != mask &&
-				(mask == XK_NO_MOD && state)) {
+		if(mask == XK_NO_MOD && state)
 			continue;
-		}
+		if(mask != XK_ANY_MOD && mask != XK_NO_MOD && !state)
+			continue;
+		if((state & mask) != state)
+			continue;
 
 		if((kp->appkey < 0 && IS_SET(MODE_APPKEYPAD)) ||
 				(kp->appkey > 0 && !IS_SET(MODE_APPKEYPAD))) {
