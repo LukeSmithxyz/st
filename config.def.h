@@ -54,6 +54,16 @@ static unsigned int defaultbg = 0;
 static unsigned int defaultcs = 256;
 static unsigned int defaultucs = 257;
 
+/* Internal shortcuts. */
+#define MODKEY Mod1Mask
+
+static Shortcut shortcuts[] = {
+	/* modifier		key		function	argument */
+	{ MODKEY|ShiftMask,	XK_Prior,	xzoom,		{.i = +1} },
+	{ MODKEY|ShiftMask,	XK_Next,	xzoom,		{.i = -1} },
+	{ ShiftMask,		XK_Insert,	selpaste,	{.i =  0} },
+};
+
 /*
  * Special keys (change & recompile st.info accordingly)
  *
@@ -224,15 +234,28 @@ static Key key[] = {
 	{ XK_F12, /* F36 */ ControlMask,    "\033[24;5~",    0,    0,    0},
 	{ XK_F12, /* F48 */ Mod2Mask,       "\033[24;6~",    0,    0,    0},
 	{ XK_F12, /* F60 */ Mod1Mask,       "\033[24;3~",    0,    0,    0},
-};
-
-/* Internal shortcuts. */
-#define MODKEY Mod1Mask
-
-static Shortcut shortcuts[] = {
-	/* modifier		key		function	argument */
-	{ MODKEY|ShiftMask,	XK_Prior,	xzoom,		{.i = +1} },
-	{ MODKEY|ShiftMask,	XK_Next,	xzoom,		{.i = -1} },
-	{ ShiftMask,		XK_Insert,	selpaste,	{.i =  0} },
+	{ XK_F13,           XK_NO_MOD,      "\033[1;2P",     0,    0,    0},
+	{ XK_F14,           XK_NO_MOD,      "\033[1;2Q",     0,    0,    0},
+	{ XK_F15,           XK_NO_MOD,      "\033[1;2R",     0,    0,    0},
+	{ XK_F16,           XK_NO_MOD,      "\033[1;2S",     0,    0,    0},
+	{ XK_F17,           XK_NO_MOD,      "\033[15;2~",    0,    0,    0},
+	{ XK_F18,           XK_NO_MOD,      "\033[17;2~",    0,    0,    0},
+	{ XK_F19,           XK_NO_MOD,      "\033[18;2~",    0,    0,    0},
+	{ XK_F20,           XK_NO_MOD,      "\033[19;2~",    0,    0,    0},
+	{ XK_F21,           XK_NO_MOD,      "\033[20;2~",    0,    0,    0},
+	{ XK_F22,           XK_NO_MOD,      "\033[21;2~",    0,    0,    0},
+	{ XK_F23,           XK_NO_MOD,      "\033[23;2~",    0,    0,    0},
+	{ XK_F24,           XK_NO_MOD,      "\033[24;2~",    0,    0,    0},
+	{ XK_F25,           XK_NO_MOD,      "\033[1;5P",     0,    0,    0},
+	{ XK_F26,           XK_NO_MOD,      "\033[1;5Q",     0,    0,    0},
+	{ XK_F27,           XK_NO_MOD,      "\033[1;5R",     0,    0,    0},
+	{ XK_F28,           XK_NO_MOD,      "\033[1;5S",     0,    0,    0},
+	{ XK_F29,           XK_NO_MOD,      "\033[15;5~",    0,    0,    0},
+	{ XK_F30,           XK_NO_MOD,      "\033[17;5~",    0,    0,    0},
+	{ XK_F31,           XK_NO_MOD,      "\033[18;5~",    0,    0,    0},
+	{ XK_F32,           XK_NO_MOD,      "\033[19;5~",    0,    0,    0},
+	{ XK_F33,           XK_NO_MOD,      "\033[20;5~",    0,    0,    0},
+	{ XK_F34,           XK_NO_MOD,      "\033[21;5~",    0,    0,    0},
+	{ XK_F35,           XK_NO_MOD,      "\033[23;5~",    0,    0,    0},
 };
 
