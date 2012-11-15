@@ -65,7 +65,6 @@
 #define REDRAW_TIMEOUT (80*1000) /* 80 ms */
 
 /* macros */
-#define CLEANMASK(mask) (mask & (ShiftMask|ControlMask|Mod1Mask|Mod2Mask|Mod3Mask|Mod4Mask|Mod5Mask))
 #define SERRNO strerror(errno)
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
 #define MAX(a, b)  ((a) < (b) ? (b) : (a))
@@ -329,6 +328,7 @@ static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 static void techo(char *, int);
 
+static inline bool match(uint, uint);
 static void ttynew(void);
 static void ttyread(void);
 static void ttyresize(void);
@@ -2696,23 +2696,29 @@ focus(XEvent *ev) {
 	}
 }
 
+inline bool
+match(uint mask, uint state) {
+	if(mask == XK_NO_MOD && state)
+		return false;
+	if(mask != XK_ANY_MOD && mask != XK_NO_MOD && !state)
+		return false;
+	if((state & mask) != state)
+		return false;
+	return true;
+}
+
 char*
 kmap(KeySym k, uint state) {
 	uint mask;
 	Key *kp;
 
-	state &= ~Mod2Mask;
 	for(kp = key; kp < key + LEN(key); kp++) {
 		mask = kp->mask;
 
 		if(kp->k != k)
 			continue;
 
-		if(mask == XK_NO_MOD && state)
-			continue;
-		if(mask != XK_ANY_MOD && mask != XK_NO_MOD && !state)
-			continue;
-		if((state & mask) != state)
+		if(!match(mask, state))
 			continue;
 
 		if((kp->appkey < 0 && IS_SET(MODE_APPKEYPAD)) ||
@@ -2741,21 +2747,20 @@ kpress(XEvent *ev) {
 	XKeyEvent *e = &ev->xkey;
 	KeySym ksym;
 	char xstr[31], buf[32], *customkey, *cp = buf;
-	int len, i;
+	int len;
 	Status status;
+	Shortcut *bp;
 
 	if (IS_SET(MODE_KBDLOCK))
 		return;
 
 	len = XmbLookupString(xw.xic, e, xstr, sizeof(xstr), &ksym, &status);
-
+	e->state &= ~Mod2Mask;
 	/* 1. shortcuts */
-	for(i = 0; i < LEN(shortcuts); i++) {
-		if((ksym == shortcuts[i].keysym)
-				&& (CLEANMASK(shortcuts[i].mod) == \
-					CLEANMASK(e->state))
-				&& shortcuts[i].func) {
-			shortcuts[i].func(&(shortcuts[i].arg));
+	for(bp = shortcuts; bp < shortcuts + LEN(shortcuts); bp++) {
+		if(ksym == bp->keysym && match(bp->mod, e->state)) {
+			bp->func(&(bp->arg));
+			return;
 		}
 	}
 
