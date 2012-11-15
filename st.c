@@ -89,10 +89,6 @@ enum glyph_attribute {
 };
 
 enum cursor_movement {
-	CURSOR_UP,
-	CURSOR_DOWN,
-	CURSOR_LEFT,
-	CURSOR_RIGHT,
 	CURSOR_SAVE,
 	CURSOR_LOAD
 };
