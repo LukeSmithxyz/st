@@ -621,12 +621,9 @@ selected(int x, int y) {
 }
 
 void
-getbuttoninfo(XEvent *e, int *b, int *x, int *y) {
-	if(b)
-		*b = e->xbutton.button;
-
-	*x = x2col(e->xbutton.x);
-	*y = y2row(e->xbutton.y);
+getbuttoninfo(XEvent *e) {
+	sel.ex = x2col(e->xbutton.x);
+	sel.ey = y2row(e->xbutton.y);
 
 	sel.b.x = sel.by < sel.ey ? sel.bx : sel.ex;
 	sel.b.y = MIN(sel.by, sel.ey);
@@ -824,7 +821,7 @@ brelease(XEvent *e) {
 		selpaste(NULL);
 	} else if(e->xbutton.button == Button1) {
 		sel.mode = 0;
-		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
+		getbuttoninfo(e);
 		term.dirty[sel.ey] = 1;
 		if(sel.bx == sel.ex && sel.by == sel.ey) {
 			sel.bx = -1;
@@ -873,7 +870,7 @@ bmotion(XEvent *e) {
 	if(sel.mode) {
 		oldey = sel.ey;
 		oldex = sel.ex;
-		getbuttoninfo(e, NULL, &sel.ex, &sel.ey);
+		getbuttoninfo(e);
 
 		if(oldey != sel.ey || oldex != sel.ex) {
 			starty = MIN(oldey, sel.ey);
