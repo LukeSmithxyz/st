@@ -2100,6 +2100,10 @@ tputc(char *c, int len) {
 		sel.bx = -1;
 	if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
 		tnewline(1); /* always go to first col */
+	if(IS_SET(MODE_INSERT) && term.c.x+1 < term.col)
+		memmove(&term.line[term.c.y][term.c.x+1],
+			&term.line[term.c.y][term.c.x],
+			(term.col - term.c.x - 1) * sizeof(Glyph));
 	tsetchar(c, &term.c.attr, term.c.x, term.c.y);
 	if(term.c.x+1 < term.col)
 		tmoveto(term.c.x+1, term.c.y);
