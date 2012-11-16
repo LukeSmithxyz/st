@@ -98,7 +98,8 @@ static KeySym mappedkeys[] = { -1 };
 static Key key[] = {
 	/* keysym             mask         string         keypad cursor crlf */
 	{ XK_KP_Home,       ShiftMask,      "\033[1;2H",     0,    0,    0},
-	{ XK_KP_Home,       XK_ANY_MOD,     "\033[H",        0,    0,    0},
+	{ XK_KP_Home,       XK_ANY_MOD,     "\033[H",        0,   -1,    0},
+	{ XK_KP_Home,       XK_ANY_MOD,     "\033[1~",       0,   +1,    0},
 	{ XK_KP_Up,         XK_ANY_MOD,     "\033Ox",       +1,    0,    0},
 	{ XK_KP_Up,         XK_ANY_MOD,     "\033[A",        0,   -1,    0},
 	{ XK_KP_Up,         XK_ANY_MOD,     "\033OA",        0,   +1,    0},
@@ -170,9 +171,9 @@ static Key key[] = {
 	{ XK_Insert,        XK_ANY_MOD,     "\033[2~",       0,    0,    0},
 	{ XK_Delete,        ShiftMask,      "\033[3;2~",     0,    0,    0},
 	{ XK_Delete,        XK_ANY_MOD,     "\033[3~",       0,    0,    0},
-	{ XK_Home,          XK_NO_MOD,      "\033[1~",       0,    0,    0},
 	{ XK_Home,          ShiftMask,      "\033[1;2H",     0,    0,    0},
-	{ XK_Home,          XK_ANY_MOD,     "\033[H",        0,    0,    0},
+	{ XK_Home,          XK_ANY_MOD,     "\033[H",        0,   -1,    0},
+	{ XK_Home,          XK_ANY_MOD,     "\033[1~",       0,   +1,    0},
 	{ XK_End,           ShiftMask,      "\033[1;2F",     0,    0,    0},
 	{ XK_End,           XK_ANY_MOD,     "\033[4~",       0,    0,    0},
 	{ XK_Prior,         XK_NO_MOD,      "\033[5~",       0,    0,    0},
