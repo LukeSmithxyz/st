@@ -170,6 +170,7 @@ static Key key[] = {
 	{ XK_Insert,        XK_ANY_MOD,     "\033[2~",       0,    0,    0},
 	{ XK_Delete,        ShiftMask,      "\033[3;2~",     0,    0,    0},
 	{ XK_Delete,        XK_ANY_MOD,     "\033[3~",       0,    0,    0},
+	{ XK_Home,          XK_NO_MOD,      "\033[1~",       0,    0,    0},
 	{ XK_Home,          ShiftMask,      "\033[1;2H",     0,    0,    0},
 	{ XK_Home,          XK_ANY_MOD,     "\033[H",        0,    0,    0},
 	{ XK_End,           ShiftMask,      "\033[1;2F",     0,    0,    0},
