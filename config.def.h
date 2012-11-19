@@ -141,7 +141,7 @@ static Key key[] = {
 	{ XK_KP_7,          XK_ANY_MOD,     "\033Ow",       +1,    0,    0},
 	{ XK_KP_8,          XK_ANY_MOD,     "\033Ox",       +1,    0,    0},
 	{ XK_KP_9,          XK_ANY_MOD,     "\033Oy",       +1,    0,    0},
-	{ XK_BackSpace,     XK_ANY_MOD,     "\177",          0,    0,    0},
+	{ XK_BackSpace,     XK_NO_MOD,      "\177",          0,    0,    0},
 	{ XK_Up,            ShiftMask,      "\033[1;2A",     0,    0,    0},
 	{ XK_Up,            ControlMask,    "\033[1;5A",     0,    0,    0},
 	{ XK_Up,            Mod1Mask,       "\033[1;3A",     0,    0,    0},
