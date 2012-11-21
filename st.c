@@ -2182,8 +2182,8 @@ tresize(int col, int row) {
 
 void
 xresize(int col, int row) {
-	xw.tw = MAX(1, 2*borderpx + col * xw.cw);
-	xw.th = MAX(1, 2*borderpx + row * xw.ch);
+	xw.tw = MAX(1, col * xw.cw);
+	xw.th = MAX(1, row * xw.ch);
 
 	XftDrawChange(xw.draw, xw.buf);
 }
@@ -2259,8 +2259,8 @@ xhints(void) {
 		sizeh->width = xw.w;
 		sizeh->height_inc = xw.ch;
 		sizeh->width_inc = xw.cw;
-		sizeh->base_height = 2*borderpx;
-		sizeh->base_width = 2*borderpx;
+		sizeh->base_height = 2 * borderpx;
+		sizeh->base_width = 2 * borderpx;
 	} else {
 		sizeh->flags = PMaxSize | PMinSize;
 		sizeh->min_width = sizeh->max_width = xw.fw;
@@ -2393,8 +2393,8 @@ xinit(void) {
 		xw.w = xw.fw;
 	} else {
 		/* window - default size */
-		xw.h = 2*borderpx + term.row * xw.ch;
-		xw.w = 2*borderpx + term.col * xw.cw;
+		xw.h = 2 * borderpx + term.row * xw.ch;
+		xw.w = 2 * borderpx + term.col * xw.cw;
 		xw.fx = 0;
 		xw.fy = 0;
 	}
@@ -2818,8 +2818,8 @@ cresize(int width, int height)
 	if(height != 0)
 		xw.h = height;
 
-	col = (xw.w - 2*borderpx) / xw.cw;
-	row = (xw.h - 2*borderpx) / xw.ch;
+	col = (xw.w - 2 * borderpx) / xw.cw;
+	row = (xw.h - 2 * borderpx) / xw.ch;
 
 	tresize(col, row);
 	xresize(col, row);
