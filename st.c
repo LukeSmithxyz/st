@@ -1102,6 +1102,7 @@ tnew(int col, int row) {
 		term.alt [row] = xmalloc(term.col * sizeof(Glyph));
 		term.dirty[row] = 0;
 	}
+
 	term.numlock = 1;
 	memset(term.tabs, 0, term.col * sizeof(*term.tabs));
 	/* setup screen */
@@ -2704,8 +2705,7 @@ match(uint mask, uint state) {
 }
 
 void
-numlock(const Arg *dummy)
-{
+numlock(const Arg *dummy) {
 	term.numlock ^= 1;
 }
 
