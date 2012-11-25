@@ -194,6 +194,7 @@ typedef struct {
 	int bot;	/* bottom scroll limit */
 	int mode;	/* terminal mode flags */
 	int esc;	/* escape state flags */
+	bool numlock;	/* lock numbers in keyboard */
 	bool *tabs;
 } Term;
 
@@ -261,6 +262,7 @@ typedef struct {
 /* function definitions used in config.h */
 static void xzoom(const Arg *);
 static void selpaste(const Arg *);
+static void numlock(const Arg *);
 
 /* Config.h for applying patches and the configuration. */
 #include "config.h"
@@ -1100,6 +1102,7 @@ tnew(int col, int row) {
 		term.alt [row] = xmalloc(term.col * sizeof(Glyph));
 		term.dirty[row] = 0;
 	}
+	term.numlock = 1;
 	memset(term.tabs, 0, term.col * sizeof(*term.tabs));
 	/* setup screen */
 	treset();
@@ -2700,6 +2703,12 @@ match(uint mask, uint state) {
 	return true;
 }
 
+void
+numlock(const Arg *dummy)
+{
+	term.numlock ^= 1;
+}
+
 char*
 kmap(KeySym k, uint state) {
 	uint mask;
@@ -2725,8 +2734,12 @@ kmap(KeySym k, uint state) {
 		if(!match(mask, state))
 			continue;
 
-		if((kp->appkey < 0 && IS_SET(MODE_APPKEYPAD)) ||
-				(kp->appkey > 0 && !IS_SET(MODE_APPKEYPAD))) {
+		if(kp->appkey > 0) {
+			if(!IS_SET(MODE_APPKEYPAD))
+				continue;
+			if(term.numlock && kp->appkey == 2)
+				continue;
+		} else if (kp->appkey < 0 && IS_SET(MODE_APPKEYPAD)) {
 			continue;
 		}
 
