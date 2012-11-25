@@ -1,6 +1,10 @@
 /* See LICENSE file for copyright and license details. */
 
-/* appearance */
+/*
+ * appearance
+ *
+ * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
+ */
 static char font[] = "Liberation Mono:pixelsize=12:antialias=false:autohint=false";
 static int borderpx = 2;
 static char shell[] = "/bin/sh";
