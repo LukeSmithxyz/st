@@ -73,7 +73,7 @@
 #define BETWEEN(x, a, b)  ((a) <= (x) && (x) <= (b))
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
-#define IS_SET(flag) (term.mode & (flag))
+#define IS_SET(flag) ((term.mode & (flag)) != 0)
 #define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_usec-t2.tv_usec)/1000)
 
 #define VT102ID "\033[?6c"
@@ -624,6 +624,8 @@ selected(int x, int y) {
 
 void
 getbuttoninfo(XEvent *e) {
+	sel.alt = IS_SET(MODE_ALTSCREEN);
+
 	sel.ex = x2col(e->xbutton.x);
 	sel.ey = y2row(e->xbutton.y);
 
@@ -722,7 +724,6 @@ selcopy(void) {
 		}
 		*ptr = 0;
 	}
-	sel.alt = IS_SET(MODE_ALTSCREEN);
 	xsetsel(str);
 }
 
@@ -869,16 +870,17 @@ bmotion(XEvent *e) {
 		return;
 	}
 
-	if(sel.mode) {
-		oldey = sel.ey;
-		oldex = sel.ex;
-		getbuttoninfo(e);
+	if(!sel.mode)
+		return;
 
-		if(oldey != sel.ey || oldex != sel.ex) {
-			starty = MIN(oldey, sel.ey);
-			endy = MAX(oldey, sel.ey);
-			tsetdirt(starty, endy);
-		}
+	oldey = sel.ey;
+	oldex = sel.ex;
+	getbuttoninfo(e);
+
+	if(oldey != sel.ey || oldex != sel.ex) {
+		starty = MIN(oldey, sel.ey);
+		endy = MAX(oldey, sel.ey);
+		tsetdirt(starty, endy);
 	}
 }
 
@@ -1510,7 +1512,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 1049: /* = 1047 and 1048 */
 			case 47:
 			case 1047: {
-				alt = IS_SET(MODE_ALTSCREEN) != 0;
+				alt = IS_SET(MODE_ALTSCREEN);
 				if(alt)
 					tclearregion(0, 0, term.col-1, term.row-1);
 				if(set ^ alt)		/* set is always 1 or 0 */
@@ -2603,10 +2605,11 @@ drawregion(int x1, int y1, int x2, int y2) {
 	int ic, ib, x, y, ox, sl;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
-	bool ena_sel = sel.bx != -1, alt = IS_SET(MODE_ALTSCREEN) != 0;
+	bool ena_sel = sel.bx != -1;
 
-	if((sel.alt != 0) ^ alt)
+	if(sel.alt ^ IS_SET(MODE_ALTSCREEN))
 		ena_sel = 0;
+
 	if(!(xw.state & WIN_VISIBLE))
 		return;
 
