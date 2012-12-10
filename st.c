@@ -2742,12 +2742,13 @@ kmap(KeySym k, uint state) {
 				continue;
 			if(term.numlock && kp->appkey == 2)
 				continue;
-		} else if (kp->appkey < 0 && IS_SET(MODE_APPKEYPAD)) {
+		} else if(kp->appkey < 0 && IS_SET(MODE_APPKEYPAD)) {
 			continue;
 		}
 
 		if((kp->appcursor < 0 && IS_SET(MODE_APPCURSOR)) ||
-				(kp->appcursor > 0 && !IS_SET(MODE_APPCURSOR))) {
+				(kp->appcursor > 0
+				 && !IS_SET(MODE_APPCURSOR))) {
 			continue;
 		}
 
