@@ -17,7 +17,6 @@ code & interface
 bugs
 ----
 
-* handle XOpenMI() errors
 * fix shift up/down (shift selection in emacs)
 * fix selection paste for xatom STRING
 * fix umlaut handling in settitle

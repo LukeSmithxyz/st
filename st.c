@@ -2431,9 +2431,13 @@ xinit(void) {
 
 	/* input methods */
 	xw.xim = XOpenIM(xw.dpy, NULL, NULL, NULL);
+	if(xw.xim == NULL)
+		die("XOpenIM failed. Could not open input device.\n");
 	xw.xic = XCreateIC(xw.xim, XNInputStyle, XIMPreeditNothing
 					   | XIMStatusNothing, XNClientWindow, xw.win,
 					   XNFocusWindow, xw.win, NULL);
+	if(xw.xic == NULL)
+		die("XCreateIC failed. Could not obtain input method.\n");
 
 	/* white cursor, black outline */
 	cursor = XCreateFontCursor(xw.dpy, XC_xterm);
