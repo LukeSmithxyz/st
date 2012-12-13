@@ -2728,7 +2728,7 @@ kmap(KeySym k, uint state) {
 			break;
 	}
 	if(i == LEN(mappedkeys)) {
-		if((k & 0xFFFF) < 0xFF00)
+		if((k & 0xFFFF) < 0xFD00)
 			return NULL;
 	}
 
