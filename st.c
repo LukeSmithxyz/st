@@ -2525,11 +2525,11 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	/* Intelligent cleaning up of the borders. */
 	if(x == 0) {
 		xclear(0, (y == 0)? 0 : winy, borderpx,
-			winy + xw.ch + (y == term.row-1)? xw.h : 0);
+			winy + xw.ch + ((y == term.row-1)? xw.h : 0));
 	}
 	if(x + charlen >= term.col-1) {
 		xclear(winx + width, (y == 0)? 0 : winy, xw.w,
-			(y == term.row-1)? xw.h : (winy + xw.ch));
+			((y == term.row-1)? xw.h : (winy + xw.ch)));
 	}
 	if(y == 0)
 		xclear(winx, 0, winx + width, borderpx);
