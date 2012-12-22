@@ -2248,7 +2248,7 @@ xtermclear(int col1, int row1, int col2, int row2) {
 void
 xclear(int x1, int y1, int x2, int y2) {
 	XftDrawRect(xw.draw,
-			&dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg],
+			&dc.col[IS_SET(MODE_REVERSE)? defaultfg : defaultbg],
 			x1, y1, x2-x1, y2-y1);
 }
 
@@ -2515,8 +2515,11 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		}
 	}
 
-	if(base.mode & ATTR_REVERSE)
-		temp = fg, fg = bg, bg = temp;
+	if(base.mode & ATTR_REVERSE) {
+		temp = fg;
+		fg = bg;
+		bg = temp;
+	}
 
 	XftTextExtentsUtf8(xw.dpy, font->set, (FcChar8 *)s, bytelen,
 			&extents);
@@ -2525,11 +2528,11 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	/* Intelligent cleaning up of the borders. */
 	if(x == 0) {
 		xclear(0, (y == 0)? 0 : winy, borderpx,
-			winy + xw.ch + ((y == term.row-1)? xw.h : 0));
+			winy + xw.ch + ((y >= term.row-1)? xw.h : 0));
 	}
-	if(x + charlen >= term.col-1) {
+	if(x + charlen >= term.col)
 		xclear(winx + width, (y == 0)? 0 : winy, xw.w,
-			((y == term.row-1)? xw.h : (winy + xw.ch)));
+			((y >= term.row-1)? xw.h : (winy + xw.ch)));
 	}
 	if(y == 0)
 		xclear(winx, 0, winx + width, borderpx);
