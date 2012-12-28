@@ -275,7 +275,9 @@ typedef struct {
 	int descent;
 	short lbearing;
 	short rbearing;
-	XftFont *set;
+	XftFont *match;
+	FcFontSet *set;
+	FcPattern *pattern;
 } Font;
 
 /* Drawing Context */
@@ -338,10 +340,13 @@ static void xclear(int, int, int, int);
 static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
+static int xloadfont(Font *, FcPattern *);
+static void xloadfonts(char *, int);
 static void xresettitle(void);
 static void xseturgency(int);
 static void xsetsel(char*);
 static void xtermclear(int, int, int, int);
+static void xunloadfonts(void);
 static void xresize(int, int);
 
 static void expose(XEvent *);
@@ -350,7 +355,7 @@ static void unmap(XEvent *);
 static char *kmap(KeySym, uint);
 static void kpress(XEvent *);
 static void cmessage(XEvent *);
-static void cresize(int width, int height);
+static void cresize(int, int);
 static void resize(XEvent *);
 static void focus(XEvent *);
 static void brelease(XEvent *);
@@ -373,7 +378,7 @@ static int isfullutf8(char *, int);
 static ssize_t xwrite(int, char *, size_t);
 static void *xmalloc(size_t);
 static void *xrealloc(void *, size_t);
-static void *xcalloc(size_t nmemb, size_t size);
+static void *xcalloc(size_t, size_t);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
@@ -411,6 +416,28 @@ static char *opt_font = NULL;
 
 static char *usedfont = NULL;
 static int usedfontsize = 0;
+
+/* Font Ring Cache */
+enum {
+	FRC_NORMAL,
+	FRC_ITALIC,
+	FRC_BOLD,
+	FRC_ITALICBOLD
+};
+
+typedef struct {
+	XftFont *font;
+	long c;
+	int flags;
+} Fontcache;
+
+/*
+ * Fontcache is a ring buffer, with frccur as current position and frclen as
+ * the current length of used elements.
+ */
+
+static Fontcache frc[256];
+static int frccur = 0, frclen = 0;
 
 ssize_t
 xwrite(int fd, char *s, size_t len) {
@@ -2282,20 +2309,28 @@ xloadfont(Font *f, FcPattern *pattern) {
 	FcPattern *match;
 	FcResult result;
 
-	match = XftFontMatch(xw.dpy, xw.scr, pattern, &result);
+	match = FcFontMatch(NULL, pattern, &result);
 	if(!match)
 		return 1;
-	if(!(f->set = XftFontOpenPattern(xw.dpy, match))) {
+
+	if(!(f->set = FcFontSort(0, match, FcTrue, 0, &result))) {
 		FcPatternDestroy(match);
 		return 1;
 	}
 
-	f->ascent = f->set->ascent;
-	f->descent = f->set->descent;
-	f->lbearing = 0;
-	f->rbearing = f->set->max_advance_width;
+	if(!(f->match = XftFontOpenPattern(xw.dpy, match))) {
+		FcPatternDestroy(match);
+		return 1;
+	}
 
-	f->height = f->set->height;
+	f->pattern = FcPatternDuplicate(pattern);
+
+	f->ascent = f->match->ascent;
+	f->descent = f->match->descent;
+	f->lbearing = 0;
+	f->rbearing = f->match->max_advance_width;
+
+	f->height = f->match->height;
 	f->width = f->lbearing + f->rbearing;
 
 	return 0;
@@ -2334,6 +2369,9 @@ xloadfonts(char *fontstr, int fontsize) {
 		}
 	}
 
+	FcConfigSubstitute(0, pattern, FcMatchPattern);
+	FcDefaultSubstitute(pattern);
+
 	if(xloadfont(&dc.font, pattern))
 		die("st: can't open font %s\n", fontstr);
 
@@ -2359,8 +2397,40 @@ xloadfonts(char *fontstr, int fontsize) {
 }
 
 void
+xunloadfonts(void)
+{
+	int i, ip;
+
+	/*
+	 * Free the loaded fonts in the font cache. This is done backwards
+	 * from the frccur.
+	 */
+	for (i = 0, ip = frccur; i < frclen; i++, ip--) {
+		if (ip <= 0)
+			ip = LEN(frc) - 1;
+		XftFontClose(xw.dpy, frc[ip].font);
+	}
+	frccur = 0;
+	frclen = 0;
+
+	XftFontClose(xw.dpy, dc.font.match);
+	FcPatternDestroy(dc.font.pattern);
+	FcFontSetDestroy(dc.font.set);
+	XftFontClose(xw.dpy, dc.bfont.match);
+	FcPatternDestroy(dc.bfont.pattern);
+	FcFontSetDestroy(dc.bfont.set);
+	XftFontClose(xw.dpy, dc.ifont.match);
+	FcPatternDestroy(dc.ifont.pattern);
+	FcFontSetDestroy(dc.ifont.set);
+	XftFontClose(xw.dpy, dc.ibfont.match);
+	FcPatternDestroy(dc.ibfont.pattern);
+	FcFontSetDestroy(dc.ibfont.set);
+}
+
+void
 xzoom(const Arg *arg)
 {
+	xunloadfonts();
 	xloadfonts(usedfont, usedfontsize + arg->i);
 	cresize(0, 0);
 	draw();
@@ -2379,6 +2449,9 @@ xinit(void) {
 	xw.vis = XDefaultVisual(xw.dpy, xw.scr);
 
 	/* font */
+	if (!FcInit())
+		die("Could not init fontconfig.\n");
+
 	usedfont = (opt_font == NULL)? font : opt_font;
 	xloadfonts(usedfont, 0);
 
@@ -2459,12 +2532,21 @@ xinit(void) {
 void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	int winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch,
-	    width = charlen * xw.cw;
+	    width = charlen * xw.cw, u8clen, xp, i, frp, frcflags;
+	long u8char;
+	char *u8c;
 	Font *font = &dc.font;
+	XftFont *sfont;
+	FcResult fcres;
+	FcPattern *fcpattern, *fontpattern;
+	FcFontSet *fcsets[] = { NULL };
+	FcCharSet *fccharset;
 	XGlyphInfo extents;
 	Colour *fg = &dc.col[base.fg], *bg = &dc.col[base.bg],
 		 *temp, revfg, revbg;
 	XRenderColor colfg, colbg;
+
+	frcflags = FRC_NORMAL;
 
 	if(base.mode & ATTR_BOLD) {
 		if(BETWEEN(base.fg, 0, 7)) {
@@ -2484,12 +2566,17 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		 *	252 - 255 – brightest colors in greyscale
 		 */
 		font = &dc.bfont;
+		frcflags = FRC_BOLD;
 	}
 
-	if(base.mode & ATTR_ITALIC)
+	if(base.mode & ATTR_ITALIC) {
 		font = &dc.ifont;
-	if((base.mode & ATTR_ITALIC) && (base.mode & ATTR_BOLD))
+		frcflags = FRC_ITALIC;
+	}
+	if((base.mode & ATTR_ITALIC) && (base.mode & ATTR_BOLD)) {
 		font = &dc.ibfont;
+		frcflags = FRC_ITALICBOLD;
+	}
 
 	if(IS_SET(MODE_REVERSE)) {
 		if(fg == &dc.col[defaultfg]) {
@@ -2521,7 +2608,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		bg = temp;
 	}
 
-	XftTextExtentsUtf8(xw.dpy, font->set, (FcChar8 *)s, bytelen,
+	/* Width of the whole string that should be printed. */
+	XftTextExtentsUtf8(xw.dpy, font->match, (FcChar8 *)s, bytelen,
 			&extents);
 	width = extents.xOff;
 
@@ -2539,9 +2627,96 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	if(y == term.row-1)
 		xclear(winx, winy + xw.ch, winx + width, xw.h);
 
+	/* Clean up the region we want to draw to. */
 	XftDrawRect(xw.draw, bg, winx, winy, width, xw.ch);
+
+	/*
+	 * Step through all UTF-8 characters one by one and search in the font
+	 * cache ring buffer, whether there was some font found to display the
+	 * unicode value of that UTF-8 character.
+	 */
+	fcsets[0] = font->set;
+	for (xp = winx; bytelen > 0; ) {
+		u8c = s;
+		u8clen = utf8decode(s, &u8char);
+		s += u8clen;
+		bytelen -= u8clen;
+
+		sfont = font->match;
+		/*
+		 * Only check the font cache or load new fonts, if the
+		 * characters is not represented in main font.
+		 */
+		if (!XftCharExists(xw.dpy, font->match, u8char)) {
+			frp = frccur;
+			/* Search the font cache. */
+			for (i = 0; i < frclen; i++, frp--) {
+				if (frp <= 0)
+					frp = LEN(frc) - 1;
+
+				if (frc[frp].c == u8char
+					&& frc[frp].flags == frcflags) {
+					break;
+				}
+			}
+			if (i >= frclen) {
+				/*
+				 * Nothing was found in the cache. Now use
+				 * some dozen of Fontconfig calls to get the
+				 * font for one single character.
+				 */
+				fcpattern = FcPatternDuplicate(font->pattern);
+				fccharset = FcCharSetCreate();
+
+				FcCharSetAddChar(fccharset, u8char);
+				FcPatternAddCharSet(fcpattern, FC_CHARSET,
+						fccharset);
+				FcPatternAddBool(fcpattern, FC_SCALABLE,
+						FcTrue);
+
+				FcConfigSubstitute(0, fcpattern,
+						FcMatchPattern);
+				FcDefaultSubstitute(fcpattern);
+
+				fontpattern = FcFontSetMatch(0, fcsets,
+						FcTrue, fcpattern, &fcres);
+
+				frccur++;
+				frclen++;
+				if (frccur >= LEN(frc))
+					frccur = 0;
+				if (frclen >= LEN(frc)) {
+					frclen = LEN(frc);
+					XftFontClose(xw.dpy, frc[frccur].font);
+				}
+
+				/*
+				 * Overwrite or create the new cache entry
+				 * entry.
+				 */
+				frc[frccur].font = XftFontOpenPattern(xw.dpy,
+						fontpattern);
+				frc[frccur].c = u8char;
+				frc[frccur].flags = frcflags;
+
+				FcPatternDestroy(fcpattern);
+				FcCharSetDestroy(fccharset);
+
+				frp = frccur;
+			}
+			sfont = frc[frp].font;
+		}
+
+		XftDrawStringUtf8(xw.draw, fg, sfont, xp, winy + sfont->ascent,
+				(FcChar8 *)u8c, u8clen);
+
+		xp += font->width;
+	}
+
+	/*
 	XftDrawStringUtf8(xw.draw, fg, font->set, winx,
 			winy + font->ascent, (FcChar8 *)s, bytelen);
+	*/
 
 	if(base.mode & ATTR_UNDERLINE) {
 		XftDrawRect(xw.draw, fg, winx, winy + font->ascent + 1,
