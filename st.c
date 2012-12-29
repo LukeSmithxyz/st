@@ -437,7 +437,7 @@ typedef struct {
  */
 
 static Fontcache frc[256];
-static int frccur = 0, frclen = 0;
+static int frccur = -1, frclen = 0;
 
 ssize_t
 xwrite(int fd, char *s, size_t len) {
@@ -2410,7 +2410,7 @@ xunloadfonts(void)
 			ip = LEN(frc) - 1;
 		XftFontClose(xw.dpy, frc[ip].font);
 	}
-	frccur = 0;
+	frccur = -1;
 	frclen = 0;
 
 	XftFontClose(xw.dpy, dc.font.match);
@@ -2532,11 +2532,12 @@ xinit(void) {
 void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	int winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch,
-	    width = charlen * xw.cw, u8clen, xp, i, frp, frcflags;
+	    width = charlen * xw.cw, xp, i;
+	int frp, frcflags;
+	int u8fl, u8fblen, u8cblen, doesexist;
+	char *u8c, *u8fs;
 	long u8char;
-	char *u8c;
 	Font *font = &dc.font;
-	XftFont *sfont;
 	FcResult fcres;
 	FcPattern *fcpattern, *fontpattern;
 	FcFontSet *fcsets[] = { NULL };
@@ -2608,11 +2609,6 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		bg = temp;
 	}
 
-	/* Width of the whole string that should be printed. */
-	XftTextExtentsUtf8(xw.dpy, font->match, (FcChar8 *)s, bytelen,
-			&extents);
-	width = extents.xOff;
-
 	/* Intelligent cleaning up of the borders. */
 	if(x == 0) {
 		xclear(0, (y == 0)? 0 : winy, borderpx,
@@ -2630,85 +2626,111 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	/* Clean up the region we want to draw to. */
 	XftDrawRect(xw.draw, bg, winx, winy, width, xw.ch);
 
-	/*
-	 * Step through all UTF-8 characters one by one and search in the font
-	 * cache ring buffer, whether there was some font found to display the
-	 * unicode value of that UTF-8 character.
-	 */
 	fcsets[0] = font->set;
-	for (xp = winx; bytelen > 0; ) {
-		u8c = s;
-		u8clen = utf8decode(s, &u8char);
-		s += u8clen;
-		bytelen -= u8clen;
-
-		sfont = font->match;
+	for (xp = winx; bytelen > 0;) {
 		/*
-		 * Only check the font cache or load new fonts, if the
-		 * characters is not represented in main font.
+		 * Search for the range in the to be printed string of glyphs
+		 * that are in the main font. Then print that range. If
+		 * some glyph is found that is not in the font, do the
+		 * fallback dance.
 		 */
-		if (!XftCharExists(xw.dpy, font->match, u8char)) {
-			frp = frccur;
-			/* Search the font cache. */
-			for (i = 0; i < frclen; i++, frp--) {
-				if (frp <= 0)
-					frp = LEN(frc) - 1;
+		u8fs = s;
+		u8fblen = 0;
+		u8fl = 0;
+		for (;;) {
+			u8c = s;
+			u8cblen = utf8decode(s, &u8char);
+			s += u8cblen;
+			bytelen -= u8cblen;
 
-				if (frc[frp].c == u8char
+			doesexist = XftCharIndex(xw.dpy, font->match, u8char);
+			if (!doesexist || bytelen <= 0) {
+				if (bytelen <= 0) {
+					if (doesexist) {
+						u8fl++;
+						u8fblen += u8cblen;
+					}
+				}
+
+				if (u8fl > 0) {
+					XftDrawStringUtf8(xw.draw, fg,
+							font->match, xp,
+							winy + font->ascent,
+							(FcChar8 *)u8fs,
+							u8fblen);
+					xp += font->width * u8fl;
+				}
+				break;
+			}
+
+			u8fl++;
+			u8fblen += u8cblen;
+		}
+		if (doesexist)
+			break;
+
+		frp = frccur;
+		/* Search the font cache. */
+		for (i = 0; i < frclen; i++, frp--) {
+			if (frp <= 0)
+				frp = LEN(frc) - 1;
+
+			if (frc[frp].c == u8char
 					&& frc[frp].flags == frcflags) {
-					break;
-				}
+				break;
 			}
-			if (i >= frclen) {
-				/*
-				 * Nothing was found in the cache. Now use
-				 * some dozen of Fontconfig calls to get the
-				 * font for one single character.
-				 */
-				fcpattern = FcPatternDuplicate(font->pattern);
-				fccharset = FcCharSetCreate();
-
-				FcCharSetAddChar(fccharset, u8char);
-				FcPatternAddCharSet(fcpattern, FC_CHARSET,
-						fccharset);
-				FcPatternAddBool(fcpattern, FC_SCALABLE,
-						FcTrue);
-
-				FcConfigSubstitute(0, fcpattern,
-						FcMatchPattern);
-				FcDefaultSubstitute(fcpattern);
-
-				fontpattern = FcFontSetMatch(0, fcsets,
-						FcTrue, fcpattern, &fcres);
-
-				frccur++;
-				frclen++;
-				if (frccur >= LEN(frc))
-					frccur = 0;
-				if (frclen >= LEN(frc)) {
-					frclen = LEN(frc);
-					XftFontClose(xw.dpy, frc[frccur].font);
-				}
-
-				/*
-				 * Overwrite or create the new cache entry
-				 * entry.
-				 */
-				frc[frccur].font = XftFontOpenPattern(xw.dpy,
-						fontpattern);
-				frc[frccur].c = u8char;
-				frc[frccur].flags = frcflags;
-
-				FcPatternDestroy(fcpattern);
-				FcCharSetDestroy(fccharset);
-
-				frp = frccur;
-			}
-			sfont = frc[frp].font;
 		}
 
-		XftDrawStringUtf8(xw.draw, fg, sfont, xp, winy + sfont->ascent,
-				(FcChar8 *)u8c, u8clen);
+		/* Nothing was found. */
+		if (i >= frclen) {
+			/*
+			 * Nothing was found in the cache. Now use
+			 * some dozen of Fontconfig calls to get the
+			 * font for one single character.
+			 */
+			fcpattern = FcPatternDuplicate(font->pattern);
+			fccharset = FcCharSetCreate();
+
+			FcCharSetAddChar(fccharset, u8char);
+			FcPatternAddCharSet(fcpattern, FC_CHARSET,
+					fccharset);
+			FcPatternAddBool(fcpattern, FC_SCALABLE,
+					FcTrue);
+
+			FcConfigSubstitute(0, fcpattern,
+					FcMatchPattern);
+			FcDefaultSubstitute(fcpattern);
+
+			fontpattern = FcFontSetMatch(0, fcsets,
+					FcTrue, fcpattern, &fcres);
+
+			/*
+			 * Overwrite or create the new cache entry
+			 * entry.
+			 */
+			frccur++;
+			frclen++;
+			if (frccur >= LEN(frc))
+				frccur = 0;
+			if (frclen > LEN(frc)) {
+				frclen = LEN(frc);
+				XftFontClose(xw.dpy, frc[frccur].font);
+			}
+
+			frc[frccur].font = XftFontOpenPattern(xw.dpy,
+					fontpattern);
+			frc[frccur].c = u8char;
+			frc[frccur].flags = frcflags;
+
+			FcPatternDestroy(fcpattern);
+			FcCharSetDestroy(fccharset);
+
+			frp = frccur;
+		}
+
+		XftDrawStringUtf8(xw.draw, fg, frc[frp].font,
+				xp, winy + frc[frp].font->ascent,
+				(FcChar8 *)u8c, u8cblen);
 
 		xp += font->width;
 	}
