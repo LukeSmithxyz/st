@@ -2406,7 +2406,7 @@ xunloadfonts(void)
 	 * from the frccur.
 	 */
 	for (i = 0, ip = frccur; i < frclen; i++, ip--) {
-		if (ip <= 0)
+		if (ip < 0)
 			ip = LEN(frc) - 1;
 		XftFontClose(xw.dpy, frc[ip].font);
 	}
