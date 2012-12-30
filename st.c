@@ -2542,7 +2542,6 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	FcPattern *fcpattern, *fontpattern;
 	FcFontSet *fcsets[] = { NULL };
 	FcCharSet *fccharset;
-	XGlyphInfo extents;
 	Colour *fg = &dc.col[base.fg], *bg = &dc.col[base.bg],
 		 *temp, revfg, revbg;
 	XRenderColor colfg, colbg;
