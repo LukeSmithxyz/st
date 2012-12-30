@@ -436,7 +436,7 @@ typedef struct {
  * the current length of used elements.
  */
 
-static Fontcache frc[256];
+static Fontcache frc[2048];
 static int frccur = -1, frclen = 0;
 
 ssize_t
