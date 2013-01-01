@@ -2503,9 +2503,17 @@ xinit(void) {
 	xw.draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
 
 	/* input methods */
-	xw.xim = XOpenIM(xw.dpy, NULL, NULL, NULL);
-	if(xw.xim == NULL)
-		die("XOpenIM failed. Could not open input device.\n");
+	if((xw.xim =  XOpenIM(xw.dpy, NULL, NULL, NULL)) == NULL) {
+		XSetLocaleModifiers("@im=local");
+		if((xw.xim =  XOpenIM(xw.dpy, NULL, NULL, NULL)) == NULL) {
+			XSetLocaleModifiers("@im=");
+			if((xw.xim = XOpenIM(xw.dpy,
+					NULL, NULL, NULL)) == NULL) {
+				die("XOpenIM failed. Could not open input"
+					" device.\n");
+			}
+		}
+	}
 	xw.xic = XCreateIC(xw.xim, XNInputStyle, XIMPreeditNothing
 					   | XIMStatusNothing, XNClientWindow, xw.win,
 					   XNFocusWindow, xw.win, NULL);
