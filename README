@@ -21,16 +21,14 @@ necessary as root):
 
 Running st
 ----------
-If you don't install st, define TNAME to "xterm" in config.h or make sure to at
-least compile st terminfo entry with the following command:
+If you did not install st with make clean install, you must compile
+the st terminfo entry with the following command:
 
     tic -s st.info
 
-It should print the path of the compiled terminfo entry. You can
-safely remove it if you don't plan to use st anymore.
 See the man page for additional details.
 
 Credits
 -------
-Based on  Aurélien APTEL <aurelien dot aptel at gmail dot com> bt source code.
+Based on Aurélien APTEL <aurelien dot aptel at gmail dot com> bt source code.
 
