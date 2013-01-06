@@ -3,6 +3,38 @@ Why does st not handle utmp entries?
 
 Use the excellent tool of utmp[0] for this task.
 
-[0] http://hg.suckless.org/utmp/
+[0] http://git.suckless.org/utmp/
+--
+Some _random program_ complains that st is unknown/not
+recognised/unsupported/whatever!
+
+It means that st doesn’t have any terminfo entry on your system. Chances are
+you did not make install. If you just want to test it without installing it,
+you can manualy run tic -s st.info in st dir. It will compile st.info into a
+fully working local terminfo description. You can delete it when you’re done.
+--
+Nothing works, and nothing is said about an unknown terminal!
+
+* Some programs just assume they’re running in xterm i.e. they don’t rely on
+  terminfo. What you see is the current state of the “xterm compliance”.
+* Some programs don’t complain about the lacking st description and default to
+  another terminal. In that case see the question about terminfo.
+--
+I get some weird glitches/visual bug on _random program_!
+
+Try lauching it with a different TERM: $ TERM=xterm myapp. toe(1) will give
+you a list of available terminals, but you’ll most likely switch between
+xterm, st or st-256color. The default value for TERM can be changed in
+config.h (TNAME).
+--
+How do I scroll back up?
+
+Invoke st with a screen multiplexer like GNU screen[0] or tmux[1].
+st -e screen works better for text reflowing. To enter screen’s scroll
+back mode aka “copy mode”, it’s C-a ESC. You probably want defscrollback
+10000 in your ~/.screenrc too.
+
+[0] http://en.wikipedia.org/wiki/GNU_Screen
+[1] http://en.wikipedia.org/wiki/Tmux
 --
 
