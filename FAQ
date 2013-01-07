@@ -37,4 +37,39 @@ back mode aka “copy mode”, it’s C-a ESC. You probably want defscrollback
 [0] http://en.wikipedia.org/wiki/GNU_Screen
 [1] http://en.wikipedia.org/wiki/Tmux
 --
+Why doesn't the Del key work in some programs?
+
+Taken from the terminfo manpage:
+
+	If the terminal has a keypad that transmits codes when the keys
+	are pressed, this information can be given. Note that it is not
+	possible to handle terminals where the keypad only works in
+	local (this applies, for example, to the unshifted HP 2621 keys).
+	If the keypad can be set to transmit or not transmit, tive these
+	codes as smkx and rmkx. Otherwise the keypad is assumed to
+	always transmit.
+
+In the st case smkx=\E[?1h\E= and rmkx=\E[?1l\E>, so it is mandatory that
+applications which want to test against keypad keys, have to send these
+sequences.
+
+But buggy applications like bash and irssi for example don't do this. A fast
+solution for them is to use the following command:
+
+	$ echo ^[?1h^[= >/dev/tty
+
+or
+	$ echo $(tput smkx) >/dev/tty
+
+In the case of bash it is using readline, which has a different not in its
+manpage:
+
+	enable-keypad (Off)
+		When set to On, readline will try to enable the
+		application keypad when it is called. Some systems
+		need this to enable arrow keys.
+
+Adding this option to your .inputrc will fix the keypad problem for all
+applications using readline.
+--
 
