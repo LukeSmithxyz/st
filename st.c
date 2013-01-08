@@ -2497,7 +2497,7 @@ xinit(void) {
 	/* double buffering */
 	if(!XdbeQueryExtension(xw.dpy, &major, &minor))
 		die("Xdbe extension is not present\n");
-	xw.buf = XdbeAllocateBackBufferName(xw.dpy, xw.win, XdbeCopied);
+	xw.buf = XdbeAllocateBackBufferName(xw.dpy, xw.win, XdbeBackground);
 
 	/* Xft rendering context */
 	xw.draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
