@@ -1390,7 +1390,7 @@ tsetattr(int *attr, int l) {
 		case 1:
 			term.c.attr.mode |= ATTR_BOLD;
 			break;
-		case 3: /* enter standout (highlight) */
+		case 3:
 			term.c.attr.mode |= ATTR_ITALIC;
 			break;
 		case 4:
@@ -1406,7 +1406,7 @@ tsetattr(int *attr, int l) {
 		case 22:
 			term.c.attr.mode &= ~ATTR_BOLD;
 			break;
-		case 23: /* leave standout (highlight) mode */
+		case 23:
 			term.c.attr.mode &= ~ATTR_ITALIC;
 			break;
 		case 24:
