@@ -53,12 +53,12 @@
 #define XEMBED_FOCUS_OUT 5
 
 /* Arbitrary sizes */
-#define ESC_BUF_SIZ   256
-#define ESC_ARG_SIZ   16
-#define STR_BUF_SIZ   256
-#define STR_ARG_SIZ   16
-#define DRAW_BUF_SIZ  20*1024
 #define UTF_SIZ       4
+#define ESC_BUF_SIZ   (128*UTF_SIZ)
+#define ESC_ARG_SIZ   16
+#define STR_BUF_SIZ   ESC_BUF_SIZ
+#define STR_ARG_SIZ   ESC_ARG_SIZ
+#define DRAW_BUF_SIZ  20*1024
 #define XK_ANY_MOD    UINT_MAX
 #define XK_NO_MOD     0
 
@@ -168,7 +168,7 @@ typedef struct {
 	int len;	       /* raw string length */
 	char priv;
 	int arg[ESC_ARG_SIZ];
-	int narg;	      /* nb of args */
+	int narg;	       /* nb of args */
 	char mode;
 } CSIEscape;
 
@@ -1911,12 +1911,13 @@ tputc(char *c, int len) {
 
 	if(iofd != -1) {
 		if (xwrite(iofd, c, len) < 0) {
-			fprintf(stderr, "Error writting in %s:%s\n",
+			fprintf(stderr, "Error writing in %s:%s\n",
 				opt_io, strerror(errno));
 			close(iofd);
 			iofd = -1;
 		}
 	}
+
 	/*
 	 * STR sequences must be checked before anything else
 	 * because it can use some control codes as part of the sequence.
@@ -1931,10 +1932,23 @@ tputc(char *c, int len) {
 			strhandle();
 			break;
 		default:
-			strescseq.buf[strescseq.len++] = ascii;
-			if(strescseq.len+1 >= STR_BUF_SIZ) {
-				term.esc = 0;
-				strhandle();
+			if(strescseq.len + len < sizeof(strescseq.buf)) {
+				memmove(&strescseq.buf[strescseq.len], c, len);
+				strescseq.len += len;
+			} else {
+			/*
+			 * Here is a bug in terminals. If the user never sends
+			 * some code to stop the str or esc command, then st
+			 * will stop responding. But this is better than
+			 * silently failing with unknown characters. At least
+			 * then users will report back.
+			 *
+			 * In the case users ever get fixed, here is the code:
+			 */
+			/*
+			 * term.esc = 0;
+			 * strhandle();
+			 */
 			}
 		}
 		return;
