@@ -2538,7 +2538,7 @@ xinit(void) {
 	*/
 
 	/* Xft rendering context */
-	xw.draw = XftDrawCreate(xw.dpy, xw.win, xw.vis, xw.cmap);
+	xw.draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
 
 	/* input methods */
 	if((xw.xim =  XOpenIM(xw.dpy, NULL, NULL, NULL)) == NULL) {
@@ -2836,7 +2836,6 @@ redraw(int timeout) {
 	struct timespec tv = {0, timeout * 1000};
 
 	tfulldirt();
-	fprintf(stderr, "draw from redraw\n");
 	draw();
 
 	if(timeout > 0) {
