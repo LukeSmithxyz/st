@@ -1987,10 +1987,13 @@ tputc(char *c, int len) {
 			term.esc = ESC_START;
 			return;
 		case '\016':	/* SO */
-			term.c.attr.mode |= ATTR_GFX;
-			return;
 		case '\017':	/* SI */
-			term.c.attr.mode &= ~ATTR_GFX;
+			/*
+			 * Different charsets are hard to handle. Applications
+			 * should use the right alt charset escapes for the
+			 * only reason they still exist: line drawing. The
+			 * rest is incompatible history st should not support.
+			 */
 			return;
 		case '\032':	/* SUB */
 		case '\030':	/* CAN */
