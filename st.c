@@ -213,8 +213,7 @@ typedef struct {
 	bool isfixed; /* is fixed geometry? */
 	int fx, fy, fw, fh; /* fixed geometry */
 	int tw, th; /* tty width and height */
-	int w;	/* window width */
-	int h;	/* window height */
+	int w, h; /* window width and height */
 	int ch; /* char height */
 	int cw; /* char width  */
 	char state; /* focus, redraw, visible */
@@ -284,11 +283,12 @@ typedef struct {
 typedef struct {
 	Colour col[LEN(colorname) < 256 ? 256 : LEN(colorname)];
 	Font font, bfont, ifont, ibfont;
+	GC gc;
 } DC;
 
 static void die(const char *, ...);
 static void draw(void);
-static void redraw(void);
+static void redraw(int);
 static void drawregion(int, int, int, int);
 static void execsh(void);
 static void sigchld(int);
@@ -1510,7 +1510,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				mode = term.mode;
 				MODBIT(term.mode, set, MODE_REVERSE);
 				if(mode != term.mode)
-					redraw();
+					redraw(REDRAW_TIMEOUT);
 				break;
 			case 6: /* DECOM -- Origin */
 				MODBIT(term.c.state, set, CURSOR_ORIGIN);
@@ -2234,6 +2234,14 @@ xresize(int col, int row) {
 	xw.tw = MAX(1, col * xw.cw);
 	xw.th = MAX(1, row * xw.ch);
 
+	if(!usedbe) {
+		XFreePixmap(xw.dpy, xw.buf);
+		xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.w, xw.h,
+				DefaultDepth(xw.dpy, xw.scr));
+		XSetForeground(xw.dpy, dc.gc, 0);
+		XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
+	}
+
 	XftDrawChange(xw.draw, xw.buf);
 }
 
@@ -2449,7 +2457,7 @@ xzoom(const Arg *arg)
 	xunloadfonts();
 	xloadfonts(usedfont, usedfontsize + arg->i);
 	cresize(0, 0);
-	draw();
+	redraw(0);
 }
 
 void
@@ -2512,13 +2520,22 @@ xinit(void) {
 			&attrs);
 
 	/* double buffering */
+	/*
 	if(XdbeQueryExtension(xw.dpy, &major, &minor)) {
 		xw.buf = XdbeAllocateBackBufferName(xw.dpy, xw.win,
 				XdbeBackground);
 		usedbe = True;
 	} else {
-		xw.buf = xw.win;
+	*/
+		dc.gc = XCreateGC(xw.dpy, parent, 0, 0);
+		xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.w, xw.h,
+				DefaultDepth(xw.dpy, xw.scr));
+		XSetForeground(xw.dpy, dc.gc, 0);
+		XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
+		//xw.buf = xw.win;
+	/*
 	}
+	*/
 
 	/* Xft rendering context */
 	xw.draw = XftDrawCreate(xw.dpy, xw.win, xw.vis, xw.cmap);
@@ -2815,13 +2832,17 @@ xresettitle(void) {
 }
 
 void
-redraw(void) {
-	struct timespec tv = {0, REDRAW_TIMEOUT * 1000};
+redraw(int timeout) {
+	struct timespec tv = {0, timeout * 1000};
 
 	tfulldirt();
+	fprintf(stderr, "draw from redraw\n");
 	draw();
-	XSync(xw.dpy, False); /* necessary for a good tput flash */
-	nanosleep(&tv, NULL);
+
+	if(timeout > 0) {
+		nanosleep(&tv, NULL);
+		XSync(xw.dpy, False); /* necessary for a good tput flash */
+	}
 }
 
 void
@@ -2829,8 +2850,14 @@ draw(void) {
 	XdbeSwapInfo swpinfo[1] = {{xw.win, XdbeCopied}};
 
 	drawregion(0, 0, term.col, term.row);
-	if(usedbe)
+	if(usedbe) {
 		XdbeSwapBuffers(xw.dpy, swpinfo, 1);
+	} else {
+		XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.w,
+				xw.h, 0, 0);
+		XSetForeground(xw.dpy, dc.gc, 0);
+		XSync(xw.dpy, False);
+	}
 }
 
 void
@@ -2889,6 +2916,7 @@ expose(XEvent *ev) {
 		if(!e->count)
 			xw.state &= ~WIN_REDRAW;
 	}
+	redraw(0);
 }
 
 void
