@@ -203,7 +203,7 @@ typedef struct {
 	Display *dpy;
 	Colourmap cmap;
 	Window win;
-	XdbeBackBuffer buf;
+	Drawable buf;
 	Atom xembed, wmdeletewin;
 	XIM xim;
 	XIC xic;
@@ -413,6 +413,8 @@ static char *opt_title = NULL;
 static char *opt_embed = NULL;
 static char *opt_class = NULL;
 static char *opt_font = NULL;
+
+bool usedbe = False;
 
 static char *usedfont = NULL;
 static int usedfontsize = 0;
@@ -2500,7 +2502,8 @@ xinit(void) {
 		| ButtonMotionMask | ButtonPressMask | ButtonReleaseMask;
 	attrs.colormap = xw.cmap;
 
-	parent = opt_embed ? strtol(opt_embed, NULL, 0) : XRootWindow(xw.dpy, xw.scr);
+	parent = opt_embed ? strtol(opt_embed, NULL, 0) : \
+			XRootWindow(xw.dpy, xw.scr);
 	xw.win = XCreateWindow(xw.dpy, parent, xw.fx, xw.fy,
 			xw.w, xw.h, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
 			xw.vis,
@@ -2509,12 +2512,16 @@ xinit(void) {
 			&attrs);
 
 	/* double buffering */
-	if(!XdbeQueryExtension(xw.dpy, &major, &minor))
-		die("Xdbe extension is not present\n");
-	xw.buf = XdbeAllocateBackBufferName(xw.dpy, xw.win, XdbeBackground);
+	if(XdbeQueryExtension(xw.dpy, &major, &minor)) {
+		xw.buf = XdbeAllocateBackBufferName(xw.dpy, xw.win,
+				XdbeBackground);
+		usedbe = True;
+	} else {
+		xw.buf = xw.win;
+	}
 
 	/* Xft rendering context */
-	xw.draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
+	xw.draw = XftDrawCreate(xw.dpy, xw.win, xw.vis, xw.cmap);
 
 	/* input methods */
 	if((xw.xim =  XOpenIM(xw.dpy, NULL, NULL, NULL)) == NULL) {
@@ -2822,7 +2829,8 @@ draw(void) {
 	XdbeSwapInfo swpinfo[1] = {{xw.win, XdbeCopied}};
 
 	drawregion(0, 0, term.col, term.row);
-	XdbeSwapBuffers(xw.dpy, swpinfo, 1);
+	if(usedbe)
+		XdbeSwapBuffers(xw.dpy, swpinfo, 1);
 }
 
 void
