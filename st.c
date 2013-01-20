@@ -844,7 +844,6 @@ xsetsel(char *str) {
 
 void
 brelease(XEvent *e) {
-	fprintf(stderr, "brelease\n");
 	struct timeval now;
 
 	if(IS_SET(MODE_MOUSE)) {
@@ -3175,7 +3174,6 @@ run(void) {
 			XNextEvent(xw.dpy, &ev);
 			if(XFilterEvent(&ev, None))
 				continue;
-			fprintf(stderr, "ev.type = %d\n", ev.type);
 			if(handler[ev.type])
 				(handler[ev.type])(&ev);
 		}
