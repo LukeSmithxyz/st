@@ -44,7 +44,7 @@
 #endif
 
 #define USAGE \
-	"st " VERSION " (c) 2010-2012 st engineers\n" \
+	"st " VERSION " (c) 2010-2013 st engineers\n" \
 	"usage: st [-v] [-c class] [-f font] [-g geometry] [-o file]" \
 	" [-t title] [-w windowid] [-e command ...]\n"
 
