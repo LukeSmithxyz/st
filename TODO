@@ -1,7 +1,6 @@
 vt emulation
 ------------
 
-* implement BCE right
 * color definition in CSI
 	* implement CSI parsing
 * wide-character support in conjunction with fallback xft code 
