@@ -793,6 +793,7 @@ void selclear(XEvent *e) {
 
 void
 selrequest(XEvent *e) {
+	fprintf(stderr, "selrequest\n");
 	XSelectionRequestEvent *xsre;
 	XSelectionEvent xev;
 	Atom xa_targets, string;
@@ -828,6 +829,7 @@ selrequest(XEvent *e) {
 
 void
 xsetsel(char *str) {
+	fprintf(stderr, "xsetsel: %s\n", str);
 	/* register the selection for both the clipboard and the primary */
 	Atom clipboard;
 
@@ -842,6 +844,7 @@ xsetsel(char *str) {
 
 void
 brelease(XEvent *e) {
+	fprintf(stderr, "brelease\n");
 	struct timeval now;
 
 	if(IS_SET(MODE_MOUSE)) {
@@ -2479,6 +2482,7 @@ xzoom(const Arg *arg)
 void
 xinit(void) {
 	XSetWindowAttributes attrs;
+	XGCValues gcvalues;
 	Cursor cursor;
 	Window parent;
 	int sw, sh, major, minor;
@@ -2544,7 +2548,10 @@ xinit(void) {
 		usedbe = True;
 	} else {
 	*/
-		dc.gc = XCreateGC(xw.dpy, parent, 0, 0);
+		memset(&gcvalues, 0, sizeof(gcvalues));
+		gcvalues.graphics_exposures = False;
+		dc.gc = XCreateGC(xw.dpy, parent, GCGraphicsExposures,
+				&gcvalues);
 		xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.w, xw.h,
 				DefaultDepth(xw.dpy, xw.scr));
 		XSetForeground(xw.dpy, dc.gc, 0);
@@ -2872,7 +2879,6 @@ draw(void) {
 		XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.w,
 				xw.h, 0, 0);
 		XSetForeground(xw.dpy, dc.gc, 0);
-		XSync(xw.dpy, False);
 	}
 }
 
@@ -3169,6 +3175,7 @@ run(void) {
 			XNextEvent(xw.dpy, &ev);
 			if(XFilterEvent(&ev, None))
 				continue;
+			fprintf(stderr, "ev.type = %d\n", ev.type);
 			if(handler[ev.type])
 				(handler[ev.type])(&ev);
 		}
