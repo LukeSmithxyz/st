@@ -117,7 +117,8 @@ enum term_mode {
 	MODE_KBDLOCK     = 256,
 	MODE_HIDE	 = 512,
 	MODE_ECHO	 = 1024,
-	MODE_APPCURSOR	 = 2048
+	MODE_APPCURSOR	 = 2048,
+	MODE_MOUSESGR    = 4096,
 };
 
 enum escape_state {
@@ -666,11 +667,10 @@ getbuttoninfo(XEvent *e) {
 
 void
 mousereport(XEvent *e) {
-	int x = x2col(e->xbutton.x);
-	int y = y2row(e->xbutton.y);
-	int button = e->xbutton.button;
-	int state = e->xbutton.state;
-	char buf[] = { '\033', '[', 'M', 0, 32+x+1, 32+y+1 };
+	int x = x2col(e->xbutton.x), y = y2row(e->xbutton.y),
+	    button = e->xbutton.button, state = e->xbutton.state,
+	    len;
+	char buf[40];
 	static int ob, ox, oy;
 
 	/* from urxvt */
@@ -679,7 +679,9 @@ mousereport(XEvent *e) {
 			return;
 		button = ob + 32;
 		ox = x, oy = y;
-	} else if(e->xbutton.type == ButtonRelease || button == AnyButton) {
+	} else if(!IS_SET(MODE_MOUSESGR)
+			&& (e->xbutton.type == ButtonRelease
+				|| button == AnyButton)) {
 		button = 3;
 	} else {
 		button -= Button1;
@@ -691,11 +693,23 @@ mousereport(XEvent *e) {
 		}
 	}
 
-	buf[3] = 32 + button + (state & ShiftMask ? 4 : 0)
+	button += (state & ShiftMask   ? 4  : 0)
 		+ (state & Mod4Mask    ? 8  : 0)
 		+ (state & ControlMask ? 16 : 0);
 
-	ttywrite(buf, sizeof(buf));
+	len = 0;
+	if(IS_SET(MODE_MOUSESGR)) {
+		len = snprintf(buf, sizeof(buf), "\033[<%d;%d;%d%c",
+				button, x+1, y+1,
+				e->xbutton.type == ButtonRelease ? 'm' : 'M');
+	} else if(x < 223 && y < 223) {
+		len = snprintf(buf, sizeof(buf), "\033[M%c%c%c",
+				32+button, 32+x+1, 32+y+1);
+	} else {
+		return;
+	}
+
+	ttywrite(buf, len);
 }
 
 void
@@ -1546,6 +1560,9 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				break;
 			case 1002:
 				MODBIT(term.mode, set, MODE_MOUSEMOTION);
+				break;
+			case 1006:
+				MODBIT(term.mode, set, MODE_MOUSESGR);
 				break;
 			case 1049: /* = 1047 and 1048 */
 			case 47:
