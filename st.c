@@ -1421,7 +1421,8 @@ tsetattr(int *attr, int l) {
 		case 4:
 			term.c.attr.mode |= ATTR_UNDERLINE;
 			break;
-		case 5:
+		case 5: /* slow blink */
+		case 6: /* rapid blink */
 			term.c.attr.mode |= ATTR_BLINK;
 			break;
 		case 7:
@@ -1438,6 +1439,7 @@ tsetattr(int *attr, int l) {
 			term.c.attr.mode &= ~ATTR_UNDERLINE;
 			break;
 		case 25:
+		case 26:
 			term.c.attr.mode &= ~ATTR_BLINK;
 			break;
 		case 27:
@@ -1744,7 +1746,7 @@ csihandle(void) {
 	case 'X': /* ECH -- Erase <n> char */
 		DEFAULT(csiescseq.arg[0], 1);
 		tclearregion(term.c.x, term.c.y, term.c.x + csiescseq.arg[0],
-				term.c.y, 0);
+				term.c.y, 1);
 		break;
 	case 'P': /* DCH -- Delete <n> char */
 		DEFAULT(csiescseq.arg[0], 1);
@@ -2206,9 +2208,11 @@ tresize(int col, int row) {
 	/* free unneeded rows */
 	i = 0;
 	if(slide > 0) {
-		/* slide screen to keep cursor where we expect it -
+		/*
+		 * slide screen to keep cursor where we expect it -
 		 * tscrollup would work here, but we can optimize to
-		 * memmove because we're freeing the earlier lines */
+		 * memmove because we're freeing the earlier lines
+		 */
 		for(/* i = 0 */; i < slide; i++) {
 			free(term.line[i]);
 			free(term.alt[i]);
@@ -2456,8 +2460,7 @@ xloadfonts(char *fontstr, int fontsize) {
 }
 
 void
-xunloadfonts(void)
-{
+xunloadfonts(void) {
 	int i, ip;
 
 	/*
@@ -2487,8 +2490,7 @@ xunloadfonts(void)
 }
 
 void
-xzoom(const Arg *arg)
-{
+xzoom(const Arg *arg) {
 	xunloadfonts();
 	xloadfonts(usedfont, usedfontsize + arg->i);
 	cresize(0, 0);
@@ -3109,8 +3111,10 @@ kpress(XEvent *ev) {
 
 void
 cmessage(XEvent *e) {
-	/* See xembed specs
-	   http://standards.freedesktop.org/xembed-spec/xembed-spec-latest.html */
+	/*
+	 * See xembed specs
+	 *  http://standards.freedesktop.org/xembed-spec/xembed-spec-latest.html
+	 */
 	if(e->xclient.message_type == xw.xembed && e->xclient.format == 32) {
 		if(e->xclient.data.l[1] == XEMBED_FOCUS_IN) {
 			xw.state |= WIN_FOCUSED;
@@ -3126,8 +3130,7 @@ cmessage(XEvent *e) {
 }
 
 void
-cresize(int width, int height)
-{
+cresize(int width, int height) {
 	int col, row;
 
 	if(width != 0)
