@@ -1745,8 +1745,8 @@ csihandle(void) {
 		break;
 	case 'X': /* ECH -- Erase <n> char */
 		DEFAULT(csiescseq.arg[0], 1);
-		tclearregion(term.c.x, term.c.y, term.c.x + csiescseq.arg[0],
-				term.c.y, 1);
+		tclearregion(term.c.x, term.c.y,
+				term.c.x + csiescseq.arg[0] - 1, term.c.y, 1);
 		break;
 	case 'P': /* DCH -- Delete <n> char */
 		DEFAULT(csiescseq.arg[0], 1);
