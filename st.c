@@ -807,7 +807,6 @@ void selclear(XEvent *e) {
 
 void
 selrequest(XEvent *e) {
-	fprintf(stderr, "selrequest\n");
 	XSelectionRequestEvent *xsre;
 	XSelectionEvent xev;
 	Atom xa_targets, string;
@@ -843,7 +842,6 @@ selrequest(XEvent *e) {
 
 void
 xsetsel(char *str) {
-	fprintf(stderr, "xsetsel: %s\n", str);
 	/* register the selection for both the clipboard and the primary */
 	Atom clipboard;
 
