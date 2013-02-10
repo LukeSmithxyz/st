@@ -2275,7 +2275,7 @@ xresize(int col, int row) {
 		XFreePixmap(xw.dpy, xw.buf);
 		xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.w, xw.h,
 				DefaultDepth(xw.dpy, xw.scr));
-		XSetForeground(xw.dpy, dc.gc, 0);
+		XSetForeground(xw.dpy, dc.gc, dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg].pixel);
 		XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
 	}
 
@@ -2570,7 +2570,7 @@ xinit(void) {
 				&gcvalues);
 		xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.w, xw.h,
 				DefaultDepth(xw.dpy, xw.scr));
-		XSetForeground(xw.dpy, dc.gc, 0);
+		XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
 		XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
 		//xw.buf = xw.win;
 	/*
@@ -2894,7 +2894,7 @@ draw(void) {
 	} else {
 		XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.w,
 				xw.h, 0, 0);
-		XSetForeground(xw.dpy, dc.gc, 0);
+		XSetForeground(xw.dpy, dc.gc, dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg].pixel);
 	}
 }
 
