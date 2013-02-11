@@ -2986,6 +2986,11 @@ xseturgency(int add) {
 
 void
 focus(XEvent *ev) {
+	XFocusChangeEvent *e = &ev->xfocus;
+
+	if(e->mode == NotifyGrab)
+		return;
+
 	if(ev->type == FocusIn) {
 		XSetICFocus(xw.xic);
 		xw.state |= WIN_FOCUSED;
