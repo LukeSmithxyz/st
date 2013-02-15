@@ -3182,7 +3182,6 @@ run(void) {
 		}
 
 		gettimeofday(&now, NULL);
-		/* usecs until (next) frame */
 		drawtimeout.tv_sec = 0;
 		drawtimeout.tv_usec = (1000/xfps) * 1000;
 		tv = &drawtimeout;
@@ -3193,7 +3192,8 @@ run(void) {
 		if(FD_ISSET(xfd, &rfd))
 			xev = actionfps;
 
-		if(TIMEDIFF(now, last) > (xev ? (1000/xfps) : (1000/actionfps))) {
+		if(TIMEDIFF(now, last) > \
+				(xev ? (1000/xfps) : (1000/actionfps))) {
 			while(XPending(xw.dpy)) {
 				XNextEvent(xw.dpy, &ev);
 				if(XFilterEvent(&ev, None))
