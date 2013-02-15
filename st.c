@@ -3166,10 +3166,12 @@ void
 run(void) {
 	XEvent ev;
 	fd_set rfd;
-	int xfd = XConnectionNumber(xw.dpy), i;
-	struct timeval drawtimeout, *tv = NULL;
+	int xfd = XConnectionNumber(xw.dpy);
+	struct timeval drawtimeout, *tv = NULL, now, last;
 
-	for(i = 0;; i++) {
+	gettimeofday(&last, NULL);
+
+	for(;;) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
@@ -3179,35 +3181,44 @@ run(void) {
 			die("select failed: %s\n", SERRNO);
 		}
 
-		/*
-		 * Stop after a certain number of reads so the user does not
-		 * feel like the system is stuttering.
-		 */
-		if(i < 1000 && FD_ISSET(cmdfd, &rfd)) {
+		gettimeofday(&now, NULL);
+		/* usecs until (next) frame */
+		drawtimeout.tv_sec = 0;
+		drawtimeout.tv_usec = \
+			((1000/framespersecond) - TIMEDIFF(now, last)) * 1000;
+
+		/* Let us draw a frame. */
+		if(drawtimeout.tv_usec <= 0) {
+			draw();
+			XFlush(xw.dpy);
+
+			last = now;
+			tv = NULL;
+		}
+
+		if(FD_ISSET(cmdfd, &rfd))
 			ttyread();
 
-			/*
-			 * Just wait a bit so it isn't disturbing the
-			 * user and the system is able to write something.
-			 */
-			drawtimeout.tv_sec = 0;
-			drawtimeout.tv_usec = 5;
+		if(FD_ISSET(xfd, &rfd)) {
+			while(XPending(xw.dpy)) {
+				XNextEvent(xw.dpy, &ev);
+				if(XFilterEvent(&ev, None))
+					continue;
+				if(handler[ev.type])
+					(handler[ev.type])(&ev);
+			}
+
+			if(drawtimeout.tv_usec <= 0) {
+				draw();
+				XFlush(xw.dpy);
+			}
+		}
+
+		/* There is still some time to wait until next frame. */
+		if(drawtimeout.tv_usec > 0) {
 			tv = &drawtimeout;
 			continue;
 		}
-		i = 0;
-		tv = NULL;
-
-		while(XPending(xw.dpy)) {
-			XNextEvent(xw.dpy, &ev);
-			if(XFilterEvent(&ev, None))
-				continue;
-			if(handler[ev.type])
-				(handler[ev.type])(&ev);
-		}
-
-		draw();
-		XFlush(xw.dpy);
 	}
 }
 
