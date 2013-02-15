@@ -1557,9 +1557,11 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				break;
 			case 1000: /* 1000,1002: enable xterm mouse report */
 				MODBIT(term.mode, set, MODE_MOUSEBTN);
+				MODBIT(term.mode, 0, MODE_MOUSEMOTION);
 				break;
 			case 1002:
 				MODBIT(term.mode, set, MODE_MOUSEMOTION);
+				MODBIT(term.mode, 0, MODE_MOUSEBTN);
 				break;
 			case 1006:
 				MODBIT(term.mode, set, MODE_MOUSESGR);
