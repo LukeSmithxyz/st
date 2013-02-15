@@ -3166,12 +3166,12 @@ void
 run(void) {
 	XEvent ev;
 	fd_set rfd;
-	int xfd = XConnectionNumber(xw.dpy);
+	int xfd = XConnectionNumber(xw.dpy), xev;
 	struct timeval drawtimeout, *tv = NULL, now, last;
 
 	gettimeofday(&last, NULL);
 
-	for(;;) {
+	for(xev = actionfps;;) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
@@ -3184,22 +3184,16 @@ run(void) {
 		gettimeofday(&now, NULL);
 		/* usecs until (next) frame */
 		drawtimeout.tv_sec = 0;
-		drawtimeout.tv_usec = \
-			((1000/framespersecond) - TIMEDIFF(now, last)) * 1000;
-
-		/* Let us draw a frame. */
-		if(drawtimeout.tv_usec <= 0) {
-			draw();
-			XFlush(xw.dpy);
-
-			last = now;
-			tv = NULL;
-		}
+		drawtimeout.tv_usec = (1000/xfps) * 1000;
+		tv = &drawtimeout;
 
 		if(FD_ISSET(cmdfd, &rfd))
 			ttyread();
 
-		if(FD_ISSET(xfd, &rfd)) {
+		if(FD_ISSET(xfd, &rfd))
+			xev = actionfps;
+
+		if(TIMEDIFF(now, last) > (xev ? (1000/xfps) : (1000/actionfps))) {
 			while(XPending(xw.dpy)) {
 				XNextEvent(xw.dpy, &ev);
 				if(XFilterEvent(&ev, None))
@@ -3208,16 +3202,14 @@ run(void) {
 					(handler[ev.type])(&ev);
 			}
 
-			if(drawtimeout.tv_usec <= 0) {
-				draw();
-				XFlush(xw.dpy);
-			}
-		}
+			draw();
+			XFlush(xw.dpy);
+			last = now;
 
-		/* There is still some time to wait until next frame. */
-		if(drawtimeout.tv_usec > 0) {
-			tv = &drawtimeout;
-			continue;
+			if(xev && !FD_ISSET(xfd, &rfd))
+				xev--;
+			if(!FD_ISSET(cmdfd, &rfd) && !FD_ISSET(xfd, &rfd))
+				tv = NULL;
 		}
 	}
 }

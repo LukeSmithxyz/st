@@ -14,7 +14,8 @@ static unsigned int doubleclicktimeout = 300;
 static unsigned int tripleclicktimeout = 600;
 
 /* frames per second st should at maximum draw to the screen */
-static unsigned int framespersecond = 60;
+static unsigned int xfps = 30;
+static unsigned int actionfps = 5;
 
 /* TERM value */
 static char termname[] = "st-256color";
