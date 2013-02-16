@@ -61,6 +61,7 @@
 #define DRAW_BUF_SIZ  20*1024
 #define XK_ANY_MOD    UINT_MAX
 #define XK_NO_MOD     0
+#define XK_SWITCH_MOD (1<<13)
 
 #define REDRAW_TIMEOUT (80*1000) /* 80 ms */
 
@@ -3008,6 +3009,8 @@ focus(XEvent *ev) {
 
 inline bool
 match(uint mask, uint state) {
+	state &= ~(ignoremod);
+
 	if(mask == XK_NO_MOD && state)
 		return false;
 	if(mask != XK_ANY_MOD && mask != XK_NO_MOD && !state)

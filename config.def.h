@@ -104,6 +104,12 @@ static Shortcut shortcuts[] = {
  */
 static KeySym mappedkeys[] = { -1 };
 
+/*
+ * Which bits of the state should be ignored. By default the state bit for the
+ * keyboard layout (XK_SWITCH_MOD) is ignored.
+ */
+uint ignoremod = XK_SWITCH_MOD;
+
 /* key, mask, output, keypad, cursor, crlf */
 static Key key[] = {
 	/* keysym             mask         string         keypad cursor crlf */
