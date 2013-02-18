@@ -2444,20 +2444,18 @@ xloadfonts(char *fontstr, int fontsize) {
 	xw.ch = dc.font.height;
 
 	FcPatternDel(pattern, FC_SLANT);
-	FcPatternDel(pattern, FC_WEIGHT);
-	FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ROMAN);
-	FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_BOLD);
-	if(xloadfont(&dc.bfont, pattern))
+	FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC);
+	if(xloadfont(&dc.ifont, pattern))
 		die("st: can't open font %s\n", fontstr);
 
-	FcPatternDel(pattern, FC_SLANT);
-	FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC);
+	FcPatternDel(pattern, FC_WEIGHT);
+	FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_BOLD);
 	if(xloadfont(&dc.ibfont, pattern))
 		die("st: can't open font %s\n", fontstr);
 
-	FcPatternDel(pattern, FC_WEIGHT);
-	FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_MEDIUM);
-	if(xloadfont(&dc.ifont, pattern))
+	FcPatternDel(pattern, FC_SLANT);
+	FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ROMAN);
+	if(xloadfont(&dc.bfont, pattern))
 		die("st: can't open font %s\n", fontstr);
 
 	FcPatternDestroy(pattern);
