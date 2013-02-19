@@ -302,6 +302,7 @@ static void execsh(void);
 static void sigchld(int);
 static void run(void);
 
+static inline int parse_int(char *);
 static void csidump(void);
 static void csihandle(void);
 static void csiparse(void);
@@ -348,6 +349,7 @@ static void xclear(int, int, int, int);
 static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
+static int xsetcolorname(int, const char *);
 static int xloadfont(Font *, FcPattern *);
 static void xloadfonts(char *, int);
 static void xresettitle(void);
@@ -1855,34 +1857,58 @@ csireset(void) {
 	memset(&csiescseq, 0, sizeof(csiescseq));
 }
 
+inline int
+parse_int(char *s) {
+	int x = 0;
+	char c;
+	while(isdigit(c = *s)) {
+		if((INT_MAX - c + '0') / 10 >= x) {
+			x = x * 10 + c - '0';
+		} else
+			return -1;
+		s++;
+	}
+	if(*s != '\0')
+		return -1;
+	return x;
+}
+
 void
 strhandle(void) {
-	char *p;
+	char *p = NULL;
+	int i, j;
+	int narg;
 
 	/*
 	 * TODO: make this being useful in case of color palette change.
 	 */
 	strparse();
-
-	p = strescseq.buf;
+	narg = strescseq.narg;
 
 	switch(strescseq.type) {
 	case ']': /* OSC -- Operating System Command */
-		switch(p[0]) {
-		case '0':
-		case '1':
-		case '2':
+		switch(i = parse_int(strescseq.args[0])) {
+		case 0:
+		case 1:
+		case 2:
 			/*
 			 * TODO: Handle special chars in string, like umlauts.
 			 */
-			if(p[1] == ';') {
-				XStoreName(xw.dpy, xw.win, strescseq.buf+2);
+			if(narg > 1)
+				XStoreName(xw.dpy, xw.win, strescseq.args[2]);
+			break;
+		case 4: /* color set */
+			if(narg < 3)
+				break;
+			p = strescseq.args[2];
+			/* fall through */
+		case 104: /* color reset, here p = NULL */
+			j = (narg > 1) ? parse_int(strescseq.args[1]) : -1;
+			if (!xsetcolorname(j, p))
+				fprintf(stderr, "erresc: invalid color %s\n", p);
+			else {
+				redraw(0); /* TODO if defaultbg color is changed, borders are dirty */
 			}
-			break;
-		case ';':
-			XStoreName(xw.dpy, xw.win, strescseq.buf+1);
-			break;
-		case '4': /* TODO: Set color (arg0) to "rgb:%hexr/$hexg/$hexb" (arg1) */
 			break;
 		default:
 			fprintf(stderr, "erresc: unknown str ");
@@ -1910,7 +1936,19 @@ strparse(void) {
 	 * TODO: Implement parsing like for CSI when required.
 	 * Format: ESC type cmd ';' arg0 [';' argn] ESC \
 	 */
-	return;
+	int narg = 0;
+	char *start = strescseq.buf, *end = start + strescseq.len;
+	strescseq.args[0] = start;
+	while(start < end && narg < LEN(strescseq.args)) {
+		start = memchr(start, ';', end - start);
+		if(!start)
+			break;
+		*start++ = '\0';
+		if(start < end) {
+			strescseq.args[++narg] = start;
+		}
+	}
+	strescseq.narg = narg + 1;
 }
 
 void
@@ -2325,6 +2363,11 @@ xresize(int col, int row) {
 	XftDrawChange(xw.draw, xw.buf);
 }
 
+static inline ushort
+sixd_to_16bit(int x) {
+	return x == 0 ? 0 : 0x3737 + 0x2828 * x;
+}
+
 void
 xloadcols(void) {
 	int i, r, g, b;
@@ -2343,9 +2386,9 @@ xloadcols(void) {
 	for(i = 16, r = 0; r < 6; r++) {
 		for(g = 0; g < 6; g++) {
 			for(b = 0; b < 6; b++) {
-				color.red = r == 0 ? 0 : 0x3737 + 0x2828 * r;
-				color.green = g == 0 ? 0 : 0x3737 + 0x2828 * g;
-				color.blue = b == 0 ? 0 : 0x3737 + 0x2828 * b;
+				color.red = sixd_to_16bit(r);
+				color.green = sixd_to_16bit(g);
+				color.blue = sixd_to_16bit(b);
 				if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &dc.col[i])) {
 					die("Could not allocate color %d\n", i);
 				}
@@ -2361,6 +2404,38 @@ xloadcols(void) {
 			die("Could not allocate color %d\n", i);
 		}
 	}
+}
+
+int
+xsetcolorname(int x, const char *name) {
+	XRenderColor color = { .alpha = 0xffff };
+	Colour colour;
+	if (x < 0 || x > LEN(colorname))
+		return -1;
+	if(!name) {
+		if(16 <= x && x < 16 + 216) {
+			int r = (x - 16) / 36, g = ((x - 16) % 36) / 6, b = (x - 16) % 6;
+			color.red = sixd_to_16bit(r);
+			color.green = sixd_to_16bit(g);
+			color.blue = sixd_to_16bit(b);
+			if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &colour))
+				return 0; /* something went wrong */
+			dc.col[x] = colour;
+			return 1;
+		} else if (16 + 216 <= x && x < 256) {
+			color.red = color.green = color.blue = 0x0808 + 0x0a0a * (x - (16 + 216));
+			if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &colour))
+				return 0; /* something went wrong */
+			dc.col[x] = colour;
+			return 1;
+		} else {
+			name = colorname[x];
+		}
+	}
+	if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, name, &colour))
+		return 0;
+	dc.col[x] = colour;
+	return 1;
 }
 
 void
