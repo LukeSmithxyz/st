@@ -1662,7 +1662,7 @@ csihandle(void) {
 		tmoveto(0, term.c.y-csiescseq.arg[0]);
 		break;
 	case 'g': /* TBC -- Tabulation clear */
-		switch (csiescseq.arg[0]) {
+		switch(csiescseq.arg[0]) {
 		case 0: /* clear current tab stop */
 			term.tabs[term.c.x] = 0;
 			break;
@@ -1927,7 +1927,7 @@ techo(char *buf, int len) {
 		if(c == '\033') {		/* escape */
 			tputc("^", 1);
 			tputc("[", 1);
-		} else if (c < '\x20') {	/* control code */
+		} else if(c < '\x20') {	/* control code */
 			if(c != '\n' && c != '\r' && c != '\t') {
 				c |= '\x40';
 				tputc("^", 1);
@@ -1937,7 +1937,7 @@ techo(char *buf, int len) {
 			break;
 		}
 	}
-	if (len)
+	if(len)
 		tputc(buf, len);
 }
 
@@ -1947,7 +1947,7 @@ tputc(char *c, int len) {
 	bool control = ascii < '\x20' || ascii == 0177;
 
 	if(iofd != -1) {
-		if (xwrite(iofd, c, len) < 0) {
+		if(xwrite(iofd, c, len) < 0) {
 			fprintf(stderr, "Error writing in %s:%s\n",
 				opt_io, strerror(errno));
 			close(iofd);
@@ -2471,8 +2471,8 @@ xunloadfonts(void) {
 	 * Free the loaded fonts in the font cache. This is done backwards
 	 * from the frccur.
 	 */
-	for (i = 0, ip = frccur; i < frclen; i++, ip--) {
-		if (ip < 0)
+	for(i = 0, ip = frccur; i < frclen; i++, ip--) {
+		if(ip < 0)
 			ip = LEN(frc) - 1;
 		XftFontClose(xw.dpy, frc[ip].font);
 	}
@@ -2515,7 +2515,7 @@ xinit(void) {
 	xw.vis = XDefaultVisual(xw.dpy, xw.scr);
 
 	/* font */
-	if (!FcInit())
+	if(!FcInit())
 		die("Could not init fontconfig.\n");
 
 	usedfont = (opt_font == NULL)? font : opt_font;
@@ -2718,7 +2718,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	XftDrawRect(xw.draw, bg, winx, winy, width, xw.ch);
 
 	fcsets[0] = font->set;
-	for (xp = winx; bytelen > 0;) {
+	for(xp = winx; bytelen > 0;) {
 		/*
 		 * Search for the range in the to be printed string of glyphs
 		 * that are in the main font. Then print that range. If
@@ -2728,22 +2728,22 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		u8fs = s;
 		u8fblen = 0;
 		u8fl = 0;
-		for (;;) {
+		for(;;) {
 			u8c = s;
 			u8cblen = utf8decode(s, &u8char);
 			s += u8cblen;
 			bytelen -= u8cblen;
 
 			doesexist = XftCharIndex(xw.dpy, font->match, u8char);
-			if (!doesexist || bytelen <= 0) {
-				if (bytelen <= 0) {
-					if (doesexist) {
+			if(!doesexist || bytelen <= 0) {
+				if(bytelen <= 0) {
+					if(doesexist) {
 						u8fl++;
 						u8fblen += u8cblen;
 					}
 				}
 
-				if (u8fl > 0) {
+				if(u8fl > 0) {
 					XftDrawStringUtf8(xw.draw, fg,
 							font->match, xp,
 							winy + font->ascent,
@@ -2757,23 +2757,23 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			u8fl++;
 			u8fblen += u8cblen;
 		}
-		if (doesexist)
+		if(doesexist)
 			break;
 
 		frp = frccur;
 		/* Search the font cache. */
-		for (i = 0; i < frclen; i++, frp--) {
-			if (frp <= 0)
+		for(i = 0; i < frclen; i++, frp--) {
+			if(frp <= 0)
 				frp = LEN(frc) - 1;
 
-			if (frc[frp].c == u8char
+			if(frc[frp].c == u8char
 					&& frc[frp].flags == frcflags) {
 				break;
 			}
 		}
 
 		/* Nothing was found. */
-		if (i >= frclen) {
+		if(i >= frclen) {
 			/*
 			 * Nothing was found in the cache. Now use
 			 * some dozen of Fontconfig calls to get the
@@ -2801,9 +2801,9 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			 */
 			frccur++;
 			frclen++;
-			if (frccur >= LEN(frc))
+			if(frccur >= LEN(frc))
 				frccur = 0;
-			if (frclen > LEN(frc)) {
+			if(frclen > LEN(frc)) {
 				frclen = LEN(frc);
 				XftFontClose(xw.dpy, frc[frccur].font);
 			}
@@ -3085,7 +3085,7 @@ kpress(XEvent *ev) {
 	Status status;
 	Shortcut *bp;
 
-	if (IS_SET(MODE_KBDLOCK))
+	if(IS_SET(MODE_KBDLOCK))
 		return;
 
 	len = XmbLookupString(xw.xic, e, xstr, sizeof(xstr), &ksym, &status);
@@ -3107,7 +3107,7 @@ kpress(XEvent *ev) {
 		if(len == 0)
 			return;
 
-		if (len == 1 && e->state & Mod1Mask)
+		if(len == 1 && e->state & Mod1Mask)
 			*cp++ = '\033';
 
 		memcpy(cp, xstr, len);
