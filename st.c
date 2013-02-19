@@ -2288,7 +2288,7 @@ xresize(int col, int row) {
 void
 xloadcols(void) {
 	int i, r, g, b;
-	XRenderColor color = { .alpha = 0 };
+	XRenderColor color = { .alpha = 0xffff };
 
 	/* load colors [0-15] colors and [256-LEN(colorname)[ (config.h) */
 	for(i = 0; i < LEN(colorname); i++) {
