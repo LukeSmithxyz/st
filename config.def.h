@@ -305,3 +305,15 @@ static Key key[] = {
 	{ XK_F35,           XK_NO_MOD,      "\033[23;5~",    0,    0,    0},
 };
 
+/*
+ * Selection types' masks.
+ * Use the same masks as usual.
+ * Button1Mask is always unset, to make masks match between ButtonPress.
+ * ButtonRelease and MotionNotify.
+ * If no match is found, regular selection is used.
+ */
+
+static uint selmasks[] = {
+	[SEL_RECTANGULAR] = Mod1Mask,
+};
+

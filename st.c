@@ -137,6 +137,11 @@ enum window_state {
 	WIN_FOCUSED = 4
 };
 
+enum selection_type {
+	SEL_REGULAR = 1,
+	SEL_RECTANGULAR = 2
+};
+
 /* bit macro */
 #undef B0
 enum { B0=1, B1=2, B2=4, B3=8, B4=16, B5=32, B6=64, B7=128 };
@@ -234,6 +239,7 @@ typedef struct {
 /* TODO: use better name for vars... */
 typedef struct {
 	int mode;
+	int type;
 	int bx, by;
 	int ex, ey;
 	struct {
@@ -651,10 +657,23 @@ selected(int x, int y) {
 			|| (y == sel.e.y && x <= sel.e.x))
 			|| (y == sel.b.y && x >= sel.b.x
 				&& (x <= sel.e.x || sel.b.y != sel.e.y));
+	switch(sel.type) {
+	case SEL_REGULAR:
+		return ((sel.b.y < y && y < sel.e.y)
+			|| (y == sel.e.y && x <= sel.e.x))
+			|| (y == sel.b.y && x >= sel.b.x
+				&& (x <= sel.e.x || sel.b.y != sel.e.y));
+	case SEL_RECTANGULAR:
+		return ((sel.b.y <= y && y <= sel.e.y)
+			&& (sel.b.x <= x && x <= sel.e.x));
+	};
 }
 
 void
 getbuttoninfo(XEvent *e) {
+	int type;
+	uint state = e->xbutton.state &~Button1Mask;
+
 	sel.alt = IS_SET(MODE_ALTSCREEN);
 
 	sel.ex = x2col(e->xbutton.x);
@@ -664,6 +683,14 @@ getbuttoninfo(XEvent *e) {
 	sel.b.y = MIN(sel.by, sel.ey);
 	sel.e.x = sel.by < sel.ey ? sel.ex : sel.bx;
 	sel.e.y = MAX(sel.by, sel.ey);
+
+	sel.type = SEL_REGULAR;
+	for(type = 1; type < LEN(selmasks); ++type) {
+		if(match(selmasks[type], state)) {
+			sel.type = type;
+			break;
+		}
+	}
 }
 
 void
@@ -724,6 +751,7 @@ bpress(XEvent *e) {
 			draw();
 		}
 		sel.mode = 1;
+		sel.type = SEL_REGULAR;
 		sel.ex = sel.bx = x2col(e->xbutton.x);
 		sel.ey = sel.by = y2row(e->xbutton.y);
 	} else if(e->xbutton.button == Button4) {
@@ -746,7 +774,8 @@ selcopy(void) {
 		ptr = str = xmalloc(bufsize);
 
 		/* append every set & selected glyph to the selection */
-		for(y = 0; y < term.row; y++) {
+		for(y = sel.b.y; y < sel.e.y + 1; y++) {
+			is_selected = 0;
 			gp = &term.line[y][0];
 			last = gp + term.col;
 
@@ -754,8 +783,11 @@ selcopy(void) {
 				/* nothing */;
 
 			for(x = 0; gp <= last; x++, ++gp) {
-				if(!(is_selected = selected(x, y)))
+				if(!selected(x, y)) {
 					continue;
+				} else {
+					is_selected = 1;
+				}
 
 				p = (gp->state & GLYPH_SET) ? gp->c : " ";
 				size = utf8size(p);
@@ -907,7 +939,7 @@ brelease(XEvent *e) {
 
 void
 bmotion(XEvent *e) {
-	int starty, endy, oldey, oldex;
+	int oldey, oldex;
 
 	if(IS_SET(MODE_MOUSE)) {
 		mousereport(e);
@@ -922,9 +954,7 @@ bmotion(XEvent *e) {
 	getbuttoninfo(e);
 
 	if(oldey != sel.ey || oldex != sel.ex) {
-		starty = MIN(oldey, sel.ey);
-		endy = MAX(oldey, sel.ey);
-		tsetdirt(starty, endy);
+		tsetdirt(sel.b.y, sel.e.y);
 	}
 }
 
@@ -1216,14 +1246,24 @@ selscroll(int orig, int n) {
 			sel.bx = -1;
 			return;
 		}
-		if(sel.by < term.top) {
-			sel.by = term.top;
-			sel.bx = 0;
-		}
-		if(sel.ey > term.bot) {
-			sel.ey = term.bot;
-			sel.ex = term.col;
-		}
+		switch(sel.type) {
+		case SEL_REGULAR:
+			if(sel.by < term.top) {
+				sel.by = term.top;
+				sel.bx = 0;
+			}
+			if(sel.ey > term.bot) {
+				sel.ey = term.bot;
+				sel.ex = term.col;
+			}
+			break;
+		case SEL_RECTANGULAR:
+			if(sel.by < term.top)
+				sel.by = term.top;
+			if(sel.ey > term.bot)
+				sel.ey = term.bot;
+			break;
+		};
 		sel.b.y = sel.by, sel.b.x = sel.bx;
 		sel.e.y = sel.ey, sel.e.x = sel.ex;
 	}
