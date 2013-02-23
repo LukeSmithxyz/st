@@ -302,7 +302,6 @@ static void execsh(void);
 static void sigchld(int);
 static void run(void);
 
-static inline int parse_int(char *);
 static void csidump(void);
 static void csihandle(void);
 static void csiparse(void);
@@ -941,7 +940,7 @@ brelease(XEvent *e) {
 
 void
 bmotion(XEvent *e) {
-	int oldey, oldex;
+	int oldey, oldex, oldsby, oldsey;
 
 	if(IS_SET(MODE_MOUSE)) {
 		mousereport(e);
@@ -953,10 +952,12 @@ bmotion(XEvent *e) {
 
 	oldey = sel.ey;
 	oldex = sel.ex;
+	oldsby = sel.b.y;
+	oldsey = sel.e.y;
 	getbuttoninfo(e);
 
 	if(oldey != sel.ey || oldex != sel.ex) {
-		tsetdirt(sel.b.y, sel.e.y);
+		tsetdirt(MIN(sel.b.y, oldsby), MAX(sel.e.y, oldsey));
 	}
 }
 
@@ -1857,22 +1858,6 @@ csireset(void) {
 	memset(&csiescseq, 0, sizeof(csiescseq));
 }
 
-inline int
-parse_int(char *s) {
-	int x = 0;
-	char c;
-	while(isdigit(c = *s)) {
-		if((INT_MAX - c + '0') / 10 >= x) {
-			x = x * 10 + c - '0';
-		} else
-			return -1;
-		s++;
-	}
-	if(*s != '\0')
-		return -1;
-	return x;
-}
-
 void
 strhandle(void) {
 	char *p = NULL;
@@ -1887,7 +1872,7 @@ strhandle(void) {
 
 	switch(strescseq.type) {
 	case ']': /* OSC -- Operating System Command */
-		switch(i = parse_int(strescseq.args[0])) {
+		switch(i = atoi(strescseq.args[0])) {
 		case 0:
 		case 1:
 		case 2:
@@ -1903,10 +1888,10 @@ strhandle(void) {
 			p = strescseq.args[2];
 			/* fall through */
 		case 104: /* color reset, here p = NULL */
-			j = (narg > 1) ? parse_int(strescseq.args[1]) : -1;
-			if (!xsetcolorname(j, p))
+			j = (narg > 1) ? atoi(strescseq.args[1]) : -1;
+			if (!xsetcolorname(j, p)) {
 				fprintf(stderr, "erresc: invalid color %s\n", p);
-			else {
+			} else {
 				redraw(0); /* TODO if defaultbg color is changed, borders are dirty */
 			}
 			break;
