@@ -266,9 +266,10 @@ typedef struct {
 } Shortcut;
 
 /* function definitions used in config.h */
-static void xzoom(const Arg *);
-static void selpaste(const Arg *);
+static void clippaste(const Arg *);
 static void numlock(const Arg *);
+static void selpaste(const Arg *);
+static void xzoom(const Arg *);
 
 /* Config.h for applying patches and the configuration. */
 #include "config.h"
@@ -830,7 +831,17 @@ selpaste(const Arg *dummy) {
 			xw.win, CurrentTime);
 }
 
-void selclear(XEvent *e) {
+void
+clippaste(const Arg *dummy) {
+	Atom clipboard;
+
+	clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
+	XConvertSelection(xw.dpy, clipboard, sel.xtarget, XA_PRIMARY,
+			xw.win, CurrentTime);
+}
+
+void
+selclear(XEvent *e) {
 	if(sel.bx == -1)
 		return;
 	sel.bx = -1;
