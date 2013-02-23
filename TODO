@@ -18,7 +18,6 @@ bugs
 
 * fix shift up/down (shift selection in emacs)
 * fix selection paste for xatom STRING
-* fix umlaut handling in settitle
 * fix rows and column definition in fixed geometry
 * fix -e handling
 * remove DEC test sequence when appropriate

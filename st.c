@@ -1861,12 +1861,9 @@ csireset(void) {
 void
 strhandle(void) {
 	char *p = NULL;
-	int i, j;
-	int narg;
+	int i, j, narg;
+	XTextProperty prop;
 
-	/*
-	 * TODO: make this being useful in case of color palette change.
-	 */
 	strparse();
 	narg = strescseq.narg;
 
@@ -1876,11 +1873,12 @@ strhandle(void) {
 		case 0:
 		case 1:
 		case 2:
-			/*
-			 * TODO: Handle special chars in string, like umlauts.
-			 */
-			if(narg > 1)
-				XStoreName(xw.dpy, xw.win, strescseq.args[2]);
+			if(narg > 1) {
+				p += 2;
+				Xutf8TextListToTextProperty(xw.dpy, &p, 1,
+						XUTF8StringStyle, &prop);
+				XSetWMName(xw.dpy, xw.win, &prop);
+			}
 			break;
 		case 4: /* color set */
 			if(narg < 3)
@@ -1902,7 +1900,10 @@ strhandle(void) {
 		}
 		break;
 	case 'k': /* old title set compatibility */
-		XStoreName(xw.dpy, xw.win, strescseq.buf);
+		p += 1;
+		Xutf8TextListToTextProperty(xw.dpy, &p, 1, XUTF8StringStyle,
+				&prop);
+		XSetWMName(xw.dpy, xw.win, &prop);
 		break;
 	case 'P': /* DSC -- Device Control String */
 	case '_': /* APC -- Application Program Command */
