@@ -25,7 +25,6 @@
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
-#include <X11/extensions/Xdbe.h>
 #include <X11/Xft/Xft.h>
 #include <fontconfig/fontconfig.h>
 
@@ -351,6 +350,7 @@ static void xloadcols(void);
 static int xsetcolorname(int, const char *);
 static int xloadfont(Font *, FcPattern *);
 static void xloadfonts(char *, int);
+static void xsettitle(char *);
 static void xresettitle(void);
 static void xseturgency(int);
 static void xsetsel(char*);
@@ -422,8 +422,6 @@ static char *opt_title = NULL;
 static char *opt_embed = NULL;
 static char *opt_class = NULL;
 static char *opt_font = NULL;
-
-bool usedbe = False;
 
 static char *usedfont = NULL;
 static int usedfontsize = 0;
@@ -1862,7 +1860,6 @@ void
 strhandle(void) {
 	char *p = NULL;
 	int i, j, narg;
-	XTextProperty prop;
 
 	strparse();
 	narg = strescseq.narg;
@@ -1873,12 +1870,8 @@ strhandle(void) {
 		case 0:
 		case 1:
 		case 2:
-			if(narg > 1) {
-				p += 2;
-				Xutf8TextListToTextProperty(xw.dpy, &p, 1,
-						XUTF8StringStyle, &prop);
-				XSetWMName(xw.dpy, xw.win, &prop);
-			}
+			if(narg > 1)
+				xsettitle(strescseq.args[1]);
 			break;
 		case 4: /* color set */
 			if(narg < 3)
@@ -1890,7 +1883,11 @@ strhandle(void) {
 			if (!xsetcolorname(j, p)) {
 				fprintf(stderr, "erresc: invalid color %s\n", p);
 			} else {
-				redraw(0); /* TODO if defaultbg color is changed, borders are dirty */
+				/*
+				 * TODO if defaultbg color is changed, borders
+				 * are dirty
+				 */
+				redraw(0);
 			}
 			break;
 		default:
@@ -1900,10 +1897,7 @@ strhandle(void) {
 		}
 		break;
 	case 'k': /* old title set compatibility */
-		p += 1;
-		Xutf8TextListToTextProperty(xw.dpy, &p, 1, XUTF8StringStyle,
-				&prop);
-		XSetWMName(xw.dpy, xw.win, &prop);
+		xsettitle(strescseq.args[0]);
 		break;
 	case 'P': /* DSC -- Device Control String */
 	case '_': /* APC -- Application Program Command */
@@ -2338,13 +2332,11 @@ xresize(int col, int row) {
 	xw.tw = MAX(1, col * xw.cw);
 	xw.th = MAX(1, row * xw.ch);
 
-	if(!usedbe) {
-		XFreePixmap(xw.dpy, xw.buf);
-		xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.w, xw.h,
-				DefaultDepth(xw.dpy, xw.scr));
-		XSetForeground(xw.dpy, dc.gc, dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg].pixel);
-		XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
-	}
+	XFreePixmap(xw.dpy, xw.buf);
+	xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.w, xw.h,
+			DefaultDepth(xw.dpy, xw.scr));
+	XSetForeground(xw.dpy, dc.gc, dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg].pixel);
+	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
 
 	XftDrawChange(xw.draw, xw.buf);
 }
@@ -2606,7 +2598,7 @@ xinit(void) {
 	XGCValues gcvalues;
 	Cursor cursor;
 	Window parent;
-	int sw, sh, major, minor;
+	int sw, sh;
 
 	if(!(xw.dpy = XOpenDisplay(NULL)))
 		die("Can't open display\n");
@@ -2661,26 +2653,14 @@ xinit(void) {
 			| CWColormap,
 			&attrs);
 
-	/* double buffering */
-	/*
-	if(XdbeQueryExtension(xw.dpy, &major, &minor)) {
-		xw.buf = XdbeAllocateBackBufferName(xw.dpy, xw.win,
-				XdbeBackground);
-		usedbe = True;
-	} else {
-	*/
-		memset(&gcvalues, 0, sizeof(gcvalues));
-		gcvalues.graphics_exposures = False;
-		dc.gc = XCreateGC(xw.dpy, parent, GCGraphicsExposures,
-				&gcvalues);
-		xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.w, xw.h,
-				DefaultDepth(xw.dpy, xw.scr));
-		XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
-		XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
-		//xw.buf = xw.win;
-	/*
-	}
-	*/
+	memset(&gcvalues, 0, sizeof(gcvalues));
+	gcvalues.graphics_exposures = False;
+	dc.gc = XCreateGC(xw.dpy, parent, GCGraphicsExposures,
+			&gcvalues);
+	xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.w, xw.h,
+			DefaultDepth(xw.dpy, xw.scr));
+	XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
+	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
 
 	/* Xft rendering context */
 	xw.draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
@@ -2971,9 +2951,19 @@ xdrawcursor(void) {
 	}
 }
 
+
+void
+xsettitle(char *p) {
+	XTextProperty prop;
+
+	Xutf8TextListToTextProperty(xw.dpy, &p, 1, XUTF8StringStyle,
+			&prop);
+	XSetWMName(xw.dpy, xw.win, &prop);
+}
+
 void
 xresettitle(void) {
-	XStoreName(xw.dpy, xw.win, opt_title ? opt_title : "st");
+	xsettitle(opt_title ? opt_title : "st");
 }
 
 void
@@ -2991,16 +2981,12 @@ redraw(int timeout) {
 
 void
 draw(void) {
-	XdbeSwapInfo swpinfo[1] = {{xw.win, XdbeCopied}};
-
 	drawregion(0, 0, term.col, term.row);
-	if(usedbe) {
-		XdbeSwapBuffers(xw.dpy, swpinfo, 1);
-	} else {
-		XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.w,
-				xw.h, 0, 0);
-		XSetForeground(xw.dpy, dc.gc, dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg].pixel);
-	}
+	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.w,
+			xw.h, 0, 0);
+	XSetForeground(xw.dpy, dc.gc,
+			dc.col[IS_SET(MODE_REVERSE)?
+				defaultfg : defaultbg].pixel);
 }
 
 void
