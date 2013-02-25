@@ -1296,17 +1296,22 @@ tnewline(int first_col) {
 void
 csiparse(void) {
 	/* int noarg = 1; */
-	char *p = csiescseq.buf;
+	char *p = csiescseq.buf, *np;
+	long int v;
 
 	csiescseq.narg = 0;
 	if(*p == '?')
 		csiescseq.priv = 1, p++;
 
 	while(p < csiescseq.buf+csiescseq.len) {
-		while(isdigit(*p)) {
-			csiescseq.arg[csiescseq.narg] *= 10;
-			csiescseq.arg[csiescseq.narg] += *p++ - '0'/*, noarg = 0 */;
-		}
+		np = NULL;
+		v = strtol(p, &np, 10);
+		if(v == LONG_MAX || v == LONG_MIN)
+			v = -1;
+		csiescseq.arg[csiescseq.narg] = v;
+		if(np != NULL)
+			p = np;
+
 		if(*p == ';' && csiescseq.narg+1 < ESC_ARG_SIZ) {
 			csiescseq.narg++, p++;
 		} else {
@@ -2116,7 +2121,8 @@ tputc(char *c, int len) {
 			if(BETWEEN(ascii, 0x40, 0x7E)
 					|| csiescseq.len >= ESC_BUF_SIZ) {
 				term.esc = 0;
-				csiparse(), csihandle();
+				csiparse();
+				csihandle();
 			}
 		} else if(term.esc & ESC_STR_END) {
 			term.esc = 0;
