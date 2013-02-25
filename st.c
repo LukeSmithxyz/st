@@ -1300,8 +1300,10 @@ csiparse(void) {
 	long int v;
 
 	csiescseq.narg = 0;
-	if(*p == '?')
-		csiescseq.priv = 1, p++;
+	if(*p == '?') {
+		csiescseq.priv = 1;
+		p++;
+	}
 
 	while(p < csiescseq.buf+csiescseq.len) {
 		np = NULL;
@@ -1928,23 +1930,17 @@ strhandle(void) {
 
 void
 strparse(void) {
-	/*
-	 * TODO: Implement parsing like for CSI when required.
-	 * Format: ESC type cmd ';' arg0 [';' argn] ESC \
-	 */
-	int narg = 0;
-	char *start = strescseq.buf, *end = start + strescseq.len;
-	strescseq.args[0] = start;
-	while(start < end && narg < LEN(strescseq.args)) {
-		start = memchr(start, ';', end - start);
-		if(!start)
-			break;
-		*start++ = '\0';
-		if(start < end) {
-			strescseq.args[++narg] = start;
-		}
+	char *p = strescseq.buf, *np, *sp;
+
+	strescseq.narg = 0;
+	np = strtok_r(strescseq.buf, ";", &sp);
+	while(p < strescseq.buf+strescseq.len && np != NULL) {
+		strescseq.args[strescseq.narg++] = p;
+
+		np = strtok_r(NULL, ";", &sp);
+		if(np != NULL)
+			p = np;
 	}
-	strescseq.narg = narg + 1;
 }
 
 void
