@@ -1295,7 +1295,6 @@ tnewline(int first_col) {
 
 void
 csiparse(void) {
-	/* int noarg = 1; */
 	char *p = csiescseq.buf, *np;
 	long int v;
 
@@ -1306,9 +1305,10 @@ csiparse(void) {
 	}
 
 	while(p < csiescseq.buf+csiescseq.len) {
+		np = NULL;
 		v = strtol(p, &np, 10);
 		if(np == p)
-			break;
+			v = 0;
 		if(v == LONG_MAX || v == LONG_MIN)
 			v = -1;
 		csiescseq.arg[csiescseq.narg++] = v;
