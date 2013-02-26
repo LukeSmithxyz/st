@@ -796,7 +796,7 @@ selcopy(void) {
 			}
 			/* \n at the end of every selected line except for the last one */
 			if(is_selected && y < sel.e.y)
-				*ptr++ = '\n';
+				*ptr++ = '\r';
 		}
 		*ptr = 0;
 	}
