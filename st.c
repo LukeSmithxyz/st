@@ -1,5 +1,4 @@
 /* See LICENSE for licence details. */
-#define _XOPEN_SOURCE 600
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -1304,6 +1303,7 @@ csiparse(void) {
 		p++;
 	}
 
+	csiescseq.buf[csiescseq.len] = '\0';
 	while(p < csiescseq.buf+csiescseq.len) {
 		np = NULL;
 		v = strtol(p, &np, 10);
@@ -1925,14 +1925,12 @@ strhandle(void) {
 
 void
 strparse(void) {
-	char *p = strescseq.buf, *sp;
+	char *p = strescseq.buf;
 
+	strescseq.narg = 0;
 	strescseq.buf[strescseq.len] = '\0';
-	for(p = strtok_r(p, ";", &sp); p; p = strtok_r(NULL, ";", &sp)) {
-		if(strescseq.narg == STR_ARG_SIZ)
-			return;
-		strescseq.args[strescseq.narg++] = p;
-	}
+	while(p && strescseq.narg < STR_ARG_SIZ)
+		strescseq.args[strescseq.narg++] = strsep(&p, ";");
 }
 
 void
@@ -2109,7 +2107,8 @@ tputc(char *c, int len) {
 		if(term.esc & ESC_CSI) {
 			csiescseq.buf[csiescseq.len++] = ascii;
 			if(BETWEEN(ascii, 0x40, 0x7E)
-					|| csiescseq.len >= ESC_BUF_SIZ) {
+					|| csiescseq.len >= \
+					sizeof(csiescseq.buf)-1) {
 				term.esc = 0;
 				csiparse();
 				csihandle();

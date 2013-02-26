@@ -19,7 +19,7 @@ LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 -lutil -lXext -lXft \
        $(shell pkg-config --libs freetype2)
 
 # flags
-CPPFLAGS = -DVERSION=\"${VERSION}\"
+CPPFLAGS = -DVERSION=\"${VERSION}\" -D_BSD_SOURCE -D_XOPEN_SOURCE=600
 CFLAGS += -g -std=c99 -pedantic -Wall -Os ${INCS} ${CPPFLAGS}
 LDFLAGS += -g ${LIBS}
 
