@@ -1306,23 +1306,18 @@ csiparse(void) {
 	}
 
 	while(p < csiescseq.buf+csiescseq.len) {
-		np = NULL;
 		v = strtol(p, &np, 10);
+		if(np == p)
+			break;
 		if(v == LONG_MAX || v == LONG_MIN)
 			v = -1;
-		csiescseq.arg[csiescseq.narg] = v;
-		if(np != NULL)
-			p = np;
-
-		if(*p == ';' && csiescseq.narg+1 < ESC_ARG_SIZ) {
-			csiescseq.narg++, p++;
-		} else {
-			csiescseq.mode = *p;
-			csiescseq.narg++;
-
-			return;
-		}
+		csiescseq.arg[csiescseq.narg++] = v;
+		p = np;
+		if(*p != ';' || csiescseq.narg == ESC_ARG_SIZ)
+			break;
+		p++;
 	}
+	csiescseq.mode = *p;
 }
 
 /* for absolute user moves, when decom is set */
@@ -1930,16 +1925,13 @@ strhandle(void) {
 
 void
 strparse(void) {
-	char *p = strescseq.buf, *np, *sp;
+	char *p = strescseq.buf, *sp;
 
-	strescseq.narg = 0;
-	np = strtok_r(strescseq.buf, ";", &sp);
-	while(p < strescseq.buf+strescseq.len && np != NULL) {
+	strescseq.buf[strescseq.len] = '\0';
+	for(p = strtok_r(p, ";", &sp); p; p = strtok_r(NULL, ";", &sp)) {
+		if(strescseq.narg == STR_ARG_SIZ)
+			return;
 		strescseq.args[strescseq.narg++] = p;
-
-		np = strtok_r(NULL, ";", &sp);
-		if(np != NULL)
-			p = np;
 	}
 }
 
@@ -1951,7 +1943,9 @@ strdump(void) {
 	printf("ESC%c", strescseq.type);
 	for(i = 0; i < strescseq.len; i++) {
 		c = strescseq.buf[i] & 0xff;
-		if(isprint(c)) {
+		if(c == '\0') {
+			return;
+		} else if(isprint(c)) {
 			putchar(c);
 		} else if(c == '\n') {
 			printf("(\\n)");
@@ -2039,7 +2033,7 @@ tputc(char *c, int len) {
 			strhandle();
 			break;
 		default:
-			if(strescseq.len + len < sizeof(strescseq.buf)) {
+			if(strescseq.len + len < sizeof(strescseq.buf) - 1) {
 				memmove(&strescseq.buf[strescseq.len], c, len);
 				strescseq.len += len;
 			} else {
