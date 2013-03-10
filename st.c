@@ -2493,7 +2493,7 @@ xloadfont(Font *f, FcPattern *pattern) {
 	f->lbearing = 0;
 	f->rbearing = f->match->max_advance_width;
 
-	f->height = f->match->height;
+	f->height = f->ascent + f->descent;
 	f->width = f->lbearing + f->rbearing;
 
 	return 0;
