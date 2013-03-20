@@ -649,13 +649,10 @@ selected(int x, int y) {
 	if(sel.ey == y && sel.by == y) {
 		bx = MIN(sel.bx, sel.ex);
 		ex = MAX(sel.bx, sel.ex);
+
 		return BETWEEN(x, bx, ex);
 	}
 
-	return ((sel.b.y < y && y < sel.e.y)
-			|| (y == sel.e.y && x <= sel.e.x))
-			|| (y == sel.b.y && x >= sel.b.x
-				&& (x <= sel.e.x || sel.b.y != sel.e.y));
 	switch(sel.type) {
 	case SEL_REGULAR:
 		return ((sel.b.y < y && y < sel.e.y)
