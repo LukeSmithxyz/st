@@ -653,16 +653,14 @@ selected(int x, int y) {
 		return BETWEEN(x, bx, ex);
 	}
 
-	switch(sel.type) {
-	case SEL_REGULAR:
-		return ((sel.b.y < y && y < sel.e.y)
-			|| (y == sel.e.y && x <= sel.e.x))
-			|| (y == sel.b.y && x >= sel.b.x
-				&& (x <= sel.e.x || sel.b.y != sel.e.y));
-	case SEL_RECTANGULAR:
+	if(sel.type == SEL_RECTANGULAR) {
 		return ((sel.b.y <= y && y <= sel.e.y)
 			&& (sel.b.x <= x && x <= sel.e.x));
-	};
+	}
+	return ((sel.b.y < y && y < sel.e.y)
+		|| (y == sel.e.y && x <= sel.e.x))
+		|| (y == sel.b.y && x >= sel.b.x
+			&& (x <= sel.e.x || sel.b.y != sel.e.y));
 }
 
 void
@@ -1254,8 +1252,12 @@ selscroll(int orig, int n) {
 			sel.bx = -1;
 			return;
 		}
-		switch(sel.type) {
-		case SEL_REGULAR:
+		if(sel.type == SEL_RECTANGULAR) {
+			if(sel.by < term.top)
+				sel.by = term.top;
+			if(sel.ey > term.bot)
+				sel.ey = term.bot;
+		} else {
 			if(sel.by < term.top) {
 				sel.by = term.top;
 				sel.bx = 0;
@@ -1264,14 +1266,7 @@ selscroll(int orig, int n) {
 				sel.ey = term.bot;
 				sel.ex = term.col;
 			}
-			break;
-		case SEL_RECTANGULAR:
-			if(sel.by < term.top)
-				sel.by = term.top;
-			if(sel.ey > term.bot)
-				sel.ey = term.bot;
-			break;
-		};
+		}
 		sel.b.y = sel.by, sel.b.x = sel.bx;
 		sel.e.y = sel.ey, sel.e.x = sel.ex;
 	}
