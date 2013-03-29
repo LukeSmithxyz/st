@@ -2711,11 +2711,27 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	FcPattern *fcpattern, *fontpattern;
 	FcFontSet *fcsets[] = { NULL };
 	FcCharSet *fccharset;
-	Colour *fg = &dc.col[base.fg], *bg = &dc.col[base.bg],
-		 *temp, revfg, revbg;
+	Colour *fg, *bg, *temp, revfg, revbg;
 	XRenderColor colfg, colbg;
 
 	frcflags = FRC_NORMAL;
+
+	if(base.mode & ATTR_ITALIC) {
+		if(base.fg == defaultfg)
+			base.fg = defaultitalic;
+		font = &dc.ifont;
+		frcflags = FRC_ITALIC;
+	} else if((base.mode & ATTR_ITALIC) && (base.mode & ATTR_BOLD)) {
+		if(base.fg == defaultfg)
+			base.fg = defaultitalic;
+		font = &dc.ibfont;
+		frcflags = FRC_ITALICBOLD;
+	} else if(base.mode & ATTR_UNDERLINE) {
+		if(base.fg == defaultfg)
+			base.fg = defaultunderline;
+	}
+	fg = &dc.col[base.fg];
+	bg = &dc.col[base.bg];
 
 	if(base.mode & ATTR_BOLD) {
 		if(BETWEEN(base.fg, 0, 7)) {
@@ -2736,15 +2752,6 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		 */
 		font = &dc.bfont;
 		frcflags = FRC_BOLD;
-	}
-
-	if(base.mode & ATTR_ITALIC) {
-		font = &dc.ifont;
-		frcflags = FRC_ITALIC;
-	}
-	if((base.mode & ATTR_ITALIC) && (base.mode & ATTR_BOLD)) {
-		font = &dc.ibfont;
-		frcflags = FRC_ITALICBOLD;
 	}
 
 	if(IS_SET(MODE_REVERSE)) {
@@ -2873,8 +2880,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 					FcTrue, fcpattern, &fcres);
 
 			/*
-			 * Overwrite or create the new cache entry
-			 * entry.
+			 * Overwrite or create the new cache entry.
 			 */
 			frccur++;
 			frclen++;
