@@ -1,17 +1,22 @@
 vt emulation
 ------------
 
-* color definition in CSI
-	* implement CSI parsing
 * wide-character support in conjunction with fallback xft code 
-* mouse selection support
+* double-height support
 
 code & interface
 ----------------
 
 * clean and complete terminfo entry
-* add fallback fonts for the restricted xft code
 * add a simple way to do multiplexing
+
+drawing
+-------
+* add diacritics support to xdraws()
+* add kerning configuration
+* make the font cache simpler
+* add hard width handling
+	* xft is reporting wrong width and height for characters
 
 bugs
 ----
@@ -21,8 +26,6 @@ bugs
 * fix rows and column definition in fixed geometry
 * fix -e handling
 * remove DEC test sequence when appropriate
-* reverse cursor when drawin light on light background
-	* text should be readable
 * When some application outputting long text is run in the shell init scripts,
   then this text might be stripped to the standard 80x25 due to st running the
   virtual terminal at first priority. Maybe the vt initialisation could be
