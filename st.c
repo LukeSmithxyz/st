@@ -27,6 +27,10 @@
 #include <X11/Xft/Xft.h>
 #include <fontconfig/fontconfig.h>
 
+#include "arg.h"
+
+char *argv0;
+
 #define Glyph Glyph_
 #define Font Font_
 #define Draw XftDraw *
@@ -41,10 +45,6 @@
  #include <libutil.h>
 #endif
 
-#define USAGE \
-	"st " VERSION " (c) 2010-2013 st engineers\n" \
-	"usage: st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]" \
-	" [-t title] [-w windowid] [-e command ...]\n"
 
 /* XEMBED messages */
 #define XEMBED_FOCUS_IN  4
@@ -3308,70 +3308,66 @@ run(void) {
 	}
 }
 
+void
+usage(void) {
+	die("%s " VERSION " (c) 2010-2013 st engineers\n" \
+	"usage: st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]" \
+	" [-t title] [-w windowid] [-e command ...]\n", argv0);
+}
+
 int
 main(int argc, char *argv[]) {
-	int i, bitm, xr, yr;
+	int bitm, xr, yr;
 	uint wr, hr;
 
 	xw.fw = xw.fh = xw.fx = xw.fy = 0;
 	xw.isfixed = False;
 
-	for(i = 1; i < argc; i++) {
-		switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
-		case 'a':
-			allowaltscreen = false;
-			break;
-		case 'c':
-			if(++i < argc)
-				opt_class = argv[i];
-			break;
-		case 'e':
-			/* eat all remaining arguments */
-			if(++i < argc)
-				opt_cmd = &argv[i];
-			goto run;
-		case 'f':
-			if(++i < argc)
-				opt_font = argv[i];
-			break;
-		case 'g':
-			if(++i >= argc)
-				break;
+	ARGBEGIN {
+	case 'a':
+		allowaltscreen = false;
+		break;
+	case 'c':
+		opt_class = EARGF(usage());
+		break;
+	case 'e':
+		/* eat all remaining arguments */
+		opt_cmd = &argv[1];
+		goto run;
+	case 'f':
+		opt_font = EARGF(usage());
+		break;
+	case 'g':
+		bitm = XParseGeometry(EARGF(usage()), &xr, &yr, &wr, &hr);
+		if(bitm & XValue)
+			xw.fx = xr;
+		if(bitm & YValue)
+			xw.fy = yr;
+		if(bitm & WidthValue)
+			xw.fw = (int)wr;
+		if(bitm & HeightValue)
+			xw.fh = (int)hr;
+		if(bitm & XNegative && xw.fx == 0)
+			xw.fx = -1;
+		if(bitm & XNegative && xw.fy == 0)
+			xw.fy = -1;
 
-			bitm = XParseGeometry(argv[i], &xr, &yr, &wr, &hr);
-			if(bitm & XValue)
-				xw.fx = xr;
-			if(bitm & YValue)
-				xw.fy = yr;
-			if(bitm & WidthValue)
-				xw.fw = (int)wr;
-			if(bitm & HeightValue)
-				xw.fh = (int)hr;
-			if(bitm & XNegative && xw.fx == 0)
-				xw.fx = -1;
-			if(bitm & XNegative && xw.fy == 0)
-				xw.fy = -1;
-
-			if(xw.fh != 0 && xw.fw != 0)
-				xw.isfixed = True;
-			break;
-		case 'o':
-			if(++i < argc)
-				opt_io = argv[i];
-			break;
-		case 't':
-			if(++i < argc)
-				opt_title = argv[i];
-			break;
-		case 'v':
-		default:
-			die(USAGE);
-		case 'w':
-			if(++i < argc)
-				opt_embed = argv[i];
-			break;
-		}
-	}
+		if(xw.fh != 0 && xw.fw != 0)
+			xw.isfixed = True;
+		break;
+	case 'o':
+		opt_io = EARGF(usage());
+		break;
+	case 't':
+		opt_title = EARGF(usage());
+		break;
+	case 'w':
+		opt_embed = EARGF(usage());
+		break;
+	case 'v':
+	default:
+		usage();
+	} ARGEND;
 
 run:
 	setlocale(LC_CTYPE, "");
