@@ -13,6 +13,9 @@ static char shell[] = "/bin/sh";
 static unsigned int doubleclicktimeout = 300;
 static unsigned int tripleclicktimeout = 600;
 
+/* alt screens */
+static bool allowaltscreen = true;
+
 /* frames per second st should at maximum draw to the screen */
 static unsigned int xfps = 60;
 static unsigned int actionfps = 30;

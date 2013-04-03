@@ -43,7 +43,7 @@
 
 #define USAGE \
 	"st " VERSION " (c) 2010-2013 st engineers\n" \
-	"usage: st [-v] [-c class] [-f font] [-g geometry] [-o file]" \
+	"usage: st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]" \
 	" [-t title] [-w windowid] [-e command ...]\n"
 
 /* XEMBED messages */
@@ -1615,7 +1615,10 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				break;
 			case 1049: /* = 1047 and 1048 */
 			case 47:
-			case 1047: {
+			case 1047:
+				if (!allowaltscreen)
+					break;
+
 				alt = IS_SET(MODE_ALTSCREEN);
 				if(alt) {
 					tclearregion(0, 0, term.col-1,
@@ -1625,8 +1628,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 					tswapscreen();
 				if(*args != 1049)
 					break;
-			}
-				/* pass through */
+				/* FALLTRU */
 			case 1048:
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
 				break;
@@ -3316,6 +3318,9 @@ main(int argc, char *argv[]) {
 
 	for(i = 1; i < argc; i++) {
 		switch(argv[i][0] != '-' || argv[i][2] ? -1 : argv[i][1]) {
+		case 'a':
+			allowaltscreen = false;
+			break;
 		case 'c':
 			if(++i < argc)
 				opt_class = argv[i];
