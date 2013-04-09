@@ -1,43 +1,35 @@
---
-Why does st not handle utmp entries?
+## Why does st not handle utmp entries?
 
-Use the excellent tool of utmp[0] for this task.
+Use the excellent tool of [utmp](http://git.suckless.org/utmp/) for this task.
 
-[0] http://git.suckless.org/utmp/
---
-Some _random program_ complains that st is unknown/not
-recognised/unsupported/whatever!
+## Some _random program_ complains that st is unknown/not recognised/unsupported/whatever!
 
 It means that st doesn’t have any terminfo entry on your system. Chances are
-you did not make install. If you just want to test it without installing it,
-you can manualy run tic -s st.info in st dir. It will compile st.info into a
-fully working local terminfo description. You can delete it when you’re done.
---
-Nothing works, and nothing is said about an unknown terminal!
+you did not `make install`. If you just want to test it without installing it,
+you can manualy run `tic -s st.info`.
+
+## Nothing works, and nothing is said about an unknown terminal!
 
 * Some programs just assume they’re running in xterm i.e. they don’t rely on
   terminfo. What you see is the current state of the “xterm compliance”.
 * Some programs don’t complain about the lacking st description and default to
   another terminal. In that case see the question about terminfo.
---
-I get some weird glitches/visual bug on _random program_!
 
-Try lauching it with a different TERM: $ TERM=xterm myapp. toe(1) will give
-you a list of available terminals, but you’ll most likely switch between
-xterm, st or st-256color. The default value for TERM can be changed in
-config.h (TNAME).
---
-How do I scroll back up?
+## I get some weird glitches/visual bug on _random program_!
 
-Invoke st with a screen multiplexer like GNU screen[0] or tmux[1].
-st -e screen works better for text reflowing. To enter screen’s scroll
-back mode aka “copy mode”, it’s C-a ESC. You probably want defscrollback
-10000 in your ~/.screenrc too.
+Try launching it with a different TERM: $ TERM=xterm myapp. toe(1) will give
+you a list of available terminals, but you’ll most likely switch between xterm,
+st or st-256color. The default value for TERM can be changed in config.h
+(TNAME).
 
-[0] http://en.wikipedia.org/wiki/GNU_Screen
-[1] http://en.wikipedia.org/wiki/Tmux
---
-Why doesn't the Del key work in some programs?
+## How do I scroll back up?
+
+Using a terminal multiplexer.
+
+* `st -e tmux` using C-a [
+* `st -e screen` using C-a ESC
+
+## Why doesn't the Del key work in some programs?
 
 Taken from the terminfo manpage:
 
@@ -49,14 +41,14 @@ Taken from the terminfo manpage:
 	codes as smkx and rmkx. Otherwise the keypad is assumed to
 	always transmit.
 
-In the st case smkx=\E[?1h\E= and rmkx=\E[?1l\E>, so it is mandatory that
+In the st case smkx=E[?1hE= and rmkx=E[?1lE>, so it is mandatory that
 applications which want to test against keypad keys, have to send these
 sequences.
 
 But buggy applications like bash and irssi for example don't do this. A fast
 solution for them is to use the following command:
 
-	$ printf "\033?1h\033=" >/dev/tty
+	$ printf "�33?1h�33=" >/dev/tty
 
 or
 	$ echo $(tput smkx) >/dev/tty
@@ -73,7 +65,7 @@ Adding this option to your .inputrc will fix the keypad problem for all
 applications using readline.
 
 If you are using zsh, then read the zsh FAQ
-(http://zsh.sourceforge.net/FAQ/zshfaq03.html#l25):
+<http://zsh.sourceforge.net/FAQ/zshfaq03.html#l25>:
 
 	It should be noted that the O / [ confusion can occur with other keys
 	such as Home and End. Some systems let you query the key sequences
@@ -91,5 +83,3 @@ If you are using zsh, then read the zsh FAQ
 		zle -N zle-line-finish
 
 Putting these lines into your .zshrc will fix the problems.
---
-
