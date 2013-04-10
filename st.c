@@ -3332,7 +3332,8 @@ main(int argc, char *argv[]) {
 		break;
 	case 'e':
 		/* eat all remaining arguments */
-		opt_cmd = &argv[1];
+		if(argc > 1)
+			opt_cmd = &argv[1];
 		goto run;
 	case 'f':
 		opt_font = EARGF(usage());
