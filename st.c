@@ -2968,14 +2968,33 @@ xdrawcursor(void) {
 
 	/* draw the new one */
 	if(!(IS_SET(MODE_HIDE))) {
-		if(!(xw.state & WIN_FOCUSED))
-			g.bg = defaultucs;
+		if(xw.state & WIN_FOCUSED) {
+			if(IS_SET(MODE_REVERSE)) {
+				g.mode |= ATTR_REVERSE;
+				g.fg = defaultcs;
+				g.bg = defaultfg;
+			}
 
-		if(IS_SET(MODE_REVERSE))
-			g.mode |= ATTR_REVERSE, g.fg = defaultcs, g.bg = defaultfg;
-
-		sl = utf8size(g.c);
-		xdraws(g.c, g, term.c.x, term.c.y, 1, sl);
+			sl = utf8size(g.c);
+			xdraws(g.c, g, term.c.x, term.c.y, 1, sl);
+		} else {
+			XftDrawRect(xw.draw, &dc.col[defaultcs],
+					borderpx + term.c.x * xw.cw,
+					borderpx + term.c.y * xw.ch,
+					xw.cw - 1, 1);
+			XftDrawRect(xw.draw, &dc.col[defaultcs],
+					borderpx + term.c.x * xw.cw,
+					borderpx + term.c.y * xw.ch,
+					1, xw.ch - 1);
+			XftDrawRect(xw.draw, &dc.col[defaultcs],
+					borderpx + (term.c.x + 1) * xw.cw - 1,
+					borderpx + term.c.y * xw.ch,
+					1, xw.ch - 1);
+			XftDrawRect(xw.draw, &dc.col[defaultcs],
+					borderpx + term.c.x * xw.cw,
+					borderpx + (term.c.y + 1) * xw.ch - 1,
+					xw.cw, 1);
+		}
 		oldx = term.c.x, oldy = term.c.y;
 	}
 }
