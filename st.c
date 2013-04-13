@@ -2358,10 +2358,8 @@ xresize(int col, int row) {
 	XFreePixmap(xw.dpy, xw.buf);
 	xw.buf = XCreatePixmap(xw.dpy, xw.win, xw.w, xw.h,
 			DefaultDepth(xw.dpy, xw.scr));
-	XSetForeground(xw.dpy, dc.gc, dc.col[IS_SET(MODE_REVERSE) ? defaultfg : defaultbg].pixel);
-	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, xw.w, xw.h);
-
 	XftDrawChange(xw.draw, xw.buf);
+	xclear(0, 0, xw.w, xw.h);
 }
 
 static inline ushort
