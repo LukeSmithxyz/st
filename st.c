@@ -788,9 +788,18 @@ selcopy(void) {
 				memcpy(ptr, p, size);
 				ptr += size;
 			}
-			/* \n at the end of every selected line except for the last one */
+
+			/*
+			 * Copy and pasting of line endings is inconsistent
+			 * in the inconsistent terminal and GUI world.
+			 * The best solution seems like to produce '\n' when
+			 * something is copied from st and convert '\n' to
+			 * '\r', when something to be pasted is received by
+			 * st.
+			 * FIXME: Fix the computer world.
+			 */
 			if(is_selected && y < sel.e.y)
-				*ptr++ = '\r';
+				*ptr++ = '\n';
 		}
 		*ptr = 0;
 	}
@@ -801,7 +810,7 @@ void
 selnotify(XEvent *e) {
 	ulong nitems, ofs, rem;
 	int format;
-	uchar *data;
+	uchar *data, *last, *repl;
 	Atom type;
 
 	ofs = 0;
@@ -812,7 +821,25 @@ selnotify(XEvent *e) {
 			fprintf(stderr, "Clipboard allocation failed\n");
 			return;
 		}
-		ttywrite((const char *) data, nitems * format / 8);
+
+		/*
+		 * As seen in selcopy:
+		 * Line endings are inconsistent in the terminal and GUI world
+		 * copy and pasting. When receiving some selection data,
+		 * replace all '\n' with '\r'.
+		 * FIXME: Fix the computer world.
+		 */
+		repl = data;
+		last = data + nitems * format / 8;
+		while((repl = memchr(repl, '\n', last - repl))) {
+			*repl++ = '\r';
+		}
+
+		last = data + nitems * format / 8;
+		repl = data;
+
+
+		ttywrite((const char *)data, nitems * format / 8);
 		XFree(data);
 		/* number of 32-bit chunks returned */
 		ofs += nitems * format / 32;
