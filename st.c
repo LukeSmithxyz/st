@@ -835,10 +835,6 @@ selnotify(XEvent *e) {
 			*repl++ = '\r';
 		}
 
-		last = data + nitems * format / 8;
-		repl = data;
-
-
 		ttywrite((const char *)data, nitems * format / 8);
 		XFree(data);
 		/* number of 32-bit chunks returned */
