@@ -3417,6 +3417,8 @@ run:
 	xinit();
 	ttynew();
 	selinit();
+	if(xw.isfixed)
+		cresize(xw.h, xw.w);
 	run();
 
 	return 0;
