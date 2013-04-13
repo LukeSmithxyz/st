@@ -48,7 +48,7 @@ sequences.
 But buggy applications like bash and irssi for example don't do this. A fast
 solution for them is to use the following command:
 
-	$ printf "�33?1h�33=" >/dev/tty
+	$ printf "\033?1h\033=" >/dev/tty
 
 or
 	$ echo $(tput smkx) >/dev/tty
