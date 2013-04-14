@@ -1195,22 +1195,10 @@ treset(void) {
 
 void
 tnew(int col, int row) {
-	/* set screen size */
-	term.row = row;
-	term.col = col;
-	term.line = xmalloc(term.row * sizeof(Line));
-	term.alt  = xmalloc(term.row * sizeof(Line));
-	term.dirty = xmalloc(term.row * sizeof(*term.dirty));
-	term.tabs = xmalloc(term.col * sizeof(*term.tabs));
-
-	for(row = 0; row < term.row; row++) {
-		term.line[row] = xmalloc(term.col * sizeof(Glyph));
-		term.alt [row] = xmalloc(term.col * sizeof(Glyph));
-		term.dirty[row] = 0;
-	}
-
+	/* setting "zero" terminal to resize it later */
+	memset(&term, 0, sizeof(Term));
+	tresize(col, row);
 	term.numlock = 1;
-	memset(term.tabs, 0, term.col * sizeof(*term.tabs));
 	/* setup screen */
 	treset();
 }
