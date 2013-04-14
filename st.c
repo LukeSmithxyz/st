@@ -773,7 +773,8 @@ selcopy(void) {
 			gp = &term.line[y][0];
 			last = gp + term.col;
 
-			while(--last >= gp && !(last->state & GLYPH_SET))
+			while(--last >= gp && !((last->state & GLYPH_SET) && \
+						selected(last - gp, y) && strcmp(last->c, " ") != 0))
 				/* nothing */;
 
 			for(x = 0; gp <= last; x++, ++gp) {
