@@ -98,11 +98,6 @@ enum cursor_state {
 	CURSOR_ORIGIN	= 2
 };
 
-enum glyph_state {
-	GLYPH_SET   = 1,
-	GLYPH_DIRTY = 2
-};
-
 enum term_mode {
 	MODE_WRAP	 = 1,
 	MODE_INSERT      = 2,
@@ -154,7 +149,6 @@ typedef struct {
 	uchar mode;  /* attribute flags */
 	ushort fg;   /* foreground  */
 	ushort bg;   /* background  */
-	uchar state; /* state flags    */
 } Glyph;
 
 typedef Glyph *Line;
@@ -757,7 +751,7 @@ bpress(XEvent *e) {
 
 void
 selcopy(void) {
-	char *str, *ptr, *p;
+	char *str, *ptr;
 	int x, y, bufsize, isselected = 0, size;
 	Glyph *gp, *last;
 
@@ -773,8 +767,8 @@ selcopy(void) {
 			gp = &term.line[y][0];
 			last = gp + term.col;
 
-			while(--last >= gp && !((last->state & GLYPH_SET) && \
-						selected(last - gp, y) && strcmp(last->c, " ") != 0))
+			while(--last >= gp && !(selected(last - gp, y) && \
+						strcmp(last->c, " ") != 0))
 				/* nothing */;
 
 			for(x = 0; gp <= last; x++, ++gp) {
@@ -784,9 +778,8 @@ selcopy(void) {
 					isselected = 1;
 				}
 
-				p = (gp->state & GLYPH_SET) ? gp->c : " ";
-				size = utf8size(p);
-				memcpy(ptr, p, size);
+				size = utf8size(gp->c);
+				memcpy(ptr, gp->c, size);
 				ptr += size;
 			}
 
@@ -943,13 +936,11 @@ brelease(XEvent *e) {
 			} else if(TIMEDIFF(now, sel.tclick1) <= doubleclicktimeout) {
 				/* double click to select word */
 				sel.bx = sel.ex;
-				while(sel.bx > 0 && term.line[sel.ey][sel.bx-1].state & GLYPH_SET &&
-						term.line[sel.ey][sel.bx-1].c[0] != ' ') {
+				while(sel.bx > 0 && term.line[sel.ey][sel.bx-1].c[0] != ' ') {
 					sel.bx--;
 				}
 				sel.b.x = sel.bx;
-				while(sel.ex < term.col-1 && term.line[sel.ey][sel.ex+1].state & GLYPH_SET &&
-						term.line[sel.ey][sel.ex+1].c[0] != ' ') {
+				while(sel.ex < term.col-1 && term.line[sel.ey][sel.ex+1].c[0] != ' ') {
 					sel.ex++;
 				}
 				sel.e.x = sel.ex;
@@ -1373,7 +1364,6 @@ tsetchar(char *c, Glyph *attr, int x, int y) {
 	term.dirty[y] = 1;
 	term.line[y][x] = *attr;
 	memcpy(term.line[y][x].c, c, UTF_SIZ);
-	term.line[y][x].state |= GLYPH_SET;
 }
 
 void
@@ -1395,7 +1385,6 @@ tclearregion(int x1, int y1, int x2, int y2) {
 		for(x = x1; x <= x2; x++) {
 			term.line[y][x] = term.c.attr;
 			memcpy(term.line[y][x].c, " ", 2);
-			term.line[y][x].state |= GLYPH_SET;
 		}
 	}
 }
@@ -2263,11 +2252,12 @@ tputc(char *c, int len) {
 
 int
 tresize(int col, int row) {
-	int i, x;
+	int i;
 	int minrow = MIN(row, term.row);
 	int mincol = MIN(col, term.col);
 	int slide = term.c.y - row + 1;
 	bool *bp;
+	Line *orig;
 
 	if(col < 1 || row < 1)
 		return 0;
@@ -2303,10 +2293,6 @@ tresize(int col, int row) {
 		term.dirty[i] = 1;
 		term.line[i] = xrealloc(term.line[i], col * sizeof(Glyph));
 		term.alt[i]  = xrealloc(term.alt[i],  col * sizeof(Glyph));
-		for(x = mincol; x < col; x++) {
-			term.line[i][x].state = 0;
-			term.alt[i][x].state = 0;
-		}
 	}
 
 	/* allocate any new rows */
@@ -2331,6 +2317,17 @@ tresize(int col, int row) {
 	tsetscroll(0, row-1);
 	/* make use of the LIMIT in tmoveto */
 	tmoveto(term.c.x, term.c.y);
+	/* Clearing both screens */
+	orig = term.line;
+	do {	
+		if(mincol < col && 0 < minrow) {
+			tclearregion(mincol, 0, col - 1, minrow - 1);
+		}
+		if(0 < col && minrow < row) {
+			tclearregion(0, minrow, col - 1, row - 1);
+		}
+		tswapscreen();
+	} while(orig != term.line);
 
 	return (slide > 0);
 }
@@ -2932,22 +2929,17 @@ void
 xdrawcursor(void) {
 	static int oldx = 0, oldy = 0;
 	int sl;
-	Glyph g = {{' '}, ATTR_NULL, defaultbg, defaultcs, 0};
+	Glyph g = {{' '}, ATTR_NULL, defaultbg, defaultcs};
 
 	LIMIT(oldx, 0, term.col-1);
 	LIMIT(oldy, 0, term.row-1);
 
-	if(term.line[term.c.y][term.c.x].state & GLYPH_SET)
-		memcpy(g.c, term.line[term.c.y][term.c.x].c, UTF_SIZ);
+	memcpy(g.c, term.line[term.c.y][term.c.x].c, UTF_SIZ);
 
 	/* remove the old cursor */
-	if(term.line[oldy][oldx].state & GLYPH_SET) {
-		sl = utf8size(term.line[oldy][oldx].c);
-		xdraws(term.line[oldy][oldx].c, term.line[oldy][oldx], oldx,
-				oldy, 1, sl);
-	} else {
-		xtermclear(oldx, oldy, oldx, oldy);
-	}
+	sl = utf8size(term.line[oldy][oldx].c);
+	xdraws(term.line[oldy][oldx].c, term.line[oldy][oldx], oldx,
+			oldy, 1, sl);
 
 	/* draw the new one */
 	if(!(IS_SET(MODE_HIDE))) {
@@ -3045,23 +3037,20 @@ drawregion(int x1, int y1, int x2, int y2) {
 			new = term.line[y][x];
 			if(ena_sel && *(new.c) && selected(x, y))
 				new.mode ^= ATTR_REVERSE;
-			if(ib > 0 && (!(new.state & GLYPH_SET)
-					|| ATTRCMP(base, new)
+			if(ib > 0 && (ATTRCMP(base, new)
 					|| ib >= DRAW_BUF_SIZ-UTF_SIZ)) {
 				xdraws(buf, base, ox, y, ic, ib);
 				ic = ib = 0;
 			}
-			if(new.state & GLYPH_SET) {
-				if(ib == 0) {
-					ox = x;
-					base = new;
-				}
-
-				sl = utf8size(new.c);
-				memcpy(buf+ib, new.c, sl);
-				ib += sl;
-				++ic;
+			if(ib == 0) {
+				ox = x;
+				base = new;
 			}
+
+			sl = utf8size(new.c);
+			memcpy(buf+ib, new.c, sl);
+			ib += sl;
+			++ic;
 		}
 		if(ib > 0)
 			xdraws(buf, base, ox, y, ic, ib);
