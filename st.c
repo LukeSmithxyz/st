@@ -135,6 +135,11 @@ enum selection_type {
 	SEL_RECTANGULAR = 2
 };
 
+enum selection_snap {
+	SNAP_WORD = 1,
+	SNAP_LINE = 2
+};
+
 /* bit macro */
 #undef B0
 enum { B0=1, B1=2, B2=4, B3=8, B4=16, B5=32, B6=64, B7=128 };
@@ -232,6 +237,7 @@ typedef struct {
 typedef struct {
 	int mode;
 	int type;
+	int snap;
 	int bx, by;
 	int ex, ey;
 	struct {
@@ -372,6 +378,7 @@ static void selinit(void);
 static inline bool selected(int, int);
 static void selcopy(void);
 static void selscroll(int, int);
+static void selsnap(int, int *, int *, int);
 
 static int utf8decode(char *, long *);
 static int utf8encode(long *, char *);
@@ -658,6 +665,25 @@ selected(int x, int y) {
 }
 
 void
+selsnap(int mode, int *x, int *y, int direction) {
+	switch(mode) {
+	case SNAP_WORD:
+		while(*x > 0 && *x < term.col-1 && term.line[*y][*x + direction].c[0] != ' ') {
+			*x += direction;
+		}
+		break;
+
+	case SNAP_LINE:
+		*x = (direction < 0) ? 0 : term.col - 1;
+		break;
+	
+	default:
+		/* do nothing */
+		break;
+	}
+}
+
+void
 getbuttoninfo(XEvent *e) {
 	int type;
 	uint state = e->xbutton.state &~Button1Mask;
@@ -666,6 +692,15 @@ getbuttoninfo(XEvent *e) {
 
 	sel.ex = x2col(e->xbutton.x);
 	sel.ey = y2row(e->xbutton.y);
+
+	if (sel.by < sel.ey
+			|| (sel.by == sel.ey && sel.bx < sel.ex)) {
+		selsnap(sel.snap, &sel.bx, &sel.by, -1);
+		selsnap(sel.snap, &sel.ex, &sel.ey, +1);
+	} else {
+		selsnap(sel.snap, &sel.ex, &sel.ey, -1);
+		selsnap(sel.snap, &sel.bx, &sel.by, +1);
+	}
 
 	sel.b.x = sel.by < sel.ey ? sel.bx : sel.ex;
 	sel.b.y = MIN(sel.by, sel.ey);
@@ -730,9 +765,13 @@ mousereport(XEvent *e) {
 
 void
 bpress(XEvent *e) {
+	struct timeval now;
+
 	if(IS_SET(MODE_MOUSE)) {
 		mousereport(e);
 	} else if(e->xbutton.button == Button1) {
+		gettimeofday(&now, NULL);
+		/* Clear previous selection, logically and visually. */
 		if(sel.bx != -1) {
 			sel.bx = -1;
 			tsetdirt(sel.b.y, sel.e.y);
@@ -742,6 +781,30 @@ bpress(XEvent *e) {
 		sel.type = SEL_REGULAR;
 		sel.ex = sel.bx = x2col(e->xbutton.x);
 		sel.ey = sel.by = y2row(e->xbutton.y);
+		/*
+		 * Snap handling.
+		 * If user clicks are fasst enough (e.g. below timeouts),
+		 * we ignore if his hand slipped left or down and accidentally selected more;
+		 * we are just snapping to whatever we're snapping.
+		 */
+		if(TIMEDIFF(now, sel.tclick2) <= tripleclicktimeout) {
+			/* Snap to line */
+			sel.snap = SNAP_LINE;
+		} else if(TIMEDIFF(now, sel.tclick1) <= doubleclicktimeout) {
+			sel.snap = SNAP_WORD;
+		} else {
+			sel.snap = 0;
+		}
+		selsnap(sel.snap, &sel.bx, &sel.by, -1);
+		selsnap(sel.snap, &sel.ex, &sel.ey, 1);
+		sel.b.x = sel.bx, sel.b.y = sel.by, sel.e.x = sel.ex, sel.e.y = sel.ey;
+		/* Draw selection, unless it's regular and we don't want to make clicks visible */
+		if (sel.snap != 0) {
+			tsetdirt(sel.b.y, sel.e.y);
+			draw();
+		}
+		sel.tclick2 = sel.tclick1;
+		sel.tclick1 = now;
 	} else if(e->xbutton.button == Button4) {
 		ttywrite("\031", 1);
 	} else if(e->xbutton.button == Button5) {
@@ -907,8 +970,6 @@ xsetsel(char *str) {
 
 void
 brelease(XEvent *e) {
-	struct timeval now;
-
 	if(IS_SET(MODE_MOUSE)) {
 		mousereport(e);
 		return;
@@ -922,35 +983,10 @@ brelease(XEvent *e) {
 		term.dirty[sel.ey] = 1;
 		if(sel.bx == sel.ex && sel.by == sel.ey) {
 			sel.bx = -1;
-			gettimeofday(&now, NULL);
-
-			if(TIMEDIFF(now, sel.tclick2) <= tripleclicktimeout) {
-				/* triple click on the line */
-				sel.b.x = sel.bx = 0;
-				sel.e.x = sel.ex = term.col;
-				sel.b.y = sel.e.y = sel.ey;
-				selcopy();
-			} else if(TIMEDIFF(now, sel.tclick1) <= doubleclicktimeout) {
-				/* double click to select word */
-				sel.bx = sel.ex;
-				while(sel.bx > 0 && term.line[sel.ey][sel.bx-1].c[0] != ' ') {
-					sel.bx--;
-				}
-				sel.b.x = sel.bx;
-				while(sel.ex < term.col-1 && term.line[sel.ey][sel.ex+1].c[0] != ' ') {
-					sel.ex++;
-				}
-				sel.e.x = sel.ex;
-				sel.b.y = sel.e.y = sel.ey;
-				selcopy();
-			}
 		} else {
 			selcopy();
 		}
 	}
-
-	memcpy(&sel.tclick2, &sel.tclick1, sizeof(struct timeval));
-	gettimeofday(&sel.tclick1, NULL);
 }
 
 void
