@@ -1195,11 +1195,10 @@ treset(void) {
 
 void
 tnew(int col, int row) {
-	/* setting "zero" terminal to resize it later */
 	memset(&term, 0, sizeof(Term));
 	tresize(col, row);
 	term.numlock = 1;
-	/* setup screen */
+
 	treset();
 }
 
