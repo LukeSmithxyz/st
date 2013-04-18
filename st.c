@@ -752,7 +752,7 @@ bpress(XEvent *e) {
 void
 selcopy(void) {
 	char *str, *ptr;
-	int x, y, bufsize, isselected = 0, size;
+	int x, y, bufsize, size;
 	Glyph *gp, *last;
 
 	if(sel.bx == -1) {
@@ -763,7 +763,6 @@ selcopy(void) {
 
 		/* append every set & selected glyph to the selection */
 		for(y = sel.b.y; y < sel.e.y + 1; y++) {
-			isselected = 0;
 			gp = &term.line[y][0];
 			last = gp + term.col;
 
@@ -774,8 +773,6 @@ selcopy(void) {
 			for(x = 0; gp <= last; x++, ++gp) {
 				if(!selected(x, y)) {
 					continue;
-				} else {
-					isselected = 1;
 				}
 
 				size = utf8size(gp->c);
@@ -792,7 +789,7 @@ selcopy(void) {
 			 * st.
 			 * FIXME: Fix the computer world.
 			 */
-			if(isselected && y < sel.e.y)
+			if(y < sel.e.y)
 				*ptr++ = '\n';
 		}
 		*ptr = 0;
