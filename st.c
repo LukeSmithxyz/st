@@ -2319,7 +2319,7 @@ tresize(int col, int row) {
 	tmoveto(term.c.x, term.c.y);
 	/* Clearing both screens */
 	orig = term.line;
-	do {	
+	do {
 		if(mincol < col && 0 < minrow) {
 			tclearregion(mincol, 0, col - 1, minrow - 1);
 		}
