@@ -12,11 +12,11 @@ X11LIB = /usr/X11R6/lib
 
 # includes and libs
 INCS = -I. -I/usr/include -I${X11INC} \
-       $(shell pkg-config --cflags fontconfig) \
-       $(shell pkg-config --cflags freetype2)
+       `pkg-config --cflags fontconfig` \
+       `pkg-config --cflags freetype2`
 LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 -lutil -lXext -lXft \
-       $(shell pkg-config --libs fontconfig)  \
-       $(shell pkg-config --libs freetype2)
+       `pkg-config --libs fontconfig`  \
+       `pkg-config --libs freetype2`
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\" -D_BSD_SOURCE -D_XOPEN_SOURCE=600
