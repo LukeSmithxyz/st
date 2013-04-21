@@ -85,6 +85,7 @@ enum glyph_attribute {
 	ATTR_GFX       = 8,
 	ATTR_ITALIC    = 16,
 	ATTR_BLINK     = 32,
+	ATTR_WRAP      = 64,
 };
 
 enum cursor_movement {
@@ -668,17 +669,15 @@ void
 selsnap(int mode, int *x, int *y, int direction) {
 	switch(mode) {
 	case SNAP_WORD:
-		while(*x > 0 && *x < term.col-1 && term.line[*y][*x + direction].c[0] != ' ') {
+		while(*x > 0 && *x < term.col-1
+				&& term.line[*y][*x + direction].c[0] != ' ') {
 			*x += direction;
 		}
 		break;
-
 	case SNAP_LINE:
 		*x = (direction < 0) ? 0 : term.col - 1;
 		break;
-	
 	default:
-		/* do nothing */
 		break;
 	}
 }
@@ -771,6 +770,7 @@ bpress(XEvent *e) {
 		mousereport(e);
 	} else if(e->xbutton.button == Button1) {
 		gettimeofday(&now, NULL);
+
 		/* Clear previous selection, logically and visually. */
 		if(sel.bx != -1) {
 			sel.bx = -1;
@@ -781,14 +781,15 @@ bpress(XEvent *e) {
 		sel.type = SEL_REGULAR;
 		sel.ex = sel.bx = x2col(e->xbutton.x);
 		sel.ey = sel.by = y2row(e->xbutton.y);
+
 		/*
 		 * Snap handling.
 		 * If user clicks are fasst enough (e.g. below timeouts),
-		 * we ignore if his hand slipped left or down and accidentally selected more;
-		 * we are just snapping to whatever we're snapping.
+		 * we ignore if his hand slipped left or down and accidentally
+		 * selected more; we are just snapping to whatever we're
+		 * snapping.
 		 */
 		if(TIMEDIFF(now, sel.tclick2) <= tripleclicktimeout) {
-			/* Snap to line */
 			sel.snap = SNAP_LINE;
 		} else if(TIMEDIFF(now, sel.tclick1) <= doubleclicktimeout) {
 			sel.snap = SNAP_WORD;
@@ -797,8 +798,15 @@ bpress(XEvent *e) {
 		}
 		selsnap(sel.snap, &sel.bx, &sel.by, -1);
 		selsnap(sel.snap, &sel.ex, &sel.ey, 1);
-		sel.b.x = sel.bx, sel.b.y = sel.by, sel.e.x = sel.ex, sel.e.y = sel.ey;
-		/* Draw selection, unless it's regular and we don't want to make clicks visible */
+		sel.b.x = sel.bx;
+		sel.b.y = sel.by;
+		sel.e.x = sel.ex;
+		sel.e.y = sel.ey;
+
+		/*
+		 * Draw selection, unless it's regular and we don't want to
+		 * make clicks visible
+		 */
 		if (sel.snap != 0) {
 			tsetdirt(sel.b.y, sel.e.y);
 			draw();
@@ -834,9 +842,8 @@ selcopy(void) {
 				/* nothing */;
 
 			for(x = 0; gp <= last; x++, ++gp) {
-				if(!selected(x, y)) {
+				if(!selected(x, y))
 					continue;
-				}
 
 				size = utf8size(gp->c);
 				memcpy(ptr, gp->c, size);
@@ -852,7 +859,7 @@ selcopy(void) {
 			 * st.
 			 * FIXME: Fix the computer world.
 			 */
-			if(y < sel.e.y)
+			if(y < sel.e.y && !((gp-1)->mode & ATTR_WRAP))
 				*ptr++ = '\n';
 		}
 		*ptr = 0;
@@ -2266,8 +2273,10 @@ tputc(char *c, int len) {
 		return;
 	if(sel.bx != -1 && BETWEEN(term.c.y, sel.by, sel.ey))
 		sel.bx = -1;
-	if(IS_SET(MODE_WRAP) && term.c.state & CURSOR_WRAPNEXT)
-		tnewline(1); /* always go to first col */
+	if(IS_SET(MODE_WRAP) && (term.c.state & CURSOR_WRAPNEXT)) {
+		term.line[term.c.y][term.c.x].mode |= ATTR_WRAP;
+		tnewline(1);
+	}
 
 	if(IS_SET(MODE_INSERT) && term.c.x+1 < term.col) {
 		memmove(&term.line[term.c.y][term.c.x+1],
