@@ -36,6 +36,7 @@ char *argv0;
 #define Draw XftDraw *
 #define Colour XftColor
 #define Colourmap Colormap
+#define Rectangle XRectangle
 
 #if   defined(__linux)
  #include <pty.h>
@@ -2764,6 +2765,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	FcCharSet *fccharset;
 	Colour *fg, *bg, *temp, revfg, revbg;
 	XRenderColor colfg, colbg;
+	Rectangle r;
 
 	frcflags = FRC_NORMAL;
 
@@ -2851,6 +2853,11 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	/* Clean up the region we want to draw to. */
 	XftDrawRect(xw.draw, bg, winx, winy, width, xw.ch);
+	r.x = 0;
+	r.y = 0;
+	r.height = xw.ch;
+	r.width = width;
+	XftDrawSetClipRectangles(xw.draw, winx, winy, &r, 1);
 
 	fcsets[0] = font->set;
 	for(xp = winx; bytelen > 0;) {
@@ -2885,6 +2892,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 							(FcChar8 *)u8fs,
 							u8fblen);
 					xp += font->width * u8fl;
+
 				}
 				break;
 			}
@@ -2969,6 +2977,9 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		XftDrawRect(xw.draw, fg, winx, winy + font->ascent + 1,
 				width, 1);
 	}
+
+	/* Reset clip to none. */
+	XftDrawSetClip(xw.draw, 0);
 }
 
 void
