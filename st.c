@@ -114,6 +114,7 @@ enum term_mode {
 	MODE_ECHO	 = 1024,
 	MODE_APPCURSOR	 = 2048,
 	MODE_MOUSESGR    = 4096,
+	MODE_8BIT	 = 8192,
 };
 
 enum escape_state {
@@ -1649,6 +1650,9 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				break;
 			case 1006:
 				MODBIT(term.mode, set, MODE_MOUSESGR);
+				break;
+			case 1034:
+				MODBIT(term.mode, set, MODE_8BIT);
 				break;
 			case 1049: /* = 1047 and 1048 */
 			case 47:
@@ -3228,7 +3232,8 @@ kpress(XEvent *ev) {
 	XKeyEvent *e = &ev->xkey;
 	KeySym ksym;
 	char xstr[31], buf[32], *customkey, *cp = buf;
-	int len;
+	int len, ret;
+	long c;
 	Status status;
 	Shortcut *bp;
 
@@ -3249,13 +3254,23 @@ kpress(XEvent *ev) {
 	if((customkey = kmap(ksym, e->state))) {
 		len = strlen(customkey);
 		memcpy(buf, customkey, len);
-	/* 2. hardcoded (overrides X lookup) */
+	/* 3. hardcoded (overrides X lookup) */
 	} else {
 		if(len == 0)
 			return;
 
-		if(len == 1 && e->state & Mod1Mask)
-			*cp++ = '\033';
+		if(len == 1 && e->state & Mod1Mask) {
+			if(IS_SET(MODE_8BIT)) {
+				if(*xstr < 0177) {
+					c = *xstr | B7;
+					ret = utf8encode(&c, cp);
+					cp += ret;
+					len = 0;
+				}
+			} else {
+				*cp++ = '\033';
+			}
+		}
 
 		memcpy(cp, xstr, len);
 		len = cp - buf + len;
