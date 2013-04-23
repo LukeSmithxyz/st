@@ -2853,6 +2853,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	/* Clean up the region we want to draw to. */
 	XftDrawRect(xw.draw, bg, winx, winy, width, xw.ch);
+
+	/* Set the clip region because Xft is sometimes dirty. */
 	r.x = 0;
 	r.y = 0;
 	r.height = xw.ch;
