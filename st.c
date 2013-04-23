@@ -1410,7 +1410,7 @@ tsetchar(char *c, Glyph *attr, int x, int y) {
 
 void
 tclearregion(int x1, int y1, int x2, int y2) {
-	int x, y, temp;
+	int x, y, temp, mask;
 
 	if(x1 > x2)
 		temp = x1, x1 = x2, x2 = temp;
@@ -1425,7 +1425,9 @@ tclearregion(int x1, int y1, int x2, int y2) {
 	for(y = y1; y <= y2; y++) {
 		term.dirty[y] = 1;
 		for(x = x1; x <= x2; x++) {
+			mask = selected(x, y) ? ATTR_REVERSE : 0;
 			term.line[y][x] = term.c.attr;
+			term.line[y][x].mode ^= mask;
 			memcpy(term.line[y][x].c, " ", 2);
 		}
 	}
