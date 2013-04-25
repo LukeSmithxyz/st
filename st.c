@@ -785,11 +785,8 @@ bpress(XEvent *e) {
 		sel.ey = sel.by = y2row(e->xbutton.y);
 
 		/*
-		 * Snap handling.
-		 * If user clicks are fasst enough (e.g. below timeouts),
-		 * we ignore if his hand slipped left or down and accidentally
-		 * selected more; we are just snapping to whatever we're
-		 * snapping.
+		 * If the user clicks below predefined timeouts specific
+		 * snapping behaviour is exposed.
 		 */
 		if(TIMEDIFF(now, sel.tclick2) <= tripleclicktimeout) {
 			sel.snap = SNAP_LINE;
@@ -809,7 +806,8 @@ bpress(XEvent *e) {
 		 * Draw selection, unless it's regular and we don't want to
 		 * make clicks visible
 		 */
-		if (sel.snap != 0) {
+		if(sel.snap != 0) {
+			sel.mode++;
 			tsetdirt(sel.b.y, sel.e.y);
 			draw();
 		}
@@ -987,14 +985,14 @@ brelease(XEvent *e) {
 	if(e->xbutton.button == Button2) {
 		selpaste(NULL);
 	} else if(e->xbutton.button == Button1) {
-		sel.mode = 0;
-		getbuttoninfo(e);
-		term.dirty[sel.ey] = 1;
-		if(sel.bx == sel.ex && sel.by == sel.ey) {
+		if(sel.mode < 2) {
 			sel.bx = -1;
 		} else {
+			getbuttoninfo(e);
 			selcopy();
 		}
+		sel.mode = 0;
+		term.dirty[sel.ey] = 1;
 	}
 }
 
@@ -1010,6 +1008,7 @@ bmotion(XEvent *e) {
 	if(!sel.mode)
 		return;
 
+	sel.mode++;
 	oldey = sel.ey;
 	oldex = sel.ex;
 	oldsby = sel.b.y;
