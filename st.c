@@ -3442,9 +3442,13 @@ run(void) {
 
 			if(xev && !FD_ISSET(xfd, &rfd))
 				xev--;
-			if(!FD_ISSET(cmdfd, &rfd) && !FD_ISSET(xfd, &rfd) \
-					&& !blinkset) {
-				tv = NULL;
+			if(!FD_ISSET(cmdfd, &rfd) && !FD_ISSET(xfd, &rfd)) {
+				if(blinkset) {
+					drawtimeout.tv_usec = 1000 * \
+						blinktimeout;
+				} else {
+					tv = NULL;
+				}
 			}
 		}
 	}
