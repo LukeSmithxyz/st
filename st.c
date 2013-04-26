@@ -116,6 +116,8 @@ enum term_mode {
 	MODE_APPCURSOR	 = 2048,
 	MODE_MOUSESGR    = 4096,
 	MODE_8BIT	 = 8192,
+	MODE_BLINK	 = 16384,
+	MODE_FBLINK	 = 32768,
 };
 
 enum escape_state {
@@ -313,6 +315,7 @@ static void strhandle(void);
 static void strparse(void);
 static void strreset(void);
 
+static int tattrset(int);
 static void tclearregion(int, int, int, int);
 static void tcursor(int);
 static void tdeletechar(int);
@@ -334,6 +337,7 @@ static void tsetchar(char *, Glyph *, int, int);
 static void tsetscroll(int, int);
 static void tswapscreen(void);
 static void tsetdirt(int, int);
+static void tsetdirtattr(int);
 static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 static void techo(char *, int);
@@ -1175,6 +1179,20 @@ ttyresize(void) {
 		fprintf(stderr, "Couldn't set window size: %s\n", SERRNO);
 }
 
+int
+tattrset(int attr) {
+	int i, j;
+
+	for(i = 0; i < term.row-1; i++) {
+		for(j = 0; j < term.col-1; j++) {
+			if(term.line[i][j].mode & attr)
+				return 1;
+		}
+	}
+
+	return 0;
+}
+
 void
 tsetdirt(int top, int bot) {
 	int i;
@@ -1184,6 +1202,20 @@ tsetdirt(int top, int bot) {
 
 	for(i = top; i <= bot; i++)
 		term.dirty[i] = 1;
+}
+
+void
+tsetdirtattr(int attr) {
+	int i, j;
+
+	for(i = 0; i < term.row-1; i++) {
+		for(j = 0; j < term.col-1; j++) {
+			if(term.line[i][j].mode & attr) {
+				tsetdirt(i, i);
+				break;
+			}
+		}
+	}
 }
 
 void
@@ -2838,6 +2870,9 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		bg = temp;
 	}
 
+	if(base.mode & ATTR_BLINK && term.mode & MODE_BLINK)
+		fg = bg;
+
 	/* Intelligent cleaning up of the borders. */
 	if(x == 0) {
 		xclear(0, (y == 0)? 0 : winy, borderpx,
@@ -3345,34 +3380,55 @@ void
 run(void) {
 	XEvent ev;
 	fd_set rfd;
-	int xfd = XConnectionNumber(xw.dpy), xev;
-	struct timeval drawtimeout, *tv = NULL, now, last;
+	int xfd = XConnectionNumber(xw.dpy), xev, blinkset = 0, dodraw = 0;
+	struct timeval drawtimeout, *tv = NULL, now, last, lastblink;
 
+	gettimeofday(&lastblink, NULL);
 	gettimeofday(&last, NULL);
 
 	for(xev = actionfps;;) {
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
-		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, tv) < 0) {
+
+		switch(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, tv) < 0) {
+		case -1:
 			if(errno == EINTR)
 				continue;
 			die("select failed: %s\n", SERRNO);
-		}
+		default:
+			if(FD_ISSET(cmdfd, &rfd)) {
+				ttyread();
+				if(blinktimeout) {
+					blinkset = tattrset(ATTR_BLINK);
+					if(!blinkset && term.mode & ATTR_BLINK)
+						term.mode &= ~(MODE_BLINK);
+				}
+			}
 
+			if(FD_ISSET(xfd, &rfd))
+				xev = actionfps;
+			break;
+		}
 		gettimeofday(&now, NULL);
 		drawtimeout.tv_sec = 0;
 		drawtimeout.tv_usec = (1000/xfps) * 1000;
 		tv = &drawtimeout;
 
-		if(FD_ISSET(cmdfd, &rfd))
-			ttyread();
+		dodraw = 0;
+		if(blinktimeout && TIMEDIFF(now, lastblink) > blinktimeout) {
+			tsetdirtattr(ATTR_BLINK);
+			term.mode ^= MODE_BLINK;
+			gettimeofday(&lastblink, NULL);
+			dodraw = 1;
+		}
+		if(TIMEDIFF(now, last) \
+				> (xev? (1000/xfps) : (1000/actionfps))) {
+			dodraw = 1;
+			last = now;
+		}
 
-		if(FD_ISSET(xfd, &rfd))
-			xev = actionfps;
-
-		if(TIMEDIFF(now, last) > \
-				(xev ? (1000/xfps) : (1000/actionfps))) {
+		if(dodraw) {
 			while(XPending(xw.dpy)) {
 				XNextEvent(xw.dpy, &ev);
 				if(XFilterEvent(&ev, None))
@@ -3383,12 +3439,13 @@ run(void) {
 
 			draw();
 			XFlush(xw.dpy);
-			last = now;
 
 			if(xev && !FD_ISSET(xfd, &rfd))
 				xev--;
-			if(!FD_ISSET(cmdfd, &rfd) && !FD_ISSET(xfd, &rfd))
+			if(!FD_ISSET(cmdfd, &rfd) && !FD_ISSET(xfd, &rfd) \
+					&& !blinkset) {
 				tv = NULL;
+			}
 		}
 	}
 }
