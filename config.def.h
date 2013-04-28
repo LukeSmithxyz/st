@@ -74,7 +74,15 @@ static unsigned int defaultcs = 256;
 static unsigned int defaultitalic = 11;
 static unsigned int defaultunderline = 7;
 
-/* Internal shortcuts. */
+/* Internal mouse shortcuts. */
+/* Beware that overloading Button1 will disable the selection. */
+static Mousekey mshortcuts[] = {
+	/* keysym		mask		string */
+	{ Button4,		XK_ANY_MOD,	"\031"},
+	{ Button5,		XK_ANY_MOD,	"\005"},
+};
+
+/* Internal keyboard shortcuts. */
 #define MODKEY Mod1Mask
 
 static Shortcut shortcuts[] = {

@@ -229,6 +229,12 @@ typedef struct {
 } XWindow;
 
 typedef struct {
+	int b;
+	uint mask;
+	char s[ESC_BUF_SIZ];
+} Mousekey;
+
+typedef struct {
 	KeySym k;
 	uint mask;
 	char s[ESC_BUF_SIZ];
@@ -771,10 +777,24 @@ mousereport(XEvent *e) {
 void
 bpress(XEvent *e) {
 	struct timeval now;
+	Mousekey *mk;
 
 	if(IS_SET(MODE_MOUSE)) {
 		mousereport(e);
-	} else if(e->xbutton.button == Button1) {
+		return;
+	}
+
+	for(mk = mshortcuts; mk < mshortcuts + LEN(mshortcuts); mk++) {
+		if(e->xbutton.button == mk->b
+				&& match(mk->mask, e->xbutton.state)) {
+			ttywrite(mk->s, strlen(mk->s));
+			if(IS_SET(MODE_ECHO))
+				techo(mk->s, strlen(mk->s));
+			return;
+		}
+	}
+
+	if(e->xbutton.button == Button1) {
 		gettimeofday(&now, NULL);
 
 		/* Clear previous selection, logically and visually. */
@@ -817,10 +837,6 @@ bpress(XEvent *e) {
 		}
 		sel.tclick2 = sel.tclick1;
 		sel.tclick1 = now;
-	} else if(e->xbutton.button == Button4) {
-		ttywrite("\031", 1);
-	} else if(e->xbutton.button == Button5) {
-		ttywrite("\005", 1);
 	}
 }
 
