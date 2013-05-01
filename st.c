@@ -3496,8 +3496,15 @@ run(void) {
 				xev--;
 			if(!FD_ISSET(cmdfd, &rfd) && !FD_ISSET(xfd, &rfd)) {
 				if(blinkset) {
-					drawtimeout.tv_usec = 1000 * \
-						blinktimeout;
+					if(TIMEDIFF(now, lastblink) \
+							> blinktimeout) {
+						drawtimeout.tv_usec = 1;
+					} else {
+						drawtimeout.tv_usec = (1000 * \
+							(blinktimeout - \
+							TIMEDIFF(now,
+								lastblink)));
+					}
 				} else {
 					tv = NULL;
 				}
