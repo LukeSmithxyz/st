@@ -679,6 +679,8 @@ selected(int x, int y) {
 
 void
 selsnap(int mode, int *x, int *y, int direction) {
+	int i;
+
 	switch(mode) {
 	case SNAP_WORD:
 		/*
@@ -735,6 +737,16 @@ selsnap(int mode, int *x, int *y, int direction) {
 		}
 		break;
 	default:
+		/*
+		 * Select the whole line when the end of line is reached.
+		 */
+		if(direction > 0) {
+			i = term.col;
+			while(--i > 0 && term.line[*y][i].c[0] == ' ')
+				/* nothing */;
+			if(i > 0 && i < *x)
+				*x = term.col - 1;
+		}
 		break;
 	}
 }
