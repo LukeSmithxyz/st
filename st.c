@@ -681,6 +681,10 @@ void
 selsnap(int mode, int *x, int *y, int direction) {
 	switch(mode) {
 	case SNAP_WORD:
+		/*
+		 * Snap around if the word wraps around at the end or
+		 * beginning of a line.
+		 */
 		for(;;) {
 			if(direction < 0 && *x <= 0) {
 				if(*y > 0 && term.line[*y - 1][term.col-1].mode
@@ -708,6 +712,11 @@ selsnap(int mode, int *x, int *y, int direction) {
 		}
 		break;
 	case SNAP_LINE:
+		/*
+		 * Snap around if the the previous line or the current one
+		 * has set ATTR_WRAP at its end. Then the whole next or
+		 * previous line will be selected.
+		 */
 		*x = (direction < 0) ? 0 : term.col - 1;
 		if(direction < 0 && *y > 0) {
 			for(; *y > 0; *y += direction) {
