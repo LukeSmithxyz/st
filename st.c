@@ -900,7 +900,7 @@ bpress(XEvent *e) {
 void
 selcopy(void) {
 	char *str, *ptr;
-	int x, y, bufsize, size;
+	int x, y, bufsize, size, i, ex;
 	Glyph *gp, *last;
 
 	if(sel.bx == -1) {
@@ -938,6 +938,21 @@ selcopy(void) {
 			 */
 			if(y < sel.e.y && !((gp-1)->mode & ATTR_WRAP))
 				*ptr++ = '\n';
+
+			/*
+			 * If the last selected line expands in the selection
+			 * after the visible text '\n' is appended.
+			 */
+			if(y == sel.e.y) {
+				i = term.col;
+				while(--i > 0 && term.line[y][i].c[0] == ' ')
+					/* nothing */;
+				ex = sel.e.x;
+				if(sel.b.y == sel.e.y && sel.e.x < sel.b.x)
+					ex = sel.b.x;
+				if(i < ex)
+					*ptr++ = '\n';
+			}
 		}
 		*ptr = 0;
 	}
