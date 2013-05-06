@@ -3481,25 +3481,23 @@ run(void) {
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
 
-		switch(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, tv) < 0) {
-		case -1:
+		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, tv) < 0) {
 			if(errno == EINTR)
 				continue;
 			die("select failed: %s\n", SERRNO);
-		default:
-			if(FD_ISSET(cmdfd, &rfd)) {
-				ttyread();
-				if(blinktimeout) {
-					blinkset = tattrset(ATTR_BLINK);
-					if(!blinkset && term.mode & ATTR_BLINK)
-						term.mode &= ~(MODE_BLINK);
-				}
-			}
-
-			if(FD_ISSET(xfd, &rfd))
-				xev = actionfps;
-			break;
 		}
+		if(FD_ISSET(cmdfd, &rfd)) {
+			ttyread();
+			if(blinktimeout) {
+				blinkset = tattrset(ATTR_BLINK);
+				if(!blinkset && term.mode & ATTR_BLINK)
+					term.mode &= ~(MODE_BLINK);
+			}
+		}
+
+		if(FD_ISSET(xfd, &rfd))
+			xev = actionfps;
+
 		gettimeofday(&now, NULL);
 		drawtimeout.tv_sec = 0;
 		drawtimeout.tv_usec = (1000/xfps) * 1000;
