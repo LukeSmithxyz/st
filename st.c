@@ -369,6 +369,7 @@ static void xresettitle(void);
 static void xseturgency(int);
 static void xsetsel(char*);
 static void xtermclear(int, int, int, int);
+static void xunloadfont(Font *f);
 static void xunloadfonts(void);
 static void xresize(int, int);
 
@@ -2734,6 +2735,14 @@ xloadfontset(Font *f) {
 }
 
 void
+xunloadfont(Font *f) {
+	XftFontClose(xw.dpy, f->match);
+	FcPatternDestroy(f->pattern);
+	if(f->set)
+		FcFontSetDestroy(f->set);
+}
+
+void
 xunloadfonts(void) {
 	int i, ip;
 
@@ -2749,18 +2758,10 @@ xunloadfonts(void) {
 	frccur = -1;
 	frclen = 0;
 
-	XftFontClose(xw.dpy, dc.font.match);
-	FcPatternDestroy(dc.font.pattern);
-	FcFontSetDestroy(dc.font.set);
-	XftFontClose(xw.dpy, dc.bfont.match);
-	FcPatternDestroy(dc.bfont.pattern);
-	FcFontSetDestroy(dc.bfont.set);
-	XftFontClose(xw.dpy, dc.ifont.match);
-	FcPatternDestroy(dc.ifont.pattern);
-	FcFontSetDestroy(dc.ifont.set);
-	XftFontClose(xw.dpy, dc.ibfont.match);
-	FcPatternDestroy(dc.ibfont.pattern);
-	FcFontSetDestroy(dc.ibfont.set);
+	xunloadfont(&dc.font);
+	xunloadfont(&dc.bfont);
+	xunloadfont(&dc.ifont);
+	xunloadfont(&dc.ibfont);
 }
 
 void
