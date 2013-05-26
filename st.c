@@ -667,16 +667,21 @@ y2row(int y) {
 
 static void
 selsort(void) {
-	sel.nb.x = sel.ob.y < sel.oe.y ? sel.ob.x : sel.oe.x;
+	if(sel.ob.y == sel.oe.y) {
+		sel.nb.x = MIN(sel.ob.x, sel.oe.x);
+		sel.ne.x = MAX(sel.ob.x, sel.oe.x);
+	} else {
+		sel.nb.x = sel.ob.y < sel.oe.y ? sel.ob.x : sel.oe.x;
+		sel.ne.x = sel.ob.y < sel.oe.y ? sel.oe.x : sel.ob.x;
+	}
 	sel.nb.y = MIN(sel.ob.y, sel.oe.y);
-	sel.ne.x = sel.ob.y < sel.oe.y ? sel.oe.x : sel.ob.x;
 	sel.ne.y = MAX(sel.ob.y, sel.oe.y);
 }
 
 static inline bool
 selected(int x, int y) {
 	if(sel.ne.y == y && sel.nb.y == y)
-		return BETWEEN(x, sel.nb.x, sel.ne.y);
+		return BETWEEN(x, sel.nb.x, sel.ne.x);
 
 	if(sel.type == SEL_RECTANGULAR) {
 		return ((sel.nb.y <= y && y <= sel.ne.y)
