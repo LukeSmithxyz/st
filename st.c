@@ -249,11 +249,17 @@ typedef struct {
 	int mode;
 	int type;
 	int snap;
-	int bx, by;
-	int ex, ey;
+	/*
+	 * Selection variables:
+	 * nb – normalized coordinates of the beginning of the selection
+	 * ne – normalized coordinates of the end of the selection
+	 * ob – original coordinates of the beginning of the selection
+	 * oe – original coordinates of the end of the selection
+	 */
 	struct {
 		int x, y;
-	} b, e;
+	} nb, ne, ob, oe;
+
 	char *clip;
 	Atom xtarget;
 	bool alt;
@@ -390,6 +396,7 @@ static void selclear(XEvent *);
 static void selrequest(XEvent *);
 
 static void selinit(void);
+static void selsort(void);
 static inline bool selected(int, int);
 static void selcopy(void);
 static void selscroll(int, int);
@@ -630,12 +637,12 @@ utf8size(char *s) {
 	}
 }
 
-void
+static void
 selinit(void) {
 	memset(&sel.tclick1, 0, sizeof(sel.tclick1));
 	memset(&sel.tclick2, 0, sizeof(sel.tclick2));
 	sel.mode = 0;
-	sel.bx = -1;
+	sel.ob.x = -1;
 	sel.clip = NULL;
 	sel.xtarget = XInternAtom(xw.dpy, "UTF8_STRING", 0);
 	if(sel.xtarget == None)
@@ -658,25 +665,28 @@ y2row(int y) {
 	return LIMIT(y, 0, term.row-1);
 }
 
+static void
+selsort(void) {
+	sel.nb.x = sel.ob.y < sel.oe.y ? sel.ob.x : sel.oe.x;
+	sel.nb.y = MIN(sel.ob.y, sel.oe.y);
+	sel.ne.x = sel.ob.y < sel.oe.y ? sel.oe.x : sel.ob.x;
+	sel.ne.y = MAX(sel.ob.y, sel.oe.y);
+}
+
 static inline bool
 selected(int x, int y) {
-	int bx, ex;
-
-	if(sel.ey == y && sel.by == y) {
-		bx = MIN(sel.bx, sel.ex);
-		ex = MAX(sel.bx, sel.ex);
-
-		return BETWEEN(x, bx, ex);
-	}
+	if(sel.ne.y == y && sel.nb.y == y)
+		return BETWEEN(x, sel.nb.x, sel.ne.y);
 
 	if(sel.type == SEL_RECTANGULAR) {
-		return ((sel.b.y <= y && y <= sel.e.y)
-			&& (sel.b.x <= x && x <= sel.e.x));
+		return ((sel.nb.y <= y && y <= sel.ne.y)
+			&& (sel.nb.x <= x && x <= sel.ne.x));
 	}
-	return ((sel.b.y < y && y < sel.e.y)
-		|| (y == sel.e.y && x <= sel.e.x))
-		|| (y == sel.b.y && x >= sel.b.x
-			&& (x <= sel.e.x || sel.b.y != sel.e.y));
+
+	return ((sel.nb.y < y && y < sel.ne.y)
+		|| (y == sel.ne.y && x <= sel.ne.x))
+		|| (y == sel.nb.y && x >= sel.nb.x
+			&& (x <= sel.ne.x || sel.nb.y != sel.ne.y));
 }
 
 void
@@ -762,22 +772,19 @@ getbuttoninfo(XEvent *e) {
 
 	sel.alt = IS_SET(MODE_ALTSCREEN);
 
-	sel.ex = x2col(e->xbutton.x);
-	sel.ey = y2row(e->xbutton.y);
+	sel.oe.x = x2col(e->xbutton.x);
+	sel.oe.y = y2row(e->xbutton.y);
 
-	if (sel.by < sel.ey
-			|| (sel.by == sel.ey && sel.bx < sel.ex)) {
-		selsnap(sel.snap, &sel.bx, &sel.by, -1);
-		selsnap(sel.snap, &sel.ex, &sel.ey, +1);
+	if (sel.ob.y < sel.oe.y
+			|| (sel.ob.y == sel.oe.y && sel.ob.x < sel.oe.x)) {
+		selsnap(sel.snap, &sel.ob.x, &sel.ob.y, -1);
+		selsnap(sel.snap, &sel.oe.x, &sel.oe.y, +1);
 	} else {
-		selsnap(sel.snap, &sel.ex, &sel.ey, -1);
-		selsnap(sel.snap, &sel.bx, &sel.by, +1);
+		selsnap(sel.snap, &sel.oe.x, &sel.oe.y, -1);
+		selsnap(sel.snap, &sel.ob.x, &sel.ob.y, +1);
 	}
 
-	sel.b.x = sel.by < sel.ey ? sel.bx : sel.ex;
-	sel.b.y = MIN(sel.by, sel.ey);
-	sel.e.x = sel.by < sel.ey ? sel.ex : sel.bx;
-	sel.e.y = MAX(sel.by, sel.ey);
+	selsort();
 
 	sel.type = SEL_REGULAR;
 	for(type = 1; type < LEN(selmasks); ++type) {
@@ -801,7 +808,8 @@ mousereport(XEvent *e) {
 		if(!IS_SET(MODE_MOUSEMOTION) || (x == ox && y == oy))
 			return;
 		button = ob + 32;
-		ox = x, oy = y;
+		ox = x;
+		oy = y;
 	} else if(!IS_SET(MODE_MOUSESGR)
 			&& (e->xbutton.type == ButtonRelease
 				|| button == AnyButton)) {
@@ -812,7 +820,8 @@ mousereport(XEvent *e) {
 			button += 64 - 3;
 		if(e->xbutton.type == ButtonPress) {
 			ob = button;
-			ox = x, oy = y;
+			ox = x;
+			oy = y;
 		}
 	}
 
@@ -859,15 +868,15 @@ bpress(XEvent *e) {
 		gettimeofday(&now, NULL);
 
 		/* Clear previous selection, logically and visually. */
-		if(sel.bx != -1) {
-			sel.bx = -1;
-			tsetdirt(sel.b.y, sel.e.y);
+		if(sel.ob.x != -1) {
+			sel.ob.x = -1;
+			tsetdirt(sel.nb.y, sel.ne.y);
 			draw();
 		}
 		sel.mode = 1;
 		sel.type = SEL_REGULAR;
-		sel.ex = sel.bx = x2col(e->xbutton.x);
-		sel.ey = sel.by = y2row(e->xbutton.y);
+		sel.oe.x = sel.ob.x = x2col(e->xbutton.x);
+		sel.oe.y = sel.ob.y = y2row(e->xbutton.y);
 
 		/*
 		 * If the user clicks below predefined timeouts specific
@@ -880,12 +889,9 @@ bpress(XEvent *e) {
 		} else {
 			sel.snap = 0;
 		}
-		selsnap(sel.snap, &sel.bx, &sel.by, -1);
-		selsnap(sel.snap, &sel.ex, &sel.ey, +1);
-		sel.b.x = sel.bx;
-		sel.b.y = sel.by;
-		sel.e.x = sel.ex;
-		sel.e.y = sel.ey;
+		selsnap(sel.snap, &sel.ob.x, &sel.ob.y, -1);
+		selsnap(sel.snap, &sel.oe.x, &sel.oe.y, +1);
+		selsort();
 
 		/*
 		 * Draw selection, unless it's regular and we don't want to
@@ -893,7 +899,7 @@ bpress(XEvent *e) {
 		 */
 		if(sel.snap != 0) {
 			sel.mode++;
-			tsetdirt(sel.b.y, sel.e.y);
+			tsetdirt(sel.nb.y, sel.ne.y);
 			draw();
 		}
 		sel.tclick2 = sel.tclick1;
@@ -907,14 +913,14 @@ selcopy(void) {
 	int x, y, bufsize, size, i, ex;
 	Glyph *gp, *last;
 
-	if(sel.bx == -1) {
+	if(sel.ob.x == -1) {
 		str = NULL;
 	} else {
-		bufsize = (term.col+1) * (sel.e.y-sel.b.y+1) * UTF_SIZ;
+		bufsize = (term.col+1) * (sel.ne.y-sel.nb.y+1) * UTF_SIZ;
 		ptr = str = xmalloc(bufsize);
 
 		/* append every set & selected glyph to the selection */
-		for(y = sel.b.y; y < sel.e.y + 1; y++) {
+		for(y = sel.nb.y; y < sel.ne.y + 1; y++) {
 			gp = &term.line[y][0];
 			last = gp + term.col;
 
@@ -940,20 +946,20 @@ selcopy(void) {
 			 * st.
 			 * FIXME: Fix the computer world.
 			 */
-			if(y < sel.e.y && !((gp-1)->mode & ATTR_WRAP))
+			if(y < sel.ne.y && !((gp-1)->mode & ATTR_WRAP))
 				*ptr++ = '\n';
 
 			/*
 			 * If the last selected line expands in the selection
 			 * after the visible text '\n' is appended.
 			 */
-			if(y == sel.e.y) {
+			if(y == sel.ne.y) {
 				i = term.col;
 				while(--i > 0 && term.line[y][i].c[0] == ' ')
 					/* nothing */;
-				ex = sel.e.x;
-				if(sel.b.y == sel.e.y && sel.e.x < sel.b.x)
-					ex = sel.b.x;
+				ex = sel.ne.x;
+				if(sel.nb.y == sel.ne.y && sel.ne.x < sel.nb.x)
+					ex = sel.nb.x;
 				if(i < ex)
 					*ptr++ = '\n';
 			}
@@ -1016,10 +1022,10 @@ clippaste(const Arg *dummy) {
 
 void
 selclear(XEvent *e) {
-	if(sel.bx == -1)
+	if(sel.ob.x == -1)
 		return;
-	sel.bx = -1;
-	tsetdirt(sel.b.y, sel.e.y);
+	sel.ob.x = -1;
+	tsetdirt(sel.nb.y, sel.ne.y);
 }
 
 void
@@ -1082,13 +1088,13 @@ brelease(XEvent *e) {
 		selpaste(NULL);
 	} else if(e->xbutton.button == Button1) {
 		if(sel.mode < 2) {
-			sel.bx = -1;
+			sel.ob.x = -1;
 		} else {
 			getbuttoninfo(e);
 			selcopy();
 		}
 		sel.mode = 0;
-		term.dirty[sel.ey] = 1;
+		term.dirty[sel.oe.y] = 1;
 	}
 }
 
@@ -1105,15 +1111,14 @@ bmotion(XEvent *e) {
 		return;
 
 	sel.mode++;
-	oldey = sel.ey;
-	oldex = sel.ex;
-	oldsby = sel.b.y;
-	oldsey = sel.e.y;
+	oldey = sel.oe.y;
+	oldex = sel.oe.x;
+	oldsby = sel.nb.y;
+	oldsey = sel.ne.y;
 	getbuttoninfo(e);
 
-	if(oldey != sel.ey || oldex != sel.ex) {
-		tsetdirt(MIN(sel.b.y, oldsby), MAX(sel.e.y, oldsey));
-	}
+	if(oldey != sel.oe.y || oldex != sel.oe.x)
+		tsetdirt(MIN(sel.nb.y, oldsby), MAX(sel.ne.y, oldsey));
 }
 
 void
@@ -1411,31 +1416,30 @@ tscrollup(int orig, int n) {
 
 void
 selscroll(int orig, int n) {
-	if(sel.bx == -1)
+	if(sel.ob.x == -1)
 		return;
 
-	if(BETWEEN(sel.by, orig, term.bot) || BETWEEN(sel.ey, orig, term.bot)) {
-		if((sel.by += n) > term.bot || (sel.ey += n) < term.top) {
-			sel.bx = -1;
+	if(BETWEEN(sel.ob.y, orig, term.bot) || BETWEEN(sel.oe.y, orig, term.bot)) {
+		if((sel.ob.y += n) > term.bot || (sel.oe.y += n) < term.top) {
+			sel.ob.x = -1;
 			return;
 		}
 		if(sel.type == SEL_RECTANGULAR) {
-			if(sel.by < term.top)
-				sel.by = term.top;
-			if(sel.ey > term.bot)
-				sel.ey = term.bot;
+			if(sel.ob.y < term.top)
+				sel.ob.y = term.top;
+			if(sel.oe.y > term.bot)
+				sel.oe.y = term.bot;
 		} else {
-			if(sel.by < term.top) {
-				sel.by = term.top;
-				sel.bx = 0;
+			if(sel.ob.y < term.top) {
+				sel.ob.y = term.top;
+				sel.ob.x = 0;
 			}
-			if(sel.ey > term.bot) {
-				sel.ey = term.bot;
-				sel.ex = term.col;
+			if(sel.oe.y > term.bot) {
+				sel.oe.y = term.bot;
+				sel.oe.x = term.col;
 			}
 		}
-		sel.b.y = sel.by, sel.b.x = sel.bx;
-		sel.e.y = sel.ey, sel.e.x = sel.ex;
+		selsort();
 	}
 }
 
@@ -1905,7 +1909,7 @@ csihandle(void) {
 			tputtab(1);
 		break;
 	case 'J': /* ED -- Clear screen */
-		sel.bx = -1;
+		sel.ob.x = -1;
 		switch(csiescseq.arg[0]) {
 		case 0: /* below */
 			tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
@@ -2401,8 +2405,8 @@ tputc(char *c, int len) {
 	 */
 	if(control && !(term.c.attr.mode & ATTR_GFX))
 		return;
-	if(sel.bx != -1 && BETWEEN(term.c.y, sel.by, sel.ey))
-		sel.bx = -1;
+	if(sel.ob.x != -1 && BETWEEN(term.c.y, sel.ob.y, sel.oe.y))
+		sel.ob.x = -1;
 	if(IS_SET(MODE_WRAP) && (term.c.state & CURSOR_WRAPNEXT)) {
 		term.line[term.c.y][term.c.x].mode |= ATTR_WRAP;
 		tnewline(1);
@@ -3212,7 +3216,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 	int ic, ib, x, y, ox, sl;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
-	bool ena_sel = sel.bx != -1;
+	bool ena_sel = sel.ob.x != -1;
 
 	if(sel.alt ^ IS_SET(MODE_ALTSCREEN))
 		ena_sel = 0;
