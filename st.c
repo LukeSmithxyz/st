@@ -118,6 +118,7 @@ enum term_mode {
 	MODE_8BIT	 = 8192,
 	MODE_BLINK	 = 16384,
 	MODE_FBLINK	 = 32768,
+	MODE_FOCUS	 = 65536,
 };
 
 enum escape_state {
@@ -1782,6 +1783,13 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				MODBIT(term.mode, set, MODE_MOUSEMOTION);
 				MODBIT(term.mode, 0, MODE_MOUSEBTN);
 				break;
+			case 1003: /* 1003: enable all mouse reports */
+				MODBIT(term.mode, set, MODE_MOUSEMOTION);
+				MODBIT(term.mode, set, MODE_MOUSEBTN);
+				break;
+			case 1004:
+				MODBIT(term.mode, set, MODE_FOCUS);
+				break;
 			case 1006:
 				MODBIT(term.mode, set, MODE_MOUSESGR);
 				break;
@@ -1807,6 +1815,9 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 1048:
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
 				break;
+			case 9: /* X10 compatibility mode */
+			case 1001: /* mouse highlight mode; can hang the
+				      terminal when implemented. */
 			default:
 				fprintf(stderr,
 					"erresc: unknown private set/reset mode %d\n",
@@ -3309,9 +3320,13 @@ focus(XEvent *ev) {
 		XSetICFocus(xw.xic);
 		xw.state |= WIN_FOCUSED;
 		xseturgency(0);
+		if(IS_SET(MODE_FOCUS))
+			ttywrite("\033[I", 3);
 	} else {
 		XUnsetICFocus(xw.xic);
 		xw.state &= ~WIN_FOCUSED;
+		if(IS_SET(MODE_FOCUS))
+			ttywrite("\033[O", 3);
 	}
 }
 
