@@ -108,7 +108,6 @@ enum term_mode {
 	MODE_CRLF	 = 16,
 	MODE_MOUSEBTN    = 32,
 	MODE_MOUSEMOTION = 64,
-	MODE_MOUSE       = 32|64,
 	MODE_REVERSE     = 128,
 	MODE_KBDLOCK     = 256,
 	MODE_HIDE	 = 512,
@@ -119,6 +118,10 @@ enum term_mode {
 	MODE_BLINK	 = 16384,
 	MODE_FBLINK	 = 32768,
 	MODE_FOCUS	 = 65536,
+	MODE_MOUSEX10	 = 131072,
+	MODE_MOUSEMANY   = 262144,
+	MODE_MOUSE       = MODE_MOUSEBTN|MODE_MOUSEMOTION|MODE_MOUSEX10\
+			   |MODE_MOUSEMANY,
 };
 
 enum escape_state {
@@ -219,6 +222,7 @@ typedef struct {
 	XIC xic;
 	Draw draw;
 	Visual *vis;
+	XSetWindowAttributes attrs;
 	int scr;
 	bool isfixed; /* is fixed geometry? */
 	int fx, fy, fw, fh; /* fixed geometry */
@@ -245,7 +249,6 @@ typedef struct {
 	signed char crlf;		/* crlf mode          */
 } Key;
 
-/* TODO: use better name for vars... */
 typedef struct {
 	int mode;
 	int type;
@@ -373,6 +376,7 @@ static void xloadfonts(char *, int);
 static int xloadfontset(Font *);
 static void xsettitle(char *);
 static void xresettitle(void);
+static void xsetpointermotion(int);
 static void xseturgency(int);
 static void xsetsel(char*);
 static void xtermclear(int, int, int, int);
@@ -446,6 +450,7 @@ static char *opt_title = NULL;
 static char *opt_embed = NULL;
 static char *opt_class = NULL;
 static char *opt_font = NULL;
+static int oldbutton = 3; /* button event on startup: 3 = release */
 
 static char *usedfont = NULL;
 static int usedfontsize = 0;
@@ -806,13 +811,19 @@ mousereport(XEvent *e) {
 	    button = e->xbutton.button, state = e->xbutton.state,
 	    len;
 	char buf[40];
-	static int ob, ox, oy;
+	static int ox, oy;
 
 	/* from urxvt */
 	if(e->xbutton.type == MotionNotify) {
-		if(!IS_SET(MODE_MOUSEMOTION) || (x == ox && y == oy))
+		if(x == ox && y == oy)
 			return;
-		button = ob + 32;
+		if(!IS_SET(MODE_MOUSEMOTION) && !IS_SET(MODE_MOUSEMANY))
+			return;
+		/* MOUSE_MOTION: no reporting if no button is pressed */
+		if(IS_SET(MODE_MOUSEMOTION) && oldbutton == 3)
+			return;
+
+		button = oldbutton + 32;
 		ox = x;
 		oy = y;
 	} else if(!IS_SET(MODE_MOUSESGR)
@@ -824,15 +835,17 @@ mousereport(XEvent *e) {
 		if(button >= 3)
 			button += 64 - 3;
 		if(e->xbutton.type == ButtonPress) {
-			ob = button;
+			oldbutton = button;
 			ox = x;
 			oy = y;
 		}
 	}
 
-	button += (state & ShiftMask   ? 4  : 0)
-		+ (state & Mod4Mask    ? 8  : 0)
-		+ (state & ControlMask ? 16 : 0);
+	if(!IS_SET(MODE_MOUSEX10)) {
+		button += (state & ShiftMask   ? 4  : 0)
+			+ (state & Mod4Mask    ? 8  : 0)
+			+ (state & ControlMask ? 16 : 0);
+	}
 
 	len = 0;
 	if(IS_SET(MODE_MOUSESGR)) {
@@ -841,7 +854,8 @@ mousereport(XEvent *e) {
 				e->xbutton.type == ButtonRelease ? 'm' : 'M');
 	} else if(x < 223 && y < 223) {
 		len = snprintf(buf, sizeof(buf), "\033[M%c%c%c",
-				32+button, 32+x+1, 32+y+1);
+				IS_SET(MODE_MOUSEX10)? button-1 : 32+button,
+				32+x+1, 32+y+1);
 	} else {
 		return;
 	}
@@ -1775,21 +1789,30 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 25: /* DECTCEM -- Text Cursor Enable Mode */
 				MODBIT(term.mode, !set, MODE_HIDE);
 				break;
-			case 1000: /* 1000,1002: enable xterm mouse report */
+			case 9:    /* X10 mouse compatibility mode */
+				xsetpointermotion(0);
+				MODBIT(term.mode, 0, MODE_MOUSE);
+				MODBIT(term.mode, set, MODE_MOUSEX10);
+				break;
+			case 1000: /* 1000: report button press */
+				xsetpointermotion(0);
+				MODBIT(term.mode, 0, MODE_MOUSE);
 				MODBIT(term.mode, set, MODE_MOUSEBTN);
-				MODBIT(term.mode, 0, MODE_MOUSEMOTION);
 				break;
-			case 1002:
+			case 1002: /* 1002: report motion on button press */
+				xsetpointermotion(0);
+				MODBIT(term.mode, 0, MODE_MOUSE);
 				MODBIT(term.mode, set, MODE_MOUSEMOTION);
-				MODBIT(term.mode, 0, MODE_MOUSEBTN);
 				break;
-			case 1003: /* 1003: enable all mouse reports */
-				MODBIT(term.mode, set, MODE_MOUSE);
+			case 1003: /* 1003: enable all mouse motions */
+				xsetpointermotion(set);
+				MODBIT(term.mode, 0, MODE_MOUSE);
+				MODBIT(term.mode, set, MODE_MOUSEMANY);
 				break;
-			case 1004:
+			case 1004: /* 1004: send focus events to tty */
 				MODBIT(term.mode, set, MODE_FOCUS);
 				break;
-			case 1006:
+			case 1006: /* 1006: extended reporting mode */
 				MODBIT(term.mode, set, MODE_MOUSESGR);
 				break;
 			case 1034:
@@ -1815,7 +1838,6 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
 				break;
 			/* Not implemented mouse modes. See comments there. */
-			case 9: /* X10 compatibility mode */
 			case 1001: /* mouse highlight mode; can hang the
 				      terminal by design when implemented. */
 			case 1005: /* UTF-8 mouse mode; will confuse
@@ -1855,8 +1877,6 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 		}
 	}
 }
-#undef MODBIT
-
 
 void
 csihandle(void) {
@@ -2799,7 +2819,6 @@ xzoom(const Arg *arg) {
 
 void
 xinit(void) {
-	XSetWindowAttributes attrs;
 	XGCValues gcvalues;
 	Cursor cursor;
 	Window parent;
@@ -2841,22 +2860,20 @@ xinit(void) {
 	}
 
 	/* Events */
-	attrs.background_pixel = dc.col[defaultbg].pixel;
-	attrs.border_pixel = dc.col[defaultbg].pixel;
-	attrs.bit_gravity = NorthWestGravity;
-	attrs.event_mask = FocusChangeMask | KeyPressMask
+	xw.attrs.background_pixel = dc.col[defaultbg].pixel;
+	xw.attrs.border_pixel = dc.col[defaultbg].pixel;
+	xw.attrs.bit_gravity = NorthWestGravity;
+	xw.attrs.event_mask = FocusChangeMask | KeyPressMask
 		| ExposureMask | VisibilityChangeMask | StructureNotifyMask
 		| ButtonMotionMask | ButtonPressMask | ButtonReleaseMask;
-	attrs.colormap = xw.cmap;
+	xw.attrs.colormap = xw.cmap;
 
 	parent = opt_embed ? strtol(opt_embed, NULL, 0) : \
 			XRootWindow(xw.dpy, xw.scr);
 	xw.win = XCreateWindow(xw.dpy, parent, xw.fx, xw.fy,
 			xw.w, xw.h, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
-			xw.vis,
-			CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask
-			| CWColormap,
-			&attrs);
+			xw.vis, CWBackPixel | CWBorderPixel | CWBitGravity
+			| CWEventMask | CWColormap, &xw.attrs);
 
 	memset(&gcvalues, 0, sizeof(gcvalues));
 	gcvalues.graphics_exposures = False;
@@ -2871,7 +2888,7 @@ xinit(void) {
 	xw.draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
 
 	/* input methods */
-	if((xw.xim =  XOpenIM(xw.dpy, NULL, NULL, NULL)) == NULL) {
+	if((xw.xim = XOpenIM(xw.dpy, NULL, NULL, NULL)) == NULL) {
 		XSetLocaleModifiers("@im=local");
 		if((xw.xim =  XOpenIM(xw.dpy, NULL, NULL, NULL)) == NULL) {
 			XSetLocaleModifiers("@im=");
@@ -3304,6 +3321,12 @@ visibility(XEvent *ev) {
 void
 unmap(XEvent *ev) {
 	xw.state &= ~WIN_VISIBLE;
+}
+
+void
+xsetpointermotion(int set) {
+	MODBIT(xw.attrs.event_mask, set, PointerMotionMask);
+	XChangeWindowAttributes(xw.dpy, xw.win, CWEventMask, &xw.attrs);
 }
 
 void
