@@ -1815,9 +1815,16 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 1048:
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
 				break;
+			/* Not implemented mouse modes. See comments there. */
 			case 9: /* X10 compatibility mode */
 			case 1001: /* mouse highlight mode; can hang the
-				      terminal when implemented. */
+				      terminal by design when implemented. */
+			case 1005: /* UTF-8 mouse mode; will confuse
+				      applications not supporting UTF-8
+				      and luit. */
+			case 1015: /* urxvt mangled mouse mode; incompatible
+				      and can be mistaken for other control
+				      codes. */
 			default:
 				fprintf(stderr,
 					"erresc: unknown private set/reset mode %d\n",
