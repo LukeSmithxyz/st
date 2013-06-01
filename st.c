@@ -1784,8 +1784,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				MODBIT(term.mode, 0, MODE_MOUSEBTN);
 				break;
 			case 1003: /* 1003: enable all mouse reports */
-				MODBIT(term.mode, set, MODE_MOUSEMOTION);
-				MODBIT(term.mode, set, MODE_MOUSEBTN);
+				MODBIT(term.mode, set, MODE_MOUSE);
 				break;
 			case 1004:
 				MODBIT(term.mode, set, MODE_FOCUS);
