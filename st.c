@@ -780,7 +780,7 @@ getbuttoninfo(XEvent *e) {
 	sel.oe.x = x2col(e->xbutton.x);
 	sel.oe.y = y2row(e->xbutton.y);
 
-	if (sel.ob.y < sel.oe.y
+	if(sel.ob.y < sel.oe.y
 			|| (sel.ob.y == sel.oe.y && sel.ob.x < sel.oe.x)) {
 		selsnap(sel.snap, &sel.ob.x, &sel.ob.y, -1);
 		selsnap(sel.snap, &sel.oe.x, &sel.oe.y, +1);
@@ -788,7 +788,6 @@ getbuttoninfo(XEvent *e) {
 		selsnap(sel.snap, &sel.oe.x, &sel.oe.y, -1);
 		selsnap(sel.snap, &sel.ob.x, &sel.ob.y, +1);
 	}
-
 	selsort();
 
 	sel.type = SEL_REGULAR;
@@ -1099,7 +1098,7 @@ brelease(XEvent *e) {
 			selcopy();
 		}
 		sel.mode = 0;
-		term.dirty[sel.oe.y] = 1;
+		tsetdirt(sel.nb.y, sel.ne.y);
 	}
 }
 
