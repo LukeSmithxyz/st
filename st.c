@@ -19,6 +19,7 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <libgen.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -3622,6 +3623,7 @@ int
 main(int argc, char *argv[]) {
 	int bitm, xr, yr;
 	uint wr, hr;
+	char *titles;
 
 	xw.fw = xw.fh = xw.fx = xw.fy = 0;
 	xw.isfixed = False;
@@ -3635,8 +3637,13 @@ main(int argc, char *argv[]) {
 		break;
 	case 'e':
 		/* eat all remaining arguments */
-		if(argc > 1)
+		if(argc > 1) {
 			opt_cmd = &argv[1];
+			if(argv[1] != NULL) {
+				titles = strdup(argv[1]);
+				opt_title = basename(titles);
+			}
+		}
 		goto run;
 	case 'f':
 		opt_font = EARGF(usage());
