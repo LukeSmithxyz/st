@@ -3639,7 +3639,7 @@ main(int argc, char *argv[]) {
 		/* eat all remaining arguments */
 		if(argc > 1) {
 			opt_cmd = &argv[1];
-			if(argv[1] != NULL) {
+			if(argv[1] != NULL && opt_title == NULL) {
 				titles = strdup(argv[1]);
 				opt_title = basename(titles);
 			}
