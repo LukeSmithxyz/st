@@ -3687,6 +3687,8 @@ run(void) {
 	gettimeofday(&last, NULL);
 
 	for(xev = actionfps;;) {
+		long deltatime;
+
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
@@ -3720,8 +3722,9 @@ run(void) {
 			gettimeofday(&lastblink, NULL);
 			dodraw = 1;
 		}
-		if(TIMEDIFF(now, last) \
-				> (xev? (1000/xfps) : (1000/actionfps))) {
+		deltatime = TIMEDIFF(now, last);
+		if(deltatime > (xev? (1000/xfps) : (1000/actionfps))
+				|| deltatime < 0) {
 			dodraw = 1;
 			last = now;
 		}
