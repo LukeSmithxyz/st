@@ -150,10 +150,6 @@ enum selection_snap {
 	SNAP_LINE = 2
 };
 
-/* bit macro */
-#undef B0
-enum { B0=1, B1=2, B2=4, B3=8, B4=16, B5=32, B6=64, B7=128 };
-
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long ulong;
@@ -527,17 +523,17 @@ utf8decode(char *s, long *u) {
 
 	rtn = 1;
 	c = *s;
-	if(~c & B7) { /* 0xxxxxxx */
+	if(~c & 0x80) { /* 0xxxxxxx */
 		*u = c;
 		return rtn;
-	} else if((c & (B7|B6|B5)) == (B7|B6)) { /* 110xxxxx */
-		*u = c&(B4|B3|B2|B1|B0);
+	} else if((c & 0xE0) == 0xC0) { /* 110xxxxx */
+		*u = c & 0x1F;
 		n = 1;
-	} else if((c & (B7|B6|B5|B4)) == (B7|B6|B5)) { /* 1110xxxx */
-		*u = c&(B3|B2|B1|B0);
+	} else if((c & 0xF0) == 0xE0) { /* 1110xxxx */
+		*u = c & 0x0F;
 		n = 2;
-	} else if((c & (B7|B6|B5|B4|B3)) == (B7|B6|B5|B4)) { /* 11110xxx */
-		*u = c & (B2|B1|B0);
+	} else if((c & 0xF8) == 0xF0) { /* 11110xxx */
+		*u = c & 0x07;
 		n = 3;
 	} else {
 		goto invalid;
@@ -545,10 +541,10 @@ utf8decode(char *s, long *u) {
 
 	for(i = n, ++s; i > 0; --i, ++rtn, ++s) {
 		c = *s;
-		if((c & (B7|B6)) != B7) /* 10xxxxxx */
+		if((c & 0xC0) != 0x80) /* 10xxxxxx */
 			goto invalid;
 		*u <<= 6;
-		*u |= c & (B5|B4|B3|B2|B1|B0);
+		*u |= c & 0x3F;
 	}
 
 	if((n == 1 && *u < 0x80) ||
@@ -577,20 +573,20 @@ utf8encode(long *u, char *s) {
 		*sp = uc; /* 0xxxxxxx */
 		return 1;
 	} else if(*u < 0x800) {
-		*sp = (uc >> 6) | (B7|B6); /* 110xxxxx */
+		*sp = (uc >> 6) | 0xC0; /* 110xxxxx */
 		n = 1;
 	} else if(uc < 0x10000) {
-		*sp = (uc >> 12) | (B7|B6|B5); /* 1110xxxx */
+		*sp = (uc >> 12) | 0xE0; /* 1110xxxx */
 		n = 2;
 	} else if(uc <= 0x10FFFF) {
-		*sp = (uc >> 18) | (B7|B6|B5|B4); /* 11110xxx */
+		*sp = (uc >> 18) | 0xF0; /* 11110xxx */
 		n = 3;
 	} else {
 		goto invalid;
 	}
 
 	for(i=n,++sp; i>0; --i,++sp)
-		*sp = ((uc >> 6*(i-1)) & (B5|B4|B3|B2|B1|B0)) | B7; /* 10xxxxxx */
+		*sp = ((uc >> 6*(i-1)) & 0x3F) | 0x80; /* 10xxxxxx */
 
 	return n+1;
 invalid:
@@ -613,16 +609,16 @@ isfullutf8(char *s, int b) {
 	c3 = (uchar *)++s;
 	if(b < 1) {
 		return 0;
-	} else if((*c1&(B7|B6|B5)) == (B7|B6) && b == 1) {
+	} else if((*c1 & 0xE0) == 0xC0 && b == 1) {
 		return 0;
-	} else if((*c1&(B7|B6|B5|B4)) == (B7|B6|B5) &&
+	} else if((*c1 & 0xF0) == 0xE0 &&
 	    ((b == 1) ||
-	    ((b == 2) && (*c2&(B7|B6)) == B7))) {
+	    ((b == 2) && (*c2 & 0xC0) == 0x80))) {
 		return 0;
-	} else if((*c1&(B7|B6|B5|B4|B3)) == (B7|B6|B5|B4) &&
+	} else if((*c1 & 0xF8) == 0xF0 &&
 	    ((b == 1) ||
-	    ((b == 2) && (*c2&(B7|B6)) == B7) ||
-	    ((b == 3) && (*c2&(B7|B6)) == B7 && (*c3&(B7|B6)) == B7))) {
+	    ((b == 2) && (*c2 & 0xC0) == 0x80) ||
+	    ((b == 3) && (*c2 & 0xC0) == 0x80 && (*c3 & 0xC0) == 0x80))) {
 		return 0;
 	} else {
 		return 1;
@@ -633,11 +629,11 @@ int
 utf8size(char *s) {
 	uchar c = *s;
 
-	if(~c&B7) {
+	if(~c & 0x80) {
 		return 1;
-	} else if((c&(B7|B6|B5)) == (B7|B6)) {
+	} else if((c & 0xE0) == 0xC0) {
 		return 2;
-	} else if((c&(B7|B6|B5|B4)) == (B7|B6|B5)) {
+	} else if((c & 0xF0) == 0xE0) {
 		return 3;
 	} else {
 		return 4;
@@ -3456,7 +3452,7 @@ kpress(XEvent *ev) {
 		if(len == 1 && e->state & Mod1Mask) {
 			if(IS_SET(MODE_8BIT)) {
 				if(*xstr < 0177) {
-					c = *xstr | B7;
+					c = *xstr | 0x80;
 					ret = utf8encode(&c, cp);
 					cp += ret;
 					len = 0;
