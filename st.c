@@ -3375,7 +3375,6 @@ numlock(const Arg *dummy) {
 
 char*
 kmap(KeySym k, uint state) {
-	uint mask;
 	Key *kp;
 	int i;
 
@@ -3390,12 +3389,10 @@ kmap(KeySym k, uint state) {
 	}
 
 	for(kp = key; kp < key + LEN(key); kp++) {
-		mask = kp->mask;
-
 		if(kp->k != k)
 			continue;
 
-		if(!match(mask, state))
+		if(!match(kp->mask, state))
 			continue;
 
 		if(kp->appkey > 0) {
