@@ -247,7 +247,7 @@ static Key key[] = {
 	{ XK_End,           XK_ANY_MOD,     "\033[4~",       0,    0,    0},
 	{ XK_Prior,         ControlMask,    "\033[5;5~",     0,    0,    0},
 	{ XK_Prior,         ShiftMask,      "\033[5;2~",     0,    0,    0},
-	{ XK_Prior,         XK_NO_MOD,      "\033[5~",       0,    0,    0},
+	{ XK_Prior,         XK_ANY_MOD,     "\033[5~",       0,    0,    0},
 	{ XK_Next,          ControlMask,    "\033[6;5~",     0,    0,    0},
 	{ XK_Next,          ShiftMask,      "\033[6;2~",     0,    0,    0},
 	{ XK_Next,          XK_ANY_MOD,     "\033[6~",       0,    0,    0},
