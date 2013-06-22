@@ -98,37 +98,37 @@ enum cursor_movement {
 enum cursor_state {
 	CURSOR_DEFAULT  = 0,
 	CURSOR_WRAPNEXT = 1,
-	CURSOR_ORIGIN	= 2
+	CURSOR_ORIGIN   = 2
 };
 
 enum term_mode {
-	MODE_WRAP	 = 1,
+	MODE_WRAP        = 1,
 	MODE_INSERT      = 2,
 	MODE_APPKEYPAD   = 4,
 	MODE_ALTSCREEN   = 8,
-	MODE_CRLF	 = 16,
+	MODE_CRLF        = 16,
 	MODE_MOUSEBTN    = 32,
 	MODE_MOUSEMOTION = 64,
 	MODE_REVERSE     = 128,
 	MODE_KBDLOCK     = 256,
-	MODE_HIDE	 = 512,
-	MODE_ECHO	 = 1024,
-	MODE_APPCURSOR	 = 2048,
+	MODE_HIDE        = 512,
+	MODE_ECHO        = 1024,
+	MODE_APPCURSOR   = 2048,
 	MODE_MOUSESGR    = 4096,
-	MODE_8BIT	 = 8192,
-	MODE_BLINK	 = 16384,
-	MODE_FBLINK	 = 32768,
-	MODE_FOCUS	 = 65536,
-	MODE_MOUSEX10	 = 131072,
+	MODE_8BIT        = 8192,
+	MODE_BLINK       = 16384,
+	MODE_FBLINK      = 32768,
+	MODE_FOCUS       = 65536,
+	MODE_MOUSEX10    = 131072,
 	MODE_MOUSEMANY   = 262144,
 	MODE_MOUSE       = MODE_MOUSEBTN|MODE_MOUSEMOTION|MODE_MOUSEX10\
-			   |MODE_MOUSEMANY,
+	                  |MODE_MOUSEMANY,
 };
 
 enum escape_state {
 	ESC_START      = 1,
-	ESC_CSI	= 2,
-	ESC_STR	= 4, /* DSC, OSC, PM, APC */
+	ESC_CSI        = 2,
+	ESC_STR        = 4,  /* DSC, OSC, PM, APC */
 	ESC_ALTCHARSET = 8,
 	ESC_STR_END    = 16, /* a final string was encountered */
 	ESC_TEST       = 32, /* Enter in test mode */
@@ -156,16 +156,16 @@ typedef unsigned long ulong;
 typedef unsigned short ushort;
 
 typedef struct {
-	char c[UTF_SIZ];     /* character code */
-	uchar mode;  /* attribute flags */
-	ushort fg;   /* foreground  */
-	ushort bg;   /* background  */
+	char c[UTF_SIZ]; /* character code */
+	uchar mode;      /* attribute flags */
+	ushort fg;       /* foreground  */
+	ushort bg;       /* background  */
 } Glyph;
 
 typedef Glyph *Line;
 
 typedef struct {
-	Glyph attr;	 /* current char attributes */
+	Glyph attr; /* current char attributes */
 	int x;
 	int y;
 	char state;
@@ -175,36 +175,36 @@ typedef struct {
 /* ESC '[' [[ [<priv>] <arg> [;]] <mode>] */
 typedef struct {
 	char buf[ESC_BUF_SIZ]; /* raw string */
-	int len;	       /* raw string length */
+	int len;               /* raw string length */
 	char priv;
 	int arg[ESC_ARG_SIZ];
-	int narg;	       /* nb of args */
+	int narg;              /* nb of args */
 	char mode;
 } CSIEscape;
 
 /* STR Escape sequence structs */
 /* ESC type [[ [<priv>] <arg> [;]] <mode>] ESC '\' */
 typedef struct {
-	char type;	     /* ESC type ... */
+	char type;             /* ESC type ... */
 	char buf[STR_BUF_SIZ]; /* raw string */
-	int len;	       /* raw string length */
+	int len;               /* raw string length */
 	char *args[STR_ARG_SIZ];
-	int narg;	      /* nb of args */
+	int narg;              /* nb of args */
 } STREscape;
 
 /* Internal representation of the screen */
 typedef struct {
-	int row;	/* nb row */
-	int col;	/* nb col */
-	Line *line;	/* screen */
-	Line *alt;	/* alternate screen */
-	bool *dirty;	/* dirtyness of lines */
-	TCursor c;	/* cursor */
-	int top;	/* top    scroll limit */
-	int bot;	/* bottom scroll limit */
-	int mode;	/* terminal mode flags */
-	int esc;	/* escape state flags */
-	bool numlock;	/* lock numbers in keyboard */
+	int row;      /* nb row */
+	int col;      /* nb col */
+	Line *line;   /* screen */
+	Line *alt;    /* alternate screen */
+	bool *dirty;  /* dirtyness of lines */
+	TCursor c;    /* cursor */
+	int top;      /* top    scroll limit */
+	int bot;      /* bottom scroll limit */
+	int mode;     /* terminal mode flags */
+	int esc;      /* escape state flags */
+	bool numlock; /* lock numbers in keyboard */
 	bool *tabs;
 } Term;
 
@@ -241,9 +241,9 @@ typedef struct {
 	uint mask;
 	char s[ESC_BUF_SIZ];
 	/* three valued logic variables: 0 indifferent, 1 on, -1 off */
-	signed char appkey;		/* application keypad */
-	signed char appcursor;		/* application cursor */
-	signed char crlf;		/* crlf mode          */
+	signed char appkey;    /* application keypad */
+	signed char appcursor; /* application cursor */
+	signed char crlf;      /* crlf mode          */
 } Key;
 
 typedef struct {
@@ -1182,7 +1182,7 @@ sigchld(int a) {
 	int stat = 0;
 
 	if(waitpid(pid, &stat, 0) < 0)
-		die("Waiting for pid %hd failed: %s\n",	pid, SERRNO);
+		die("Waiting for pid %hd failed: %s\n", pid, SERRNO);
 
 	if(WIFEXITED(stat)) {
 		exit(WEXITSTATUS(stat));
@@ -1821,7 +1821,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 					tclearregion(0, 0, term.col-1,
 							term.row-1);
 				}
-				if(set ^ alt)		/* set is always 1 or 0 */
+				if(set ^ alt) /* set is always 1 or 0 */
 					tswapscreen();
 				if(*args != 1049)
 					break;
@@ -2184,10 +2184,10 @@ techo(char *buf, int len) {
 	for(; len > 0; buf++, len--) {
 		char c = *buf;
 
-		if(c == '\033') {		/* escape */
+		if(c == '\033') { /* escape */
 			tputc("^", 1);
 			tputc("[", 1);
-		} else if(c < '\x20') {	/* control code */
+		} else if(c < '\x20') { /* control code */
 			if(c != '\n' && c != '\r' && c != '\t') {
 				c |= '\x40';
 				tputc("^", 1);
@@ -2258,31 +2258,31 @@ tputc(char *c, int len) {
 	 */
 	if(control) {
 		switch(ascii) {
-		case '\t':	/* HT */
+		case '\t':   /* HT */
 			tputtab(1);
 			return;
-		case '\b':	/* BS */
+		case '\b':   /* BS */
 			tmoveto(term.c.x-1, term.c.y);
 			return;
-		case '\r':	/* CR */
+		case '\r':   /* CR */
 			tmoveto(0, term.c.y);
 			return;
-		case '\f':	/* LF */
-		case '\v':	/* VT */
-		case '\n':	/* LF */
+		case '\f':   /* LF */
+		case '\v':   /* VT */
+		case '\n':   /* LF */
 			/* go to first col if the mode is set */
 			tnewline(IS_SET(MODE_CRLF));
 			return;
-		case '\a':	/* BEL */
+		case '\a':   /* BEL */
 			if(!(xw.state & WIN_FOCUSED))
 				xseturgency(1);
 			return;
-		case '\033':	/* ESC */
+		case '\033': /* ESC */
 			csireset();
 			term.esc = ESC_START;
 			return;
-		case '\016':	/* SO */
-		case '\017':	/* SI */
+		case '\016': /* SO */
+		case '\017': /* SI */
 			/*
 			 * Different charsets are hard to handle. Applications
 			 * should use the right alt charset escapes for the
@@ -2290,15 +2290,15 @@ tputc(char *c, int len) {
 			 * rest is incompatible history st should not support.
 			 */
 			return;
-		case '\032':	/* SUB */
-		case '\030':	/* CAN */
+		case '\032': /* SUB */
+		case '\030': /* CAN */
 			csireset();
 			return;
-		case '\005':	/* ENQ (IGNORED) */
-		case '\000':	/* NUL (IGNORED) */
-		case '\021':	/* XON (IGNORED) */
-		case '\023':	/* XOFF (IGNORED) */
-		case 0177:	/* DEL (IGNORED) */
+		case '\005': /* ENQ (IGNORED) */
+		case '\000': /* NUL (IGNORED) */
+		case '\021': /* XON (IGNORED) */
+		case '\023': /* XOFF (IGNORED) */
+		case 0177:   /* DEL (IGNORED) */
 			return;
 		}
 	} else if(term.esc & ESC_START) {
@@ -2963,9 +2963,9 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		}
 		/*
 		 * Those ranges will not be brightened:
-		 *	8 - 15 – bright system colors
-		 *	196 - 231 – highest 256 color cube
-		 *	252 - 255 – brightest colors in greyscale
+		 *    8 - 15 – bright system colors
+		 *    196 - 231 – highest 256 color cube
+		 *    252 - 255 – brightest colors in greyscale
 		 */
 		font = &dc.bfont;
 		frcflags = FRC_BOLD;
