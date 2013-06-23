@@ -888,11 +888,7 @@ bpress(XEvent *e) {
 		gettimeofday(&now, NULL);
 
 		/* Clear previous selection, logically and visually. */
-		if(sel.ob.x != -1) {
-			sel.ob.x = -1;
-			tsetdirt(sel.nb.y, sel.ne.y);
-			draw();
-		}
+		selclear(NULL);
 		sel.mode = 1;
 		sel.type = SEL_REGULAR;
 		sel.oe.x = sel.ob.x = x2col(e->xbutton.x);
@@ -1108,7 +1104,7 @@ brelease(XEvent *e) {
 		selpaste(NULL);
 	} else if(e->xbutton.button == Button1) {
 		if(sel.mode < 2) {
-			sel.ob.x = -1;
+			selclear(NULL);
 		} else {
 			getbuttoninfo(e);
 			selcopy();
@@ -1441,7 +1437,7 @@ selscroll(int orig, int n) {
 
 	if(BETWEEN(sel.ob.y, orig, term.bot) || BETWEEN(sel.oe.y, orig, term.bot)) {
 		if((sel.ob.y += n) > term.bot || (sel.oe.y += n) < term.top) {
-			sel.ob.x = -1;
+			selclear(NULL);
 			return;
 		}
 		if(sel.type == SEL_RECTANGULAR) {
@@ -1951,7 +1947,7 @@ csihandle(void) {
 			tputtab(1);
 		break;
 	case 'J': /* ED -- Clear screen */
-		sel.ob.x = -1;
+		selclear(NULL);
 		switch(csiescseq.arg[0]) {
 		case 0: /* below */
 			tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
@@ -2448,7 +2444,7 @@ tputc(char *c, int len) {
 	if(control && !(term.c.attr.mode & ATTR_GFX))
 		return;
 	if(sel.ob.x != -1 && BETWEEN(term.c.y, sel.ob.y, sel.oe.y))
-		sel.ob.x = -1;
+		selclear(NULL);
 	if(IS_SET(MODE_WRAP) && (term.c.state & CURSOR_WRAPNEXT)) {
 		term.line[term.c.y][term.c.x].mode |= ATTR_WRAP;
 		tnewline(1);
