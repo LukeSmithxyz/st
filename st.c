@@ -916,7 +916,6 @@ bpress(XEvent *e) {
 		if(sel.snap != 0) {
 			sel.mode++;
 			tsetdirt(sel.nb.y, sel.ne.y);
-			draw();
 		}
 		sel.tclick2 = sel.tclick1;
 		sel.tclick1 = now;
