@@ -3520,9 +3520,27 @@ resize(XEvent *e) {
 void
 run(void) {
 	XEvent ev;
+	int w = xw.w, h = xw.h;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dpy), xev, blinkset = 0, dodraw = 0;
 	struct timeval drawtimeout, *tv = NULL, now, last, lastblink;
+
+	/* Waiting for window mapping */
+	while(1) {
+		XNextEvent(xw.dpy, &ev);
+		if(ev.type == ConfigureNotify) {
+			w = ev.xconfigure.width;
+			h = ev.xconfigure.height;
+		} else if(ev.type == MapNotify) {
+			break;
+		}
+	}
+
+	if(!xw.isfixed)
+		cresize(w, h);
+	else
+		cresize(xw.fw, xw.fh);
+	ttynew();
 
 	gettimeofday(&lastblink, NULL);
 	gettimeofday(&last, NULL);
@@ -3673,10 +3691,7 @@ run:
 	XSetLocaleModifiers("");
 	tnew(80, 24);
 	xinit();
-	ttynew();
 	selinit();
-	if(xw.isfixed)
-		cresize(xw.h, xw.w);
 	run();
 
 	return 0;

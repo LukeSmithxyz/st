@@ -26,10 +26,6 @@ bugs
 * fix rows and column definition in fixed geometry
 * fix -e handling
 * remove DEC test sequence when appropriate
-* When some application outputting long text is run in the shell init scripts,
-  then this text might be stripped to the standard 80x25 due to st running the
-  virtual terminal at first priority. Maybe the vt initialisation could be
-  moved somewhere after knowing the right window size.
 
 misc
 ----
