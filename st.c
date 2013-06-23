@@ -3355,17 +3355,17 @@ focus(XEvent *ev) {
 	}
 }
 
-inline bool
+static inline bool
 match(uint mask, uint state) {
-	state &= ~(ignoremod);
+	state &= ~ignoremod;
 
 	if(mask == XK_NO_MOD && state)
 		return false;
 	if(mask != XK_ANY_MOD && mask != XK_NO_MOD && !state)
 		return false;
-	if((state & mask) != state)
-		return false;
-	return true;
+	if(mask == XK_ANY_MOD)
+		return true;
+	return state == mask;
 }
 
 void
