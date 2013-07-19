@@ -462,17 +462,12 @@ enum {
 
 typedef struct {
 	XftFont *font;
-	long c;
 	int flags;
 } Fontcache;
 
-/*
- * Fontcache is a ring buffer, with frccur as current position and frclen as
- * the current length of used elements.
- */
-
-static Fontcache frc[1024];
-static int frccur = -1, frclen = 0;
+/* Fontcache is an array now. A new font will be appended to the array. */
+static Fontcache frc[16];
+static int frclen = 0;
 
 ssize_t
 xwrite(int fd, char *s, size_t len) {
@@ -2781,18 +2776,12 @@ xunloadfont(Font *f) {
 
 void
 xunloadfonts(void) {
-	int i, ip;
+	int i;
 
-	/*
-	 * Free the loaded fonts in the font cache. This is done backwards
-	 * from the frccur.
-	 */
-	for(i = 0, ip = frccur; i < frclen; i++, ip--) {
-		if(ip < 0)
-			ip = LEN(frc) - 1;
-		XftFontClose(xw.dpy, frc[ip].font);
+	/* Free the loaded fonts in the font cache.  */
+	for(i = 0; i < frclen; i++) {
+		XftFontClose(xw.dpy, frc[i].font);
 	}
-	frccur = -1;
 	frclen = 0;
 
 	xunloadfont(&dc.font);
@@ -2918,7 +2907,7 @@ void
 xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	int winx = borderpx + x * xw.cw, winy = borderpx + y * xw.ch,
 	    width = charlen * xw.cw, xp, i;
-	int frp, frcflags;
+	int frcflags;
 	int u8fl, u8fblen, u8cblen, doesexist;
 	char *u8c, *u8fs;
 	long u8char;
@@ -3044,7 +3033,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			s += u8cblen;
 			bytelen -= u8cblen;
 
-			doesexist = XftCharIndex(xw.dpy, font->match, u8char);
+			doesexist = XftCharExists(xw.dpy, font->match, u8char);
 			if(!doesexist || bytelen <= 0) {
 				if(bytelen <= 0) {
 					if(doesexist) {
@@ -3071,14 +3060,10 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		if(doesexist)
 			break;
 
-		frp = frccur;
 		/* Search the font cache. */
-		for(i = 0; i < frclen; i++, frp--) {
-			if(frp <= 0)
-				frp = LEN(frc) - 1;
-
-			if(frc[frp].c == u8char
-					&& frc[frp].flags == frcflags) {
+		for(i = 0; i < frclen; i++) {
+			if(XftCharExists(xw.dpy, frc[i].font, u8char)
+					&& frc[i].flags == frcflags) {
 				break;
 			}
 		}
@@ -3113,28 +3098,24 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			/*
 			 * Overwrite or create the new cache entry.
 			 */
-			frccur++;
-			frclen++;
-			if(frccur >= LEN(frc))
-				frccur = 0;
-			if(frclen > LEN(frc)) {
-				frclen = LEN(frc);
-				XftFontClose(xw.dpy, frc[frccur].font);
+			if(frclen >= LEN(frc)) {
+				frclen = LEN(frc) - 1;
+				XftFontClose(xw.dpy, frc[frclen].font);
 			}
 
-			frc[frccur].font = XftFontOpenPattern(xw.dpy,
+			frc[frclen].font = XftFontOpenPattern(xw.dpy,
 					fontpattern);
-			frc[frccur].c = u8char;
-			frc[frccur].flags = frcflags;
+			frc[frclen].flags = frcflags;
+
+			i = frclen;
+			frclen++;
 
 			FcPatternDestroy(fcpattern);
 			FcCharSetDestroy(fccharset);
-
-			frp = frccur;
 		}
 
-		XftDrawStringUtf8(xw.draw, fg, frc[frp].font,
-				xp, winy + frc[frp].font->ascent,
+		XftDrawStringUtf8(xw.draw, fg, frc[i].font,
+				xp, winy + frc[i].font->ascent,
 				(FcChar8 *)u8c, u8cblen);
 
 		xp += font->width;
