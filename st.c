@@ -77,6 +77,13 @@ char *argv0;
 #define IS_SET(flag) ((term.mode & (flag)) != 0)
 #define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_usec-t2.tv_usec)/1000)
 
+#define TRUECOLOR(r,g,b) (1 << 24 | (r) << 16 | (g) << 8 | (b))
+#define IS_TRUECOL(x)    (1 << 24 & (x))
+#define TRUERED(x)       (((x) & 0xff0000) >> 8)
+#define TRUEGREEN(x)     (((x) & 0xff00))
+#define TRUEBLUE(x)      (((x) & 0xff) << 8)
+
+
 #define VT102ID "\033[?6c"
 
 enum glyph_attribute {
@@ -158,8 +165,8 @@ typedef unsigned short ushort;
 typedef struct {
 	char c[UTF_SIZ]; /* character code */
 	uchar mode;      /* attribute flags */
-	ushort fg;       /* foreground  */
-	ushort bg;       /* background  */
+	ulong fg;        /* foreground  */
+	ulong bg;        /* background  */
 } Glyph;
 
 typedef Glyph *Line;
@@ -354,7 +361,7 @@ static void tsetdirtattr(int);
 static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 static void techo(char *, int);
-
+static ulong tdefcolor(int *, int *, int);
 static inline bool match(uint, uint);
 static void ttynew(void);
 static void ttyread(void);
@@ -1618,9 +1625,58 @@ tdeleteline(int n) {
 	tscrollup(term.c.y, n);
 }
 
+ulong
+tdefcolor(int *attr, int *npar, int l) {
+	long idx = -1;
+	uint r, g, b;
+
+	switch (attr[*npar + 1]) {
+	case 2: /* direct colour in RGB space */
+		if (*npar + 4 >= l) {
+			fprintf(stderr,
+				"erresc(38): Incorrect number of parameters (%d)\n",
+				*npar);
+			break;
+		}
+		r = attr[*npar + 2];
+		g = attr[*npar + 3];
+		b = attr[*npar + 4];
+		*npar += 4;
+		if(!BETWEEN(r, 0, 255) || !BETWEEN(g, 0, 255) || !BETWEEN(b, 0, 255))
+			fprintf(stderr, "erresc: bad rgb color (%d,%d,%d)\n",
+				r, g, b);
+		else
+			idx = TRUECOLOR(r, g, b);
+		break;
+	case 5: /* indexed colour */
+		if (*npar + 2 >= l) {
+			fprintf(stderr,
+				"erresc(38): Incorrect number of parameters (%d)\n",
+				*npar);
+			break;
+		}
+		*npar += 2;
+		if(!BETWEEN(attr[*npar], 0, 255))
+			fprintf(stderr, "erresc: bad fgcolor %d\n", attr[*npar]);
+		else
+			idx = attr[*npar];
+		break;
+	case 0: /* implemented defined (only foreground) */
+	case 1: /* transparent */
+	case 3: /* direct colour in CMY space */
+	case 4: /* direct colour in CMYK space */
+	default:
+		fprintf(stderr,
+		        "erresc(38): gfx attr %d unknown\n", attr[*npar]);
+	}
+
+	return idx;
+}
+
 void
 tsetattr(int *attr, int l) {
 	int i;
+	ulong idx;
 
 	for(i = 0; i < l; i++) {
 		switch(attr[i]) {
@@ -1665,39 +1721,15 @@ tsetattr(int *attr, int l) {
 			term.c.attr.mode &= ~ATTR_REVERSE;
 			break;
 		case 38:
-			if(i + 2 < l && attr[i + 1] == 5) {
-				i += 2;
-				if(BETWEEN(attr[i], 0, 255)) {
-					term.c.attr.fg = attr[i];
-				} else {
-					fprintf(stderr,
-						"erresc: bad fgcolor %d\n",
-						attr[i]);
-				}
-			} else {
-				fprintf(stderr,
-					"erresc(38): gfx attr %d unknown\n",
-					attr[i]);
-			}
+			if ((idx = tdefcolor(attr, &i, l)) >= 0)
+				term.c.attr.fg = idx;
 			break;
 		case 39:
 			term.c.attr.fg = defaultfg;
 			break;
 		case 48:
-			if(i + 2 < l && attr[i + 1] == 5) {
-				i += 2;
-				if(BETWEEN(attr[i], 0, 255)) {
-					term.c.attr.bg = attr[i];
-				} else {
-					fprintf(stderr,
-						"erresc: bad bgcolor %d\n",
-						attr[i]);
-				}
-			} else {
-				fprintf(stderr,
-					"erresc(48): gfx attr %d unknown\n",
-					attr[i]);
-			}
+			if ((idx = tdefcolor(attr, &i, l)) >= 0)
+				term.c.attr.bg = idx;
 			break;
 		case 49:
 			term.c.attr.bg = defaultbg;
@@ -2916,7 +2948,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	FcPattern *fcpattern, *fontpattern;
 	FcFontSet *fcsets[] = { NULL };
 	FcCharSet *fccharset;
-	Colour *fg, *bg, *temp, revfg, revbg;
+	Colour *fg, *bg, *temp, revfg, revbg, truefg, truebg;
 	XRenderColor colfg, colbg;
 	Rectangle r;
 
@@ -2936,8 +2968,27 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		if(base.fg == defaultfg)
 			base.fg = defaultunderline;
 	}
-	fg = &dc.col[base.fg];
-	bg = &dc.col[base.bg];
+	if(IS_TRUECOL(base.fg)) {
+		colfg.red = TRUERED(base.fg);
+		colfg.green = TRUEGREEN(base.fg);
+		colfg.blue = TRUEBLUE(base.fg);
+		XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &colfg, &truefg);
+		fg = &truefg;
+	} else {
+		fg = &dc.col[base.fg];
+	}
+
+	if(IS_TRUECOL(base.bg)) {
+		colbg.green = TRUEGREEN(base.bg);
+		colbg.red = TRUERED(base.bg);
+		colbg.blue = TRUEBLUE(base.bg);
+		XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &colbg, &truebg);
+		bg = &truebg;
+	} else {
+		bg = &dc.col[base.bg];
+	}
+
+
 
 	if(base.mode & ATTR_BOLD) {
 		if(BETWEEN(base.fg, 0, 7)) {
