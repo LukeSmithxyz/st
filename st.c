@@ -2428,6 +2428,7 @@ tputc(char *c, int len) {
 				treset();
 				term.esc = 0;
 				xresettitle();
+				xloadcols();
 				break;
 			case '=': /* DECPAM -- Application keypad */
 				term.mode |= MODE_APPKEYPAD;
@@ -2589,6 +2590,13 @@ void
 xloadcols(void) {
 	int i, r, g, b;
 	XRenderColor color = { .alpha = 0xffff };
+	static bool loaded;
+	Colour *cp;
+
+	if(loaded) {
+		for (cp = dc.col; cp < dc.col + LEN(dc.col); ++cp)
+			XftColorFree(xw.dpy, xw.vis, xw.cmap, cp);
+	}
 
 	/* load colors [0-15] colors and [256-LEN(colorname)[ (config.h) */
 	for(i = 0; i < LEN(colorname); i++) {
@@ -2621,6 +2629,7 @@ xloadcols(void) {
 			die("Could not allocate color %d\n", i);
 		}
 	}
+	loaded = true;
 }
 
 int
