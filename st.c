@@ -3606,8 +3606,8 @@ run(void) {
 			ttyread();
 			if(blinktimeout) {
 				blinkset = tattrset(ATTR_BLINK);
-				if(!blinkset && term.mode & ATTR_BLINK)
-					term.mode &= ~(MODE_BLINK);
+				if(!blinkset)
+					MODBIT(term.mode, 0, MODE_BLINK);
 			}
 		}
 
