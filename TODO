@@ -13,7 +13,6 @@ code & interface
 drawing
 -------
 * add diacritics support to xdraws()
-* add kerning configuration
 * make the font cache simpler
 * add hard width handling
 	* xft is reporting wrong width and height for characters
