@@ -362,7 +362,7 @@ static void tsetdirtattr(int);
 static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 static void techo(char *, int);
-static ulong tdefcolor(int *, int *, int);
+static long tdefcolor(int *, int *, int);
 static inline bool match(uint, uint);
 static void ttynew(void);
 static void ttyread(void);
@@ -1626,7 +1626,7 @@ tdeleteline(int n) {
 	tscrollup(term.c.y, n);
 }
 
-ulong
+long
 tdefcolor(int *attr, int *npar, int l) {
 	long idx = -1;
 	uint r, g, b;
@@ -1677,7 +1677,7 @@ tdefcolor(int *attr, int *npar, int l) {
 void
 tsetattr(int *attr, int l) {
 	int i;
-	ulong idx;
+	long idx;
 
 	for(i = 0; i < l; i++) {
 		switch(attr[i]) {
