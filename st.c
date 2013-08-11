@@ -3111,7 +3111,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 							winy + font->ascent,
 							(FcChar8 *)u8fs,
 							u8fblen);
-					xp += CEIL(font->width * cwscale * u8fl);
+					xp += xw.cw * u8fl;
 
 				}
 				break;
@@ -3121,7 +3121,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			u8fblen += u8cblen;
 		}
 		if(doesexist) {
-			if (oneatatime);
+			if (oneatatime)
 				continue;
 			break;
 		}
@@ -3184,7 +3184,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 				xp, winy + frc[i].font->ascent,
 				(FcChar8 *)u8c, u8cblen);
 
-		xp += CEIL(font->width * cwscale);
+		xp += xw.cw;
 	}
 
 	/*
