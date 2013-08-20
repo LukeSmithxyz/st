@@ -3714,7 +3714,7 @@ main(int argc, char *argv[]) {
 			xw.fh = (int)hr;
 		if(bitm & XNegative && xw.fx == 0)
 			xw.fx = -1;
-		if(bitm & XNegative && xw.fy == 0)
+		if(bitm & YNegative && xw.fy == 0)
 			xw.fy = -1;
 
 		if(xw.fh != 0 && xw.fw != 0)
