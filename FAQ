@@ -26,7 +26,7 @@ st or st-256color. The default value for TERM can be changed in config.h
 
 Using a terminal multiplexer.
 
-* `st -e tmux` using C-a [
+* `st -e tmux` using C-b [
 * `st -e screen` using C-a ESC
 
 ## Why doesn't the Del key work in some programs?
