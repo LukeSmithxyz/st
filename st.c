@@ -420,7 +420,6 @@ static int isfullutf8(char *, int);
 static ssize_t xwrite(int, char *, size_t);
 static void *xmalloc(size_t);
 static void *xrealloc(void *, size_t);
-static void *xcalloc(size_t, size_t);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
@@ -504,16 +503,6 @@ xmalloc(size_t len) {
 void *
 xrealloc(void *p, size_t len) {
 	if((p = realloc(p, len)) == NULL)
-		die("Out of memory\n");
-
-	return p;
-}
-
-void *
-xcalloc(size_t nmemb, size_t size) {
-	void *p = calloc(nmemb, size);
-
-	if(!p)
 		die("Out of memory\n");
 
 	return p;
@@ -1370,7 +1359,7 @@ treset(void) {
 
 void
 tnew(int col, int row) {
-	memset(&term, 0, sizeof(Term));
+	term = (Term){ .c = { .attr = { .fg = defaultfg, .bg = defaultbg } } };
 	tresize(col, row);
 	term.numlock = 1;
 
@@ -2536,8 +2525,8 @@ tresize(int col, int row) {
 	/* allocate any new rows */
 	for(/* i == minrow */; i < row; i++) {
 		term.dirty[i] = 1;
-		term.line[i] = xcalloc(col, sizeof(Glyph));
-		term.alt [i] = xcalloc(col, sizeof(Glyph));
+		term.line[i] = xmalloc(col * sizeof(Glyph));
+		term.alt[i] = xmalloc(col * sizeof(Glyph));
 	}
 	if(col > term.col) {
 		bp = term.tabs + term.col;
