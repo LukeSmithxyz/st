@@ -1,7 +1,6 @@
 vt emulation
 ------------
 
-* wide-character support in conjunction with fallback xft code 
 * double-height support
 
 code & interface
