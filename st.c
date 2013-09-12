@@ -2320,6 +2320,8 @@ tputc(char *c, int len) {
 		case '\a':   /* BEL */
 			if(!(xw.state & WIN_FOCUSED))
 				xseturgency(1);
+			if (bellvolume)
+				XBell(xw.dpy, bellvolume);
 			return;
 		case '\033': /* ESC */
 			csireset();
