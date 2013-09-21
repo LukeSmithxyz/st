@@ -962,7 +962,7 @@ selcopy(void) {
 			 * st.
 			 * FIXME: Fix the computer world.
 			 */
-			if(y < sel.ne.y && !((gp-1)->mode & ATTR_WRAP))
+			if(y < sel.ne.y && x > 0 && !((gp-1)->mode & ATTR_WRAP))
 				*ptr++ = '\n';
 
 			/*
