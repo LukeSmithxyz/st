@@ -2067,6 +2067,13 @@ csihandle(void) {
 	case 'm': /* SGR -- Terminal attribute (color) */
 		tsetattr(csiescseq.arg, csiescseq.narg);
 		break;
+	case 'n': /* DSR – Device Status Report (cursor position) */
+		if (csiescseq.arg[0] == 6) {
+			char buf[40];
+			int len = snprintf(buf, sizeof(buf),"\033[%i;%iR", term.c.y+1, term.c.x+1);
+			ttywrite(buf, len);
+			break;
+		}
 	case 'r': /* DECSTBM -- Set Scrolling Region */
 		if(csiescseq.priv) {
 			goto unknown;
