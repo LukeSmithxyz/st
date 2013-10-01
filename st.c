@@ -1342,13 +1342,14 @@ tfulldirt(void) {
 
 void
 tcursor(int mode) {
-	static TCursor c;
+	static TCursor c[2];
+	bool alt = IS_SET(MODE_ALTSCREEN);
 
 	if(mode == CURSOR_SAVE) {
-		c = term.c;
+		c[alt] = term.c;
 	} else if(mode == CURSOR_LOAD) {
-		term.c = c;
-		tmoveto(c.x, c.y);
+		term.c = c[alt];
+		tmoveto(c[alt].x, c[alt].y);
 	}
 }
 
@@ -1854,12 +1855,12 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 			case 1034:
 				MODBIT(term.mode, set, MODE_8BIT);
 				break;
-			case 1049: /* = 1047 and 1048 */
-			case 47:
+			case 1049: /* swap screen & set/restore cursor as xterm */
+				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
+			case 47: /* swap screen */
 			case 1047:
 				if (!allowaltscreen)
 					break;
-
 				alt = IS_SET(MODE_ALTSCREEN);
 				if(alt) {
 					tclearregion(0, 0, term.col-1,
