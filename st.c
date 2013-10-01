@@ -137,6 +137,16 @@ enum term_mode {
 	                  |MODE_MOUSEMANY,
 };
 
+enum charset {
+	CS_GRAPHIC0,
+	CS_GRAPHIC1,
+	CS_UK,
+	CS_USA,
+	CS_MULTI,
+	CS_GER,
+	CS_FIN
+};
+
 enum escape_state {
 	ESC_START      = 1,
 	ESC_CSI        = 2,
@@ -216,6 +226,9 @@ typedef struct {
 	int bot;      /* bottom scroll limit */
 	int mode;     /* terminal mode flags */
 	int esc;      /* escape state flags */
+	char trantbl[4]; /* charset table translation */
+	int charset;  /* current charset */
+	int icharset; /* selected charset for sequence */
 	bool numlock; /* lock numbers in keyboard */
 	bool *tabs;
 } Term;
@@ -367,6 +380,8 @@ static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 static void techo(char *, int);
 static long tdefcolor(int *, int *, int);
+static void tselcs(void);
+static void tdeftran(char);
 static inline bool match(uint, uint);
 static void ttynew(void);
 static void ttyread(void);
@@ -1369,6 +1384,8 @@ treset(void) {
 	term.top = 0;
 	term.bot = term.row - 1;
 	term.mode = MODE_WRAP;
+	memset(term.trantbl, sizeof(term.trantbl), CS_USA);
+	term.charset = 0;
 
 	tclearregion(0, 0, term.col-1, term.row-1);
 	tmoveto(0, 0);
@@ -2260,6 +2277,33 @@ techo(char *buf, int len) {
 }
 
 void
+tdeftran(char ascii) {
+	char c, (*bp)[2];
+	static char tbl[][2] = {
+		{'0', CS_GRAPHIC0}, {'1', CS_GRAPHIC1}, {'A', CS_UK},
+		{'B', CS_USA},      {'<', CS_MULTI},    {'K', CS_GER},
+		{'5', CS_FIN},      {'C', CS_FIN},
+		{0, 0}
+	};
+
+	for (bp = &tbl[0]; (c = (*bp)[0]) && c != ascii; ++bp)
+		/* nothing */;
+
+	if (c == 0)
+		fprintf(stderr, "esc unhandled charset: ESC ( %c\n", ascii);
+	else
+		term.trantbl[term.icharset] = (*bp)[1];
+}
+
+void
+tselcs(void) {
+	if (term.trantbl[term.charset] == CS_GRAPHIC0)
+		term.c.attr.mode |= ATTR_GFX;
+	else
+		term.c.attr.mode &= ~ATTR_GFX;
+}
+
+void
 tputc(char *c, int len) {
 	uchar ascii = *c;
 	bool control = ascii < '\x20' || ascii == 0177;
@@ -2351,13 +2395,12 @@ tputc(char *c, int len) {
 			term.esc = ESC_START;
 			return;
 		case '\016': /* SO */
+			term.charset = 0;
+			tselcs();
+			return;
 		case '\017': /* SI */
-			/*
-			 * Different charsets are hard to handle. Applications
-			 * should use the right alt charset escapes for the
-			 * only reason they still exist: line drawing. The
-			 * rest is incompatible history st should not support.
-			 */
+			term.charset = 1;
+			tselcs();
 			return;
 		case '\032': /* SUB */
 		case '\030': /* CAN */
@@ -2385,22 +2428,8 @@ tputc(char *c, int len) {
 			if(ascii == '\\')
 				strhandle();
 		} else if(term.esc & ESC_ALTCHARSET) {
-			switch(ascii) {
-			case '0': /* Line drawing set */
-				term.c.attr.mode |= ATTR_GFX;
-				break;
-			case 'B': /* USASCII */
-				term.c.attr.mode &= ~ATTR_GFX;
-				break;
-			case 'A': /* UK (IGNORED) */
-			case '<': /* multinational charset (IGNORED) */
-			case '5': /* Finnish (IGNORED) */
-			case 'C': /* Finnish (IGNORED) */
-			case 'K': /* German (IGNORED) */
-				break;
-			default:
-				fprintf(stderr, "esc unhandled charset: ESC ( %c\n", ascii);
-			}
+			tdeftran(ascii);
+			tselcs();
 			term.esc = 0;
 		} else if(term.esc & ESC_TEST) {
 			if(ascii == '8') { /* DEC screen alignment test. */
@@ -2431,12 +2460,11 @@ tputc(char *c, int len) {
 				term.esc |= ESC_STR;
 				break;
 			case '(': /* set primary charset G0 */
+			case ')': /* set secondary charset G1 */
+			case '*': /* set tertiary charset G2 */
+			case '+': /* set quaternary charset G3 */
+				term.icharset = ascii - '(';
 				term.esc |= ESC_ALTCHARSET;
-				break;
-			case ')': /* set secondary charset G1 (IGNORED) */
-			case '*': /* set tertiary charset G2 (IGNORED) */
-			case '+': /* set quaternary charset G3 (IGNORED) */
-				term.esc = 0;
 				break;
 			case 'D': /* IND -- Linefeed */
 				if(term.c.y == term.bot) {
