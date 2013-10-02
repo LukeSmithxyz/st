@@ -1920,6 +1920,9 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 
 void
 csihandle(void) {
+	char buf[40];
+	int len;
+
 	switch(csiescseq.mode) {
 	default:
 	unknown:
@@ -2070,8 +2073,8 @@ csihandle(void) {
 		break;
 	case 'n': /* DSR – Device Status Report (cursor position) */
 		if (csiescseq.arg[0] == 6) {
-			char buf[40];
-			int len = snprintf(buf, sizeof(buf),"\033[%i;%iR", term.c.y+1, term.c.x+1);
+			len = snprintf(buf, sizeof(buf),"\033[%i;%iR",
+					term.c.y+1, term.c.x+1);
 			ttywrite(buf, len);
 			break;
 		}
