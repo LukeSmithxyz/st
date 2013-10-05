@@ -3563,8 +3563,8 @@ void
 kpress(XEvent *ev) {
 	XKeyEvent *e = &ev->xkey;
 	KeySym ksym;
-	char xstr[31], buf[32], *customkey, *cp = buf;
-	int len, ret;
+	char buf[32], *customkey;
+	int len;
 	long c;
 	Status status;
 	Shortcut *bp;
@@ -3572,7 +3572,7 @@ kpress(XEvent *ev) {
 	if(IS_SET(MODE_KBDLOCK))
 		return;
 
-	len = XmbLookupString(xw.xic, e, xstr, sizeof(xstr), &ksym, &status);
+	len = XmbLookupString(xw.xic, e, buf, sizeof buf, &ksym, &status);
 	e->state &= ~Mod2Mask;
 	/* 1. shortcuts */
 	for(bp = shortcuts; bp < shortcuts + LEN(shortcuts); bp++) {
@@ -3586,26 +3586,23 @@ kpress(XEvent *ev) {
 	if((customkey = kmap(ksym, e->state))) {
 		len = strlen(customkey);
 		memcpy(buf, customkey, len);
-	/* 3. hardcoded (overrides X lookup) */
+	/* 3. composed string from input method */
 	} else {
 		if(len == 0)
 			return;
 
 		if(len == 1 && e->state & Mod1Mask) {
 			if(IS_SET(MODE_8BIT)) {
-				if(*xstr < 0177) {
-					c = *xstr | 0x80;
-					ret = utf8encode(&c, cp);
-					cp += ret;
-					len = 0;
+				if(*buf < 0177) {
+					c = *buf | 0x80;
+					len = utf8encode(&c, buf);
 				}
 			} else {
-				*cp++ = '\033';
+				buf[1] = buf[0];
+				buf[0] = '\033';
+				len = 2;
 			}
 		}
-
-		memcpy(cp, xstr, len);
-		len = cp - buf + len;
 	}
 
 	ttywrite(buf, len);
