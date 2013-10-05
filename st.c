@@ -264,7 +264,7 @@ typedef struct {
 typedef struct {
 	KeySym k;
 	uint mask;
-	char s[ESC_BUF_SIZ];
+	char *s;
 	/* three valued logic variables: 0 indifferent, 1 on, -1 off */
 	signed char appkey;    /* application keypad */
 	signed char appcursor; /* application cursor */
@@ -3585,26 +3585,27 @@ kpress(XEvent *ev) {
 	/* 2. custom keys from config.h */
 	if((customkey = kmap(ksym, e->state))) {
 		len = strlen(customkey);
-		memcpy(buf, customkey, len);
-	/* 3. composed string from input method */
-	} else {
-		if(len == 0)
-			return;
-
-		if(len == 1 && e->state & Mod1Mask) {
-			if(IS_SET(MODE_8BIT)) {
-				if(*buf < 0177) {
-					c = *buf | 0x80;
-					len = utf8encode(&c, buf);
-				}
-			} else {
-				buf[1] = buf[0];
-				buf[0] = '\033';
-				len = 2;
-			}
-		}
+		ttywrite(customkey, len);
+		if(IS_SET(MODE_ECHO))
+			techo(customkey, len);
+		return;
 	}
 
+	/* 3. composed string from input method */
+	if(len == 0)
+		return;
+	if(len == 1 && e->state & Mod1Mask) {
+		if(IS_SET(MODE_8BIT)) {
+			if(*buf < 0177) {
+				c = *buf | 0x80;
+				len = utf8encode(&c, buf);
+			}
+		} else {
+			buf[1] = buf[0];
+			buf[0] = '\033';
+			len = 2;
+		}
+	}
 	ttywrite(buf, len);
 	if(IS_SET(MODE_ECHO))
 		techo(buf, len);
