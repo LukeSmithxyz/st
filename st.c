@@ -386,6 +386,7 @@ static inline bool match(uint, uint);
 static void ttynew(void);
 static void ttyread(void);
 static void ttyresize(void);
+static void ttysend(char *, size_t);
 static void ttywrite(const char *, size_t);
 
 static void xdraws(char *, Glyph, int, int, int, int);
@@ -893,9 +894,7 @@ bpress(XEvent *e) {
 	for(mk = mshortcuts; mk < mshortcuts + LEN(mshortcuts); mk++) {
 		if(e->xbutton.button == mk->b
 				&& match(mk->mask, e->xbutton.state)) {
-			ttywrite(mk->s, strlen(mk->s));
-			if(IS_SET(MODE_ECHO))
-				techo(mk->s, strlen(mk->s));
+			ttysend(mk->s, strlen(mk->s));
 			return;
 		}
 	}
@@ -1031,7 +1030,7 @@ selnotify(XEvent *e) {
 
 		if(IS_SET(MODE_BRCKTPASTE))
 			ttywrite("\033[200~", 6);
-		ttywrite((const char *)data, nitems * format / 8);
+		ttysend((char *)data, nitems * format / 8);
 		if(IS_SET(MODE_BRCKTPASTE))
 			ttywrite("\033[201~", 6);
 		XFree(data);
@@ -1297,6 +1296,13 @@ void
 ttywrite(const char *s, size_t n) {
 	if(write(cmdfd, s, n) == -1)
 		die("write error on tty: %s\n", SERRNO);
+}
+
+void
+ttysend(char *s, size_t n) {
+	ttywrite(s, n);
+	if(IS_SET(MODE_ECHO))
+		techo(s, n);
 }
 
 void
@@ -3584,10 +3590,7 @@ kpress(XEvent *ev) {
 
 	/* 2. custom keys from config.h */
 	if((customkey = kmap(ksym, e->state))) {
-		len = strlen(customkey);
-		ttywrite(customkey, len);
-		if(IS_SET(MODE_ECHO))
-			techo(customkey, len);
+		ttysend(customkey, strlen(customkey));
 		return;
 	}
 
@@ -3606,9 +3609,7 @@ kpress(XEvent *ev) {
 			len = 2;
 		}
 	}
-	ttywrite(buf, len);
-	if(IS_SET(MODE_ECHO))
-		techo(buf, len);
+	ttysend(buf, len);
 }
 
 
