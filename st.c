@@ -256,9 +256,9 @@ typedef struct {
 } XWindow;
 
 typedef struct {
-	int b;
+	uint b;
 	uint mask;
-	char s[ESC_BUF_SIZ];
+	char *s;
 } Mousekey;
 
 typedef struct {
