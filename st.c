@@ -3531,25 +3531,16 @@ kmap(KeySym k, uint state) {
 		if(!match(kp->mask, state))
 			continue;
 
-		if(kp->appkey > 0) {
-			if(!IS_SET(MODE_APPKEYPAD))
-				continue;
-			if(term.numlock && kp->appkey == 2)
-				continue;
-		} else if(kp->appkey < 0 && IS_SET(MODE_APPKEYPAD)) {
+		if(IS_SET(MODE_APPKEYPAD) ? kp->appkey < 0 : kp->appkey > 0)
 			continue;
-		}
+		if(term.numlock && kp->appkey == 2)
+			continue;
 
-		if((kp->appcursor < 0 && IS_SET(MODE_APPCURSOR)) ||
-				(kp->appcursor > 0
-				 && !IS_SET(MODE_APPCURSOR))) {
+		if(IS_SET(MODE_APPCURSOR) ? kp->appcursor < 0 : kp->appcursor > 0)
 			continue;
-		}
 
-		if((kp->crlf < 0 && IS_SET(MODE_CRLF)) ||
-				(kp->crlf > 0 && !IS_SET(MODE_CRLF))) {
+		if(IS_SET(MODE_CRLF) ? kp->crlf < 0 : kp->crlf > 0)
 			continue;
-		}
 
 		return kp->s;
 	}
