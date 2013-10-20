@@ -97,21 +97,21 @@ static unsigned int defaultunderline = 7;
 /* Internal mouse shortcuts. */
 /* Beware that overloading Button1 will disable the selection. */
 static Mousekey mshortcuts[] = {
-	/* button		mask		string */
-	{ Button4,		XK_ANY_MOD,	"\031"},
-	{ Button5,		XK_ANY_MOD,	"\005"},
+	/* button               mask            string */
+	{ Button4,              XK_ANY_MOD,     "\031" },
+	{ Button5,              XK_ANY_MOD,     "\005" },
 };
 
 /* Internal keyboard shortcuts. */
 #define MODKEY Mod1Mask
 
 static Shortcut shortcuts[] = {
-	/* mask			keysym		function	argument */
-	{ MODKEY|ShiftMask,	XK_Prior,	xzoom,		{.i = +1} },
-	{ MODKEY|ShiftMask,	XK_Next,	xzoom,		{.i = -1} },
-	{ ShiftMask,		XK_Insert,	selpaste,	{.i =  0} },
-	{ MODKEY|ShiftMask,	XK_Insert,	clippaste,	{.i =  0} },
-	{ MODKEY,		XK_Num_Lock,	numlock,	{.i =  0} },
+	/* mask                 keysym          function        argument */
+	{ MODKEY|ShiftMask,     XK_Prior,       xzoom,          {.i = +1} },
+	{ MODKEY|ShiftMask,     XK_Next,        xzoom,          {.i = -1} },
+	{ ShiftMask,            XK_Insert,      selpaste,       {.i =  0} },
+	{ MODKEY|ShiftMask,     XK_Insert,      clippaste,      {.i =  0} },
+	{ MODKEY,               XK_Num_Lock,    numlock,        {.i =  0} },
 };
 
 /*
