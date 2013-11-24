@@ -180,8 +180,8 @@ typedef unsigned short ushort;
 typedef struct {
 	char c[UTF_SIZ]; /* character code */
 	ushort mode;      /* attribute flags */
-	ulong fg;        /* foreground  */
-	ulong bg;        /* background  */
+	uint32_t fg;      /* foreground  */
+	uint32_t bg;      /* background  */
 } Glyph;
 
 typedef Glyph *Line;
@@ -379,7 +379,7 @@ static void tsetdirtattr(int);
 static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 static void techo(char *, int);
-static long tdefcolor(int *, int *, int);
+static uint32_t tdefcolor(int *, int *, int);
 static void tselcs(void);
 static void tdeftran(char);
 static inline bool match(uint, uint);
@@ -1666,9 +1666,9 @@ tdeleteline(int n) {
 	tscrollup(term.c.y, n);
 }
 
-long
+uint32_t
 tdefcolor(int *attr, int *npar, int l) {
-	long idx = -1;
+	int32_t idx = -1;
 	uint r, g, b;
 
 	switch (attr[*npar + 1]) {
@@ -1717,7 +1717,7 @@ tdefcolor(int *attr, int *npar, int l) {
 void
 tsetattr(int *attr, int l) {
 	int i;
-	long idx;
+	int32_t idx;
 
 	for(i = 0; i < l; i++) {
 		switch(attr[i]) {
