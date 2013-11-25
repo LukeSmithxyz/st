@@ -379,7 +379,7 @@ static void tsetdirtattr(int);
 static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 static void techo(char *, int);
-static uint32_t tdefcolor(int *, int *, int);
+static int32_t tdefcolor(int *, int *, int);
 static void tselcs(void);
 static void tdeftran(char);
 static inline bool match(uint, uint);
@@ -1666,7 +1666,7 @@ tdeleteline(int n) {
 	tscrollup(term.c.y, n);
 }
 
-uint32_t
+int32_t
 tdefcolor(int *attr, int *npar, int l) {
 	int32_t idx = -1;
 	uint r, g, b;
