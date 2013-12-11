@@ -240,7 +240,7 @@ typedef struct {
 	Colourmap cmap;
 	Window win;
 	Drawable buf;
-	Atom xembed, wmdeletewin, netwmname;
+	Atom xembed, wmdeletewin, netwmname, netwmpid;
 	XIM xim;
 	XIC xic;
 	Draw draw;
@@ -2933,6 +2933,7 @@ xinit(void) {
 	Cursor cursor;
 	Window parent;
 	int sw, sh;
+	pid_t thispid = getpid();
 
 	if(!(xw.dpy = XOpenDisplay(NULL)))
 		die("Can't open display\n");
@@ -3026,6 +3027,10 @@ xinit(void) {
 	xw.wmdeletewin = XInternAtom(xw.dpy, "WM_DELETE_WINDOW", False);
 	xw.netwmname = XInternAtom(xw.dpy, "_NET_WM_NAME", False);
 	XSetWMProtocols(xw.dpy, xw.win, &xw.wmdeletewin, 1);
+
+	xw.netwmpid = XInternAtom(xw.dpy, "_NET_WM_PID", False);
+	XChangeProperty(xw.dpy, xw.win, xw.netwmpid, XA_CARDINAL, 32,
+			PropModeReplace, (unsigned char *)&thispid, 1);
 
 	xresettitle();
 	XMapWindow(xw.dpy, xw.win);
