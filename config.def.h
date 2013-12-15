@@ -281,7 +281,7 @@ static Key key[] = {
 	{ XK_F3, /* F63 */  Mod3Mask,       "\033[1;4R",     0,    0,    0},
 	{ XK_F4,            XK_NO_MOD,      "\033OS" ,       0,    0,    0},
 	{ XK_F4, /* F16 */  ShiftMask,      "\033[1;2S",     0,    0,    0},
-	{ XK_F4, /* F28 */  ShiftMask,      "\033[1;5S",     0,    0,    0},
+	{ XK_F4, /* F28 */  ControlMask,    "\033[1;5S",     0,    0,    0},
 	{ XK_F4, /* F40 */  Mod4Mask,       "\033[1;6S",     0,    0,    0},
 	{ XK_F4, /* F52 */  Mod1Mask,       "\033[1;3S",     0,    0,    0},
 	{ XK_F5,            XK_NO_MOD,      "\033[15~",      0,    0,    0},
