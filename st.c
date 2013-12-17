@@ -3667,11 +3667,11 @@ run(void) {
 		}
 	}
 
+	ttynew();
 	if(!xw.isfixed)
 		cresize(w, h);
 	else
 		cresize(xw.fw, xw.fh);
-	ttynew();
 
 	gettimeofday(&lastblink, NULL);
 	gettimeofday(&last, NULL);
