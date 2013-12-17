@@ -398,7 +398,7 @@ static void xinit(void);
 static void xloadcols(void);
 static int xsetcolorname(int, const char *);
 static int xloadfont(Font *, FcPattern *);
-static void xloadfonts(char *, int);
+static void xloadfonts(char *, double);
 static int xloadfontset(Font *);
 static void xsettitle(char *);
 static void xresettitle(void);
@@ -478,7 +478,7 @@ static char *opt_font = NULL;
 static int oldbutton = 3; /* button event on startup: 3 = release */
 
 static char *usedfont = NULL;
-static int usedfontsize = 0;
+static double usedfontsize = 0;
 
 /* Font Ring Cache */
 enum {
@@ -2826,9 +2826,9 @@ xloadfont(Font *f, FcPattern *pattern) {
 }
 
 void
-xloadfonts(char *fontstr, int fontsize) {
+xloadfonts(char *fontstr, double fontsize) {
 	FcPattern *pattern;
-	FcResult result;
+	FcResult r_sz, r_psz;
 	double fontval;
 
 	if(fontstr[0] == '-') {
@@ -2842,12 +2842,16 @@ xloadfonts(char *fontstr, int fontsize) {
 
 	if(fontsize > 0) {
 		FcPatternDel(pattern, FC_PIXEL_SIZE);
+		FcPatternDel(pattern, FC_SIZE);
 		FcPatternAddDouble(pattern, FC_PIXEL_SIZE, (double)fontsize);
 		usedfontsize = fontsize;
 	} else {
-		result = FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &fontval);
-		if(result == FcResultMatch) {
-			usedfontsize = (int)fontval;
+		r_psz = FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &fontval);
+		r_sz = FcPatternGetDouble(pattern, FC_SIZE, 0, &fontval);
+		if(r_psz == FcResultMatch) {
+			usedfontsize = fontval;
+		} else if(r_sz == FcResultMatch) {
+			usedfontsize = -1;
 		} else {
 			/*
 			 * Default font size is 12, if none given. This is to
@@ -2863,6 +2867,12 @@ xloadfonts(char *fontstr, int fontsize) {
 
 	if(xloadfont(&dc.font, pattern))
 		die("st: can't open font %s\n", fontstr);
+
+	if(usedfontsize < 0) {
+		FcPatternGetDouble(dc.font.match->pattern,
+		                   FC_PIXEL_SIZE, 0, &fontval);
+		usedfontsize = fontval;
+	}
 
 	/* Setting character width and height. */
 	xw.cw = CEIL(dc.font.width * cwscale);
