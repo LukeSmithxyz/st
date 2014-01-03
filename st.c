@@ -3083,6 +3083,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			base.fg = defaultunderline;
 	}
 	if(IS_TRUECOL(base.fg)) {
+		colfg.alpha = 0xffff;
 		colfg.red = TRUERED(base.fg);
 		colfg.green = TRUEGREEN(base.fg);
 		colfg.blue = TRUEBLUE(base.fg);
@@ -3093,6 +3094,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	}
 
 	if(IS_TRUECOL(base.bg)) {
+		colbg.alpha = 0xffff;
 		colbg.green = TRUEGREEN(base.bg);
 		colbg.red = TRUERED(base.bg);
 		colbg.blue = TRUEBLUE(base.bg);
