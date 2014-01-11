@@ -3301,6 +3301,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		XftDrawRect(xw.draw, fg, winx, winy + font->ascent + 1,
 				width, 1);
 	}
+	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, winx, winy, width,
+			font->ascent + font->descent, winx, winy);
 
 	/* Reset clip to none. */
 	XftDrawSetClip(xw.draw, 0);
@@ -3399,8 +3401,6 @@ redraw(int timeout) {
 void
 draw(void) {
 	drawregion(0, 0, term.col, term.row);
-	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, xw.w,
-			xw.h, 0, 0);
 	XSetForeground(xw.dpy, dc.gc,
 			dc.col[IS_SET(MODE_REVERSE)?
 				defaultfg : defaultbg].pixel);
