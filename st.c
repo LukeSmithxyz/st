@@ -3302,7 +3302,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 				width, 1);
 	}
 	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, winx, winy, width,
-			font->ascent + font->descent, winx, winy);
+			CEIL((font->ascent + font->descent) * chscale), winx, winy);
 
 	/* Reset clip to none. */
 	XftDrawSetClip(xw.draw, 0);
