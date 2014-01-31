@@ -356,6 +356,8 @@ static void strparse(void);
 static void strreset(void);
 
 static int tattrset(int);
+static void tprinter(char *s, size_t len);
+static void tdumpline(int);
 static void tclearregion(int, int, int, int);
 static void tcursor(int);
 static void tdeletechar(int);
@@ -470,7 +472,7 @@ static STREscape strescseq;
 static int cmdfd;
 static pid_t pid;
 static Selection sel;
-static int iofd;
+static int iofd = STDOUT_FILENO;
 static char **opt_cmd = NULL;
 static char *opt_io = NULL;
 static char *opt_title = NULL;
@@ -1985,6 +1987,8 @@ csihandle(void) {
 		switch(csiescseq.arg[0]) {
 		case 0:
 		case 1:
+			tdumpline(term.c.y);
+			break;
 		case 4:
 			term.mode &= ~MODE_PRINT;
 			break;
@@ -2266,6 +2270,31 @@ strreset(void) {
 }
 
 void
+tprinter(char *s, size_t len) {
+	if(iofd != -1 && xwrite(iofd, s, len) < 0) {
+		fprintf(stderr, "Error writing in %s:%s\n",
+			opt_io, strerror(errno));
+		close(iofd);
+		iofd = -1;
+	}
+}
+
+void
+tdumpline(int n) {
+	Glyph *bp, *end;
+
+	bp = &term.line[n][0];
+	end = &bp[term.col-1];
+	while(end > bp && !strcmp(" ", end->c))
+		--end;
+	if(bp != end || strcmp(bp->c, " ")) {
+		for( ;bp <= end; ++bp)
+			tprinter(bp->c, strlen(bp->c));
+	}
+	tprinter("\n", 1);
+}
+
+void
 tputtab(bool forward) {
 	uint x = term.c.x;
 
@@ -2346,14 +2375,8 @@ tputc(char *c, int len) {
 		width = wcwidth(u8char);
 	}
 
-	if(IS_SET(MODE_PRINT) && iofd != -1) {
-		if(xwrite(iofd, c, len) < 0) {
-			fprintf(stderr, "Error writing in %s:%s\n",
-				opt_io, strerror(errno));
-			close(iofd);
-			iofd = -1;
-		}
-	}
+	if(IS_SET(MODE_PRINT))
+		tprinter(c, len);
 
 	/*
 	 * STR sequences must be checked before anything else
