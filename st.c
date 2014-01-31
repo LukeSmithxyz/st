@@ -953,11 +953,12 @@ selcopy(void) {
 		/* append every set & selected glyph to the selection */
 		for(y = sel.nb.y; y < sel.ne.y + 1; y++) {
 			gp = &term.line[y][0];
-			last = gp + term.col;
+			last = &gp[term.col-1];
 
-			while(--last >= gp && !(selected(last - gp, y) && \
-						strcmp(last->c, " ") != 0))
-				/* nothing */;
+			while(last >= gp && !(selected(last - gp, y) &&
+			                      strcmp(last->c, " ") != 0)) {
+				--last;
+			}
 
 			for(x = 0; gp <= last; x++, ++gp) {
 				if(!selected(x, y) || (gp->mode & ATTR_WDUMMY))
