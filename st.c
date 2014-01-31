@@ -314,6 +314,8 @@ static void clippaste(const Arg *);
 static void numlock(const Arg *);
 static void selpaste(const Arg *);
 static void xzoom(const Arg *);
+static void printscreen(const Arg *) ;
+static void toggleprinter(const Arg *);
 
 /* Config.h for applying patches and the configuration. */
 #include "config.h"
@@ -2280,6 +2282,16 @@ tprinter(char *s, size_t len) {
 		close(iofd);
 		iofd = -1;
 	}
+}
+
+void
+toggleprinter(const Arg *arg) {
+	term.mode ^= MODE_PRINT;
+}
+
+void
+printscreen(const Arg *arg) {
+	tdump();
 }
 
 void
