@@ -358,6 +358,7 @@ static void strreset(void);
 static int tattrset(int);
 static void tprinter(char *s, size_t len);
 static void tdumpline(int);
+static void tdump(void);
 static void tclearregion(int, int, int, int);
 static void tcursor(int);
 static void tdeletechar(int);
@@ -1986,6 +1987,8 @@ csihandle(void) {
 	case 'i': /* MC -- Media Copy */
 		switch(csiescseq.arg[0]) {
 		case 0:
+			tdump();
+			break;
 		case 1:
 			tdumpline(term.c.y);
 			break;
@@ -2292,6 +2295,14 @@ tdumpline(int n) {
 			tprinter(bp->c, strlen(bp->c));
 	}
 	tprinter("\n", 1);
+}
+
+void
+tdump(void) {
+	int i;
+
+	for(i = 0; i < term.row; ++i)
+		tdumpline(i);
 }
 
 void
