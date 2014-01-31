@@ -153,7 +153,8 @@ static uint ignoremod = Mod2Mask|XK_SWITCH_MOD;
 
 static Key key[] = {
 	/* keysym           mask            string      appkey appcursor crlf */
-	{ XK_KP_Home,       ShiftMask,      "\033[1;2H",     0,    0,    0},
+	{ XK_KP_Home,       ShiftMask,      "\033[2J",       0,   -1,    0},
+	{ XK_KP_Home,       ShiftMask,      "\033[1;2H",     0,   +1,    0},
 	{ XK_KP_Home,       XK_ANY_MOD,     "\033[H",        0,   -1,    0},
 	{ XK_KP_Home,       XK_ANY_MOD,     "\033[1~",       0,   +1,    0},
 	{ XK_KP_Up,         XK_ANY_MOD,     "\033Ox",       +1,    0,    0},
@@ -246,7 +247,8 @@ static Key key[] = {
 	{ XK_Delete,        ShiftMask,      "\033[3;2~",    +1,    0,    0},
 	{ XK_Delete,        XK_ANY_MOD,     "\033[P",       -1,    0,    0},
 	{ XK_Delete,        XK_ANY_MOD,     "\033[3~",      +1,    0,    0},
-	{ XK_Home,          ShiftMask,      "\033[1;2H",     0,    0,    0},
+	{ XK_Home,          ShiftMask,      "\033[2J",       0,   -1,    0},
+	{ XK_Home,          ShiftMask,      "\033[1;2H",     0,   +1,    0},
 	{ XK_Home,          XK_ANY_MOD,     "\033[H",        0,   -1,    0},
 	{ XK_Home,          XK_ANY_MOD,     "\033[1~",       0,   +1,    0},
 	{ XK_End,           ControlMask,    "\033[J",       -1,    0,    0},
