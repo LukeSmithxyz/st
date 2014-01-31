@@ -2152,20 +2152,21 @@ csireset(void) {
 void
 strhandle(void) {
 	char *p = NULL;
-	int i, j, narg;
+	int j, narg, par;
 
 	strparse();
 	narg = strescseq.narg;
+	par = atoi(strescseq.args[0]);
 
 	switch(strescseq.type) {
 	case ']': /* OSC -- Operating System Command */
-		switch(i = atoi(strescseq.args[0])) {
+		switch(par) {
 		case 0:
 		case 1:
 		case 2:
 			if(narg > 1)
 				xsettitle(strescseq.args[1]);
-			break;
+			return;
 		case 4: /* color set */
 			if(narg < 3)
 				break;
@@ -2182,25 +2183,20 @@ strhandle(void) {
 				 */
 				redraw(0);
 			}
-			break;
-		default:
-			fprintf(stderr, "erresc: unknown str ");
-			strdump();
-			break;
+			return;
 		}
 		break;
 	case 'k': /* old title set compatibility */
 		xsettitle(strescseq.args[0]);
-		break;
+		return;
 	case 'P': /* DSC -- Device Control String */
 	case '_': /* APC -- Application Program Command */
 	case '^': /* PM -- Privacy Message */
-	default:
-		fprintf(stderr, "erresc: unknown str ");
-		strdump();
-		/* die(""); */
-		break;
+		return;
 	}
+
+	fprintf(stderr, "erresc: unknown str ");
+	strdump();
 }
 
 void
