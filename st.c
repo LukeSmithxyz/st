@@ -134,6 +134,7 @@ enum term_mode {
 	MODE_MOUSEX10    = 131072,
 	MODE_MOUSEMANY   = 262144,
 	MODE_BRCKTPASTE  = 524288,
+	MODE_PRINT       = 1048576,
 	MODE_MOUSE       = MODE_MOUSEBTN|MODE_MOUSEMOTION|MODE_MOUSEX10\
 	                  |MODE_MOUSEMANY,
 };
@@ -469,7 +470,7 @@ static STREscape strescseq;
 static int cmdfd;
 static pid_t pid;
 static Selection sel;
-static int iofd = -1;
+static int iofd;
 static char **opt_cmd = NULL;
 static char *opt_io = NULL;
 static char *opt_title = NULL;
@@ -1256,6 +1257,7 @@ ttynew(void) {
 		cmdfd = m;
 		signal(SIGCHLD, sigchld);
 		if(opt_io) {
+			term.mode |= MODE_PRINT;
 			iofd = (!strcmp(opt_io, "-")) ?
 				  STDOUT_FILENO :
 				  open(opt_io, O_WRONLY | O_CREAT, 0666);
@@ -1979,6 +1981,18 @@ csihandle(void) {
 		DEFAULT(csiescseq.arg[0], 1);
 		tmoveto(term.c.x, term.c.y+csiescseq.arg[0]);
 		break;
+	case 'i': /* MC -- Media Copy */
+		switch(csiescseq.arg[0]) {
+		case 0:
+		case 1:
+		case 4:
+			term.mode &= ~MODE_PRINT;
+			break;
+		case 5:
+			term.mode |= MODE_PRINT;
+			break;
+		}
+		break;
 	case 'c': /* DA -- Device Attributes */
 		if(csiescseq.arg[0] == 0)
 			ttywrite(VT102ID, sizeof(VT102ID) - 1);
@@ -2332,7 +2346,7 @@ tputc(char *c, int len) {
 		width = wcwidth(u8char);
 	}
 
-	if(iofd != -1) {
+	if(IS_SET(MODE_PRINT) && iofd != -1) {
 		if(xwrite(iofd, c, len) < 0) {
 			fprintf(stderr, "Error writing in %s:%s\n",
 				opt_io, strerror(errno));
