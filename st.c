@@ -314,6 +314,7 @@ static void clippaste(const Arg *);
 static void numlock(const Arg *);
 static void selpaste(const Arg *);
 static void xzoom(const Arg *);
+static void printsel(const Arg *);
 static void printscreen(const Arg *) ;
 static void toggleprinter(const Arg *);
 
@@ -359,6 +360,7 @@ static void strreset(void);
 
 static int tattrset(int);
 static void tprinter(char *s, size_t len);
+static void tdumpsel(void);
 static void tdumpline(int);
 static void tdump(void);
 static void tclearregion(int, int, int, int);
@@ -435,6 +437,7 @@ static void selrequest(XEvent *);
 static void selinit(void);
 static void selsort(void);
 static inline bool selected(int, int);
+static char *getsel(void);
 static void selcopy(void);
 static void selscroll(int, int);
 static void selsnap(int, int *, int *, int);
@@ -955,8 +958,8 @@ bpress(XEvent *e) {
 	}
 }
 
-void
-selcopy(void) {
+char *
+getsel(void) {
 	char *str, *ptr;
 	int x, y, bufsize, size, i, ex;
 	Glyph *gp, *last;
@@ -1015,7 +1018,12 @@ selcopy(void) {
 		}
 		*ptr = 0;
 	}
-	xsetsel(str);
+	return str;
+}
+
+void
+selcopy(void) {
+	xsetsel(getsel());
 }
 
 void
@@ -1994,6 +2002,9 @@ csihandle(void) {
 		case 1:
 			tdumpline(term.c.y);
 			break;
+		case 2:
+			tdumpsel();
+			break;
 		case 4:
 			term.mode &= ~MODE_PRINT;
 			break;
@@ -2292,6 +2303,21 @@ toggleprinter(const Arg *arg) {
 void
 printscreen(const Arg *arg) {
 	tdump();
+}
+
+void
+printsel(const Arg *arg) {
+	tdumpsel();
+}
+
+void
+tdumpsel(void)
+{
+	char *ptr;
+
+	ptr = getsel();
+	tprinter(ptr, strlen(ptr));
+	free(ptr);
 }
 
 void
