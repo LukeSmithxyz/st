@@ -441,6 +441,7 @@ static int isfullutf8(char *, int);
 static ssize_t xwrite(int, char *, size_t);
 static void *xmalloc(size_t);
 static void *xrealloc(void *, size_t);
+static char *xstrdup(char *s);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
@@ -524,6 +525,16 @@ xmalloc(size_t len) {
 void *
 xrealloc(void *p, size_t len) {
 	if((p = realloc(p, len)) == NULL)
+		die("Out of memory\n");
+
+	return p;
+}
+
+char *
+xstrdup(char *s) {
+	char *p = strdup(s);
+
+	if (!p)
 		die("Out of memory\n");
 
 	return p;
@@ -3789,7 +3800,7 @@ main(int argc, char *argv[]) {
 		if(argc > 1) {
 			opt_cmd = &argv[1];
 			if(argv[1] != NULL && opt_title == NULL) {
-				titles = strdup(argv[1]);
+				titles = xstrdup(argv[1]);
 				opt_title = basename(titles);
 			}
 		}
