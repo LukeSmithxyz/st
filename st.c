@@ -3091,6 +3091,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		if(base.fg == defaultfg)
 			base.fg = defaultunderline;
 	}
+
 	if(IS_TRUECOL(base.fg)) {
 		colfg.alpha = 0xffff;
 		colfg.red = TRUERED(base.fg);
@@ -3112,8 +3113,6 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	} else {
 		bg = &dc.col[base.bg];
 	}
-
-
 
 	if(base.mode & ATTR_BOLD) {
 		if(BETWEEN(base.fg, 0, 7)) {
@@ -3144,7 +3143,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			colfg.green = ~fg->color.green;
 			colfg.blue = ~fg->color.blue;
 			colfg.alpha = fg->color.alpha;
-			XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &colfg, &revfg);
+			XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &colfg,
+					&revfg);
 			fg = &revfg;
 		}
 
@@ -3155,7 +3155,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			colbg.green = ~bg->color.green;
 			colbg.blue = ~bg->color.blue;
 			colbg.alpha = bg->color.alpha;
-			XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &colbg, &revbg);
+			XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &colbg,
+					&revbg);
 			bg = &revbg;
 		}
 	}
@@ -3235,7 +3236,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			u8fblen += u8cblen;
 		}
 		if(doesexist) {
-			if (oneatatime)
+			if(oneatatime)
 				continue;
 			break;
 		}
@@ -3258,6 +3259,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			 * Nothing was found in the cache. Now use
 			 * some dozen of Fontconfig calls to get the
 			 * font for one single character.
+			 *
+			 * Xft and fontconfig are design failures.
 			 */
 			fcpattern = FcPatternDuplicate(font->pattern);
 			fccharset = FcCharSetCreate();
@@ -3301,6 +3304,12 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		xp += xw.cw * wcwidth(u8char);
 	}
 
+	/*
+	 * This is how the loop above actually should be. Why does the
+	 * application have to care about font details?
+	 *
+	 * I have to repeat: Xft and Fontconfig are design failures.
+	 */
 	/*
 	XftDrawStringUtf8(xw.draw, fg, font->set, winx,
 			winy + font->ascent, (FcChar8 *)s, bytelen);
