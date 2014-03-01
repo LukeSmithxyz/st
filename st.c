@@ -2801,7 +2801,8 @@ xhints(void) {
 		sizeh->min_height = sizeh->max_height = xw.fh;
 	}
 
-	XSetWMProperties(xw.dpy, xw.win, NULL, NULL, NULL, 0, sizeh, &wm, &class);
+	XSetWMProperties(xw.dpy, xw.win, NULL, NULL, NULL, 0, sizeh, &wm,
+			&class);
 	XFree(sizeh);
 }
 
