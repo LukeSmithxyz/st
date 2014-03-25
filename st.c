@@ -55,6 +55,7 @@ char *argv0;
 #define XEMBED_FOCUS_OUT 5
 
 /* Arbitrary sizes */
+#define UTF_INVALID   0xFFFD
 #define UTF_SIZ       4
 #define ESC_BUF_SIZ   (128*UTF_SIZ)
 #define ESC_ARG_SIZ   16
@@ -442,10 +443,12 @@ static void selcopy(void);
 static void selscroll(int, int);
 static void selsnap(int, int *, int *, int);
 
-static int utf8decode(char *, long *);
-static int utf8encode(long *, char *);
-static int utf8size(char *);
-static int isfullutf8(char *, int);
+static size_t utf8decode(char *, long *, size_t);
+static long utf8decodebyte(char, size_t *);
+static size_t utf8encode(long, char *, size_t);
+static char utf8encodebyte(long, size_t);
+static size_t utf8len(char *);
+static size_t utf8validate(long *, size_t);
 
 static ssize_t xwrite(int, char *, size_t);
 static void *xmalloc(size_t);
@@ -489,6 +492,11 @@ static int oldbutton = 3; /* button event on startup: 3 = release */
 
 static char *usedfont = NULL;
 static double usedfontsize = 0;
+
+static uchar utfbyte[UTF_SIZ + 1] = {0x80,    0, 0xC0, 0xE0, 0xF0};
+static uchar utfmask[UTF_SIZ + 1] = {0xC0, 0x80, 0xE0, 0xF0, 0xF8};
+static long utfmin[UTF_SIZ + 1] = {       0,    0,  0x80,  0x800,  0x10000};
+static long utfmax[UTF_SIZ + 1] = {0x10FFFF, 0x7F, 0x7FF, 0xFFFF, 0x10FFFF};
 
 /* Font Ring Cache */
 enum {
@@ -549,128 +557,69 @@ xstrdup(char *s) {
 	return p;
 }
 
-int
-utf8decode(char *s, long *u) {
-	uchar c;
-	int i, n, rtn;
+size_t
+utf8decode(char *c, long *u, size_t clen) {
+	size_t i, j, len, type;
+	long udecoded;
 
-	rtn = 1;
-	c = *s;
-	if(~c & 0x80) { /* 0xxxxxxx */
-		*u = c;
-		return rtn;
-	} else if((c & 0xE0) == 0xC0) { /* 110xxxxx */
-		*u = c & 0x1F;
-		n = 1;
-	} else if((c & 0xF0) == 0xE0) { /* 1110xxxx */
-		*u = c & 0x0F;
-		n = 2;
-	} else if((c & 0xF8) == 0xF0) { /* 11110xxx */
-		*u = c & 0x07;
-		n = 3;
-	} else {
-		goto invalid;
+	*u = UTF_INVALID;
+	if(!clen)
+		return 0;
+	udecoded = utf8decodebyte(c[0], &len);
+	if(!BETWEEN(len, 1, UTF_SIZ))
+		return 1;
+	for(i = 1, j = 1; i < clen && j < len; ++i, ++j) {
+		udecoded = (udecoded << 6) | utf8decodebyte(c[i], &type);
+		if(type != 0)
+			return j;
 	}
-
-	for(i = n, ++s; i > 0; --i, ++rtn, ++s) {
-		c = *s;
-		if((c & 0xC0) != 0x80) /* 10xxxxxx */
-			goto invalid;
-		*u <<= 6;
-		*u |= c & 0x3F;
-	}
-
-	if((n == 1 && *u < 0x80) ||
-	   (n == 2 && *u < 0x800) ||
-	   (n == 3 && *u < 0x10000) ||
-	   (*u >= 0xD800 && *u <= 0xDFFF)) {
-		goto invalid;
-	}
-
-	return rtn;
-invalid:
-	*u = 0xFFFD;
-
-	return rtn;
+	if(j < len)
+		return 0;
+	*u = udecoded;
+	utf8validate(u, len);
+	return len;
 }
 
-int
-utf8encode(long *u, char *s) {
-	uchar *sp;
-	ulong uc;
-	int i, n;
-
-	sp = (uchar *)s;
-	uc = *u;
-	if(uc < 0x80) {
-		*sp = uc; /* 0xxxxxxx */
-		return 1;
-	} else if(*u < 0x800) {
-		*sp = (uc >> 6) | 0xC0; /* 110xxxxx */
-		n = 1;
-	} else if(uc < 0x10000) {
-		*sp = (uc >> 12) | 0xE0; /* 1110xxxx */
-		n = 2;
-	} else if(uc <= 0x10FFFF) {
-		*sp = (uc >> 18) | 0xF0; /* 11110xxx */
-		n = 3;
-	} else {
-		goto invalid;
-	}
-
-	for(i=n,++sp; i>0; --i,++sp)
-		*sp = ((uc >> 6*(i-1)) & 0x3F) | 0x80; /* 10xxxxxx */
-
-	return n+1;
-invalid:
-	/* U+FFFD */
-	*s++ = '\xEF';
-	*s++ = '\xBF';
-	*s = '\xBD';
-
-	return 3;
+long
+utf8decodebyte(char c, size_t *i) {
+	for(*i = 0; *i < LEN(utfmask); ++(*i))
+		if(((uchar)c & utfmask[*i]) == utfbyte[*i])
+			return (uchar)c & ~utfmask[*i];
+	return 0;
 }
 
-/* use this if your buffer is less than UTF_SIZ, it returns 1 if you can decode
-   UTF-8 otherwise return 0 */
-int
-isfullutf8(char *s, int b) {
-	uchar *c1, *c2, *c3;
+size_t
+utf8encode(long u, char *c, size_t clen) {
+	size_t len, i;
 
-	c1 = (uchar *)s;
-	c2 = (uchar *)++s;
-	c3 = (uchar *)++s;
-	if(b < 1) {
+	len = utf8validate(&u, 0);
+	if(clen < len)
 		return 0;
-	} else if((*c1 & 0xE0) == 0xC0 && b == 1) {
-		return 0;
-	} else if((*c1 & 0xF0) == 0xE0 &&
-	    ((b == 1) ||
-	    ((b == 2) && (*c2 & 0xC0) == 0x80))) {
-		return 0;
-	} else if((*c1 & 0xF8) == 0xF0 &&
-	    ((b == 1) ||
-	    ((b == 2) && (*c2 & 0xC0) == 0x80) ||
-	    ((b == 3) && (*c2 & 0xC0) == 0x80 && (*c3 & 0xC0) == 0x80))) {
-		return 0;
-	} else {
-		return 1;
+	for(i = len - 1; i != 0; --i) {
+		c[i] = utf8encodebyte(u, 0);
+		u >>= 6;
 	}
+	c[0] = utf8encodebyte(u, len);
+	return len;
 }
 
-int
-utf8size(char *s) {
-	uchar c = *s;
+char
+utf8encodebyte(long u, size_t i) {
+	return utfbyte[i] | (u & ~utfmask[i]);
+}
 
-	if(~c & 0x80) {
-		return 1;
-	} else if((c & 0xE0) == 0xC0) {
-		return 2;
-	} else if((c & 0xF0) == 0xE0) {
-		return 3;
-	} else {
-		return 4;
-	}
+size_t
+utf8len(char *c) {
+	return utf8decode(c, &(long){0}, UTF_SIZ);
+}
+
+size_t
+utf8validate(long *u, size_t i) {
+	if(!BETWEEN(*u, utfmin[i], utfmax[i]) || BETWEEN(*u, 0xD800, 0xDFFF))
+		*u = UTF_INVALID;
+	for(i = 1; *u > utfmax[i]; ++i)
+		;
+	return i;
 }
 
 static void
@@ -984,7 +933,7 @@ getsel(void) {
 				if(!selected(x, y) || (gp->mode & ATTR_WDUMMY))
 					continue;
 
-				size = utf8size(gp->c);
+				size = utf8len(gp->c);
 				memcpy(ptr, gp->c, size);
 				ptr += size;
 			}
@@ -1298,7 +1247,7 @@ ttyread(void) {
 	char *ptr;
 	char s[UTF_SIZ];
 	int charsize; /* size of utf8 char in bytes */
-	long utf8c;
+	long unicodep;
 	int ret;
 
 	/* append read bytes to unprocessed bytes */
@@ -1308,9 +1257,8 @@ ttyread(void) {
 	/* process every complete utf8 char */
 	buflen += ret;
 	ptr = buf;
-	while(buflen >= UTF_SIZ || isfullutf8(ptr,buflen)) {
-		charsize = utf8decode(ptr, &utf8c);
-		utf8encode(&utf8c, s);
+	while(charsize = utf8decode(ptr, &unicodep, buflen)) {
+		utf8encode(unicodep, s, UTF_SIZ);
 		tputc(s, charsize);
 		ptr += charsize;
 		buflen -= charsize;
@@ -2414,14 +2362,14 @@ void
 tputc(char *c, int len) {
 	uchar ascii = *c;
 	bool control = ascii < '\x20' || ascii == 0177;
-	long u8char;
+	long unicodep;
 	int width;
 
 	if(len == 1) {
 		width = 1;
 	} else {
-		utf8decode(c, &u8char);
-		width = wcwidth(u8char);
+		utf8decode(c, &unicodep, UTF_SIZ);
+		width = wcwidth(unicodep);
 	}
 
 	if(IS_SET(MODE_PRINT))
@@ -3150,7 +3098,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	int frcflags;
 	int u8fl, u8fblen, u8cblen, doesexist;
 	char *u8c, *u8fs;
-	long u8char;
+	long unicodep;
 	Font *font = &dc.font;
 	FcResult fcres;
 	FcPattern *fcpattern, *fontpattern;
@@ -3293,11 +3241,11 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		oneatatime = font->width != xw.cw;
 		for(;;) {
 			u8c = s;
-			u8cblen = utf8decode(s, &u8char);
+			u8cblen = utf8decode(s, &unicodep, UTF_SIZ);
 			s += u8cblen;
 			bytelen -= u8cblen;
 
-			doesexist = XftCharExists(xw.dpy, font->match, u8char);
+			doesexist = XftCharExists(xw.dpy, font->match, unicodep);
 			if(oneatatime || !doesexist || bytelen <= 0) {
 				if(oneatatime || bytelen <= 0) {
 					if(doesexist) {
@@ -3329,7 +3277,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 		/* Search the font cache. */
 		for(i = 0; i < frclen; i++) {
-			if(XftCharExists(xw.dpy, frc[i].font, u8char)
+			if(XftCharExists(xw.dpy, frc[i].font, unicodep)
 					&& frc[i].flags == frcflags) {
 				break;
 			}
@@ -3351,7 +3299,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			fcpattern = FcPatternDuplicate(font->pattern);
 			fccharset = FcCharSetCreate();
 
-			FcCharSetAddChar(fccharset, u8char);
+			FcCharSetAddChar(fccharset, unicodep);
 			FcPatternAddCharSet(fcpattern, FC_CHARSET,
 					fccharset);
 			FcPatternAddBool(fcpattern, FC_SCALABLE,
@@ -3387,7 +3335,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 				xp, winy + frc[i].font->ascent,
 				(FcChar8 *)u8c, u8cblen);
 
-		xp += xw.cw * wcwidth(u8char);
+		xp += xw.cw * wcwidth(unicodep);
 	}
 
 	/*
@@ -3430,7 +3378,7 @@ xdrawcursor(void) {
 	memcpy(g.c, term.line[term.c.y][term.c.x].c, UTF_SIZ);
 
 	/* remove the old cursor */
-	sl = utf8size(term.line[oldy][oldx].c);
+	sl = utf8len(term.line[oldy][oldx].c);
 	width = (term.line[oldy][oldx].mode & ATTR_WIDE)? 2 : 1;
 	xdraws(term.line[oldy][oldx].c, term.line[oldy][oldx], oldx,
 			oldy, width, sl);
@@ -3444,7 +3392,7 @@ xdrawcursor(void) {
 				g.bg = defaultfg;
 			}
 
-			sl = utf8size(g.c);
+			sl = utf8len(g.c);
 			width = (term.line[term.c.y][curx].mode & ATTR_WIDE)\
 				? 2 : 1;
 			xdraws(g.c, g, term.c.x, term.c.y, width, sl);
@@ -3516,7 +3464,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
 	bool ena_sel = sel.ob.x != -1;
-	long u8char;
+	long unicodep;
 
 	if(sel.alt ^ IS_SET(MODE_ALTSCREEN))
 		ena_sel = 0;
@@ -3548,7 +3496,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 				base = new;
 			}
 
-			sl = utf8decode(new.c, &u8char);
+			sl = utf8decode(new.c, &unicodep, UTF_SIZ);
 			memcpy(buf+ib, new.c, sl);
 			ib += sl;
 			ic += (new.mode & ATTR_WIDE)? 2 : 1;
@@ -3707,7 +3655,7 @@ kpress(XEvent *ev) {
 		if(IS_SET(MODE_8BIT)) {
 			if(*buf < 0177) {
 				c = *buf | 0x80;
-				len = utf8encode(&c, buf);
+				len = utf8encode(c, buf, UTF_SIZ);
 			}
 		} else {
 			buf[1] = buf[0];
