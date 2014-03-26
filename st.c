@@ -2263,9 +2263,10 @@ tdumpsel(void)
 {
 	char *ptr;
 
-	ptr = getsel();
-	tprinter(ptr, strlen(ptr));
-	free(ptr);
+	if((ptr = getsel())) {
+		tprinter(ptr, strlen(ptr));
+		free(ptr);
+	}
 }
 
 void
