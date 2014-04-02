@@ -1257,7 +1257,7 @@ ttyread(void) {
 	/* process every complete utf8 char */
 	buflen += ret;
 	ptr = buf;
-	while(charsize = utf8decode(ptr, &unicodep, buflen)) {
+	while((charsize = utf8decode(ptr, &unicodep, buflen))) {
 		utf8encode(unicodep, s, UTF_SIZ);
 		tputc(s, charsize);
 		ptr += charsize;
