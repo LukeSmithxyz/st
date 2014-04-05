@@ -6,22 +6,17 @@ vt emulation
 code & interface
 ----------------
 
-* clean and complete terminfo entry
 * add a simple way to do multiplexing
 
 drawing
 -------
 * add diacritics support to xdraws()
 * make the font cache simpler
-* add hard width handling
-	* xft is reporting wrong width and height for characters
 
 bugs
 ----
 
 * fix shift up/down (shift selection in emacs)
-* fix selection paste for xatom STRING
-* fix rows and column definition in fixed geometry
 * fix -e handling
 * remove DEC test sequence when appropriate
 
