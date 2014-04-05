@@ -3440,7 +3440,6 @@ void
 redraw(int timeout) {
 	struct timespec tv = {0, timeout * 1000};
 
-	tfulldirt();
 	draw();
 
 	if(timeout > 0) {
