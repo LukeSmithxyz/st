@@ -36,10 +36,6 @@ char *argv0;
 
 #define Glyph Glyph_
 #define Font Font_
-#define Draw XftDraw *
-#define Colour XftColor
-#define Colourmap Colormap
-#define Rectangle XRectangle
 
 #if   defined(__linux)
  #include <pty.h>
@@ -179,6 +175,10 @@ typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long ulong;
 typedef unsigned short ushort;
+
+typedef XftDraw *Draw;
+typedef XftColor Colour;
+typedef Colormap Colourmap;
 
 typedef struct {
 	char c[UTF_SIZ]; /* character code */
@@ -3110,7 +3110,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	FcCharSet *fccharset;
 	Colour *fg, *bg, *temp, revfg, revbg, truefg, truebg;
 	XRenderColor colfg, colbg;
-	Rectangle r;
+	XRectangle r;
 	int oneatatime;
 
 	frcflags = FRC_NORMAL;
