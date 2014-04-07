@@ -3089,7 +3089,7 @@ xinit(void) {
 	xresettitle();
 	XMapWindow(xw.dpy, xw.win);
 	xhints();
-	XSync(xw.dpy, 0);
+	XSync(xw.dpy, False);
 }
 
 void
