@@ -1855,7 +1855,10 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				MODBIT(term.mode, set, MODE_8BIT);
 				break;
 			case 1049: /* swap screen & set/restore cursor as xterm */
+				if (!allowaltscreen)
+					break;
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
+				/* FALLTHRU */
 			case 47: /* swap screen */
 			case 1047:
 				if (!allowaltscreen)
