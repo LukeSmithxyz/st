@@ -3737,8 +3737,8 @@ run(void) {
 	else
 		cresize(xw.fw, xw.fh);
 
-	gettimeofday(&lastblink, NULL);
 	gettimeofday(&last, NULL);
+	lastblink = last;
 
 	for(xev = actionfps;;) {
 		long deltatime;
@@ -3773,7 +3773,7 @@ run(void) {
 		if(blinktimeout && TIMEDIFF(now, lastblink) > blinktimeout) {
 			tsetdirtattr(ATTR_BLINK);
 			term.mode ^= MODE_BLINK;
-			gettimeofday(&lastblink, NULL);
+			lastblink = now;
 			dodraw = 1;
 		}
 		deltatime = TIMEDIFF(now, last);
