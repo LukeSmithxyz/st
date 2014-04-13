@@ -2318,10 +2318,7 @@ techo(char *buf, int len) {
 	for(; len > 0; buf++, len--) {
 		char c = *buf;
 
-		if(c == '\033') { /* escape */
-			tputc("^", 1);
-			tputc("[", 1);
-		} else if(c < '\x20') { /* control code */
+		if(c < '\x20') { /* control code */
 			if(c != '\n' && c != '\r' && c != '\t') {
 				c |= '\x40';
 				tputc("^", 1);
