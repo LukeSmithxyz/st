@@ -1414,15 +1414,16 @@ void
 tscrollup(int orig, int n) {
 	int i;
 	Line temp;
+
 	LIMIT(n, 0, term.bot-orig+1);
 
 	tclearregion(0, orig, term.col-1, orig+n-1);
 	tsetdirt(orig+n, term.bot);
 
 	for(i = orig; i <= term.bot-n; i++) {
-		 temp = term.line[i];
-		 term.line[i] = term.line[i+n];
-		 term.line[i+n] = temp;
+		temp = term.line[i];
+		term.line[i] = term.line[i+n];
+		term.line[i+n] = temp;
 	}
 
 	selscroll(orig, -n);
