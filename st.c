@@ -1399,14 +1399,13 @@ tscrolldown(int orig, int n) {
 	LIMIT(n, 0, term.bot-orig+1);
 
 	tclearregion(0, term.bot-n+1, term.col-1, term.bot);
+	tsetdirt(orig, term.bot-n);
+	tsetdirt(orig+n, term.bot);
 
 	for(i = term.bot; i >= orig+n; i--) {
 		temp = term.line[i];
 		term.line[i] = term.line[i-n];
 		term.line[i-n] = temp;
-
-		term.dirty[i] = 1;
-		term.dirty[i-n] = 1;
 	}
 
 	selscroll(orig, n);
@@ -1419,14 +1418,13 @@ tscrollup(int orig, int n) {
 	LIMIT(n, 0, term.bot-orig+1);
 
 	tclearregion(0, orig, term.col-1, orig+n-1);
+	tsetdirt(orig, term.bot-n);
+	tsetdirt(orig+n, term.bot);
 
 	for(i = orig; i <= term.bot-n; i++) {
 		 temp = term.line[i];
 		 term.line[i] = term.line[i+n];
 		 term.line[i+n] = temp;
-
-		 term.dirty[i] = 1;
-		 term.dirty[i+n] = 1;
 	}
 
 	selscroll(orig, -n);
