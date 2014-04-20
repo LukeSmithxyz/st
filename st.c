@@ -75,6 +75,7 @@ char *argv0;
 #define IS_SET(flag) ((term.mode & (flag)) != 0)
 #define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_usec-t2.tv_usec)/1000)
 #define CEIL(x) (((x) != (int) (x)) ? (x) + 1 : (x))
+#define MODBIT(x, set, bit) ((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
 
 #define TRUECOLOR(r,g,b) (1 << 24 | (r) << 16 | (g) << 8 | (b))
 #define IS_TRUECOL(x)    (1 << 24 & (x))
@@ -1784,8 +1785,6 @@ tsetscroll(int t, int b) {
 	term.bot = b;
 }
 
-#define MODBIT(x, set, bit) ((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
-
 void
 tsetmode(bool priv, bool set, int *args, int narg) {
 	int *lim, mode;
@@ -2352,10 +2351,9 @@ tdeftran(char ascii) {
 
 void
 tselcs(void) {
-	if (term.trantbl[term.charset] == CS_GRAPHIC0)
-		term.c.attr.mode |= ATTR_GFX;
-	else
-		term.c.attr.mode &= ~ATTR_GFX;
+	MODBIT(term.c.attr.mode,
+	       term.trantbl[term.charset] == CS_GRAPHIC0,
+	       ATTR_GFX);
 }
 
 void
