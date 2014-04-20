@@ -65,7 +65,6 @@ char *argv0;
 #define REDRAW_TIMEOUT (80*1000) /* 80 ms */
 
 /* macros */
-#define SERRNO strerror(errno)
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
 #define MAX(a, b)  ((a) < (b) ? (b) : (a))
 #define LEN(a)     (sizeof(a) / sizeof(a[0]))
@@ -1181,7 +1180,7 @@ sigchld(int a) {
 	int stat = 0;
 
 	if(waitpid(pid, &stat, 0) < 0)
-		die("Waiting for pid %hd failed: %s\n", pid, SERRNO);
+		die("Waiting for pid %hd failed: %s\n", pid, strerror(errno));
 
 	if(WIFEXITED(stat)) {
 		exit(WEXITSTATUS(stat));
@@ -1197,7 +1196,7 @@ ttynew(void) {
 
 	/* seems to work fine on linux, openbsd and freebsd */
 	if(openpty(&m, &s, NULL, NULL, &w) < 0)
-		die("openpty failed: %s\n", SERRNO);
+		die("openpty failed: %s\n", strerror(errno));
 
 	switch(pid = fork()) {
 	case -1:
@@ -1209,7 +1208,7 @@ ttynew(void) {
 		dup2(s, STDOUT_FILENO);
 		dup2(s, STDERR_FILENO);
 		if(ioctl(s, TIOCSCTTY, NULL) < 0)
-			die("ioctl TIOCSCTTY failed: %s\n", SERRNO);
+			die("ioctl TIOCSCTTY failed: %s\n", strerror(errno));
 		close(s);
 		close(m);
 		execsh();
@@ -1252,7 +1251,7 @@ ttyread(void) {
 
 	/* append read bytes to unprocessed bytes */
 	if((ret = read(cmdfd, buf+buflen, LEN(buf)-buflen)) < 0)
-		die("Couldn't read from shell: %s\n", SERRNO);
+		die("Couldn't read from shell: %s\n", strerror(errno));
 
 	/* process every complete utf8 char */
 	buflen += ret;
@@ -1271,7 +1270,7 @@ ttyread(void) {
 void
 ttywrite(const char *s, size_t n) {
 	if(write(cmdfd, s, n) == -1)
-		die("write error on tty: %s\n", SERRNO);
+		die("write error on tty: %s\n", strerror(errno));
 }
 
 void
@@ -1290,7 +1289,7 @@ ttyresize(void) {
 	w.ws_xpixel = xw.tw;
 	w.ws_ypixel = xw.th;
 	if(ioctl(cmdfd, TIOCSWINSZ, &w) < 0)
-		fprintf(stderr, "Couldn't set window size: %s\n", SERRNO);
+		fprintf(stderr, "Couldn't set window size: %s\n", strerror(errno));
 }
 
 int
@@ -3750,7 +3749,7 @@ run(void) {
 		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, tv) < 0) {
 			if(errno == EINTR)
 				continue;
-			die("select failed: %s\n", SERRNO);
+			die("select failed: %s\n", strerror(errno));
 		}
 		if(FD_ISSET(cmdfd, &rfd)) {
 			ttyread();
