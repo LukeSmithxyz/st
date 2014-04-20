@@ -1398,9 +1398,8 @@ tscrolldown(int orig, int n) {
 
 	LIMIT(n, 0, term.bot-orig+1);
 
-	tclearregion(0, term.bot-n+1, term.col-1, term.bot);
 	tsetdirt(orig, term.bot-n);
-	tsetdirt(orig+n, term.bot);
+	tclearregion(0, term.bot-n+1, term.col-1, term.bot);
 
 	for(i = term.bot; i >= orig+n; i--) {
 		temp = term.line[i];
@@ -1418,7 +1417,6 @@ tscrollup(int orig, int n) {
 	LIMIT(n, 0, term.bot-orig+1);
 
 	tclearregion(0, orig, term.col-1, orig+n-1);
-	tsetdirt(orig, term.bot-n);
 	tsetdirt(orig+n, term.bot);
 
 	for(i = orig; i <= term.bot-n; i++) {
