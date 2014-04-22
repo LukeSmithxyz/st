@@ -3815,7 +3815,7 @@ run(void) {
 
 void
 usage(void) {
-	die("%s " VERSION " (c) 2010-2013 st engineers\n" \
+	die("%s " VERSION " (c) 2010-2014 st engineers\n" \
 	"usage: st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]" \
 	" [-t title] [-w windowid] [-e command ...]\n", argv0);
 }
