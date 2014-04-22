@@ -2308,9 +2308,9 @@ techo(char *buf, int len) {
 	for(; len > 0; buf++, len--) {
 		char c = *buf;
 
-		if(c < '\x20') { /* control code */
+		if(c < 0x20 || c == 0177) { /* control code */
 			if(c != '\n' && c != '\r' && c != '\t') {
-				c |= '\x40';
+				c ^= '\x40';
 				tputc("^", 1);
 			}
 			tputc(&c, 1);
