@@ -1628,18 +1628,14 @@ tinsertblank(int n) {
 
 void
 tinsertblankline(int n) {
-	if(term.c.y < term.top || term.c.y > term.bot)
-		return;
-
-	tscrolldown(term.c.y, n);
+	if(BETWEEN(term.c.y, term.top, term.bot))
+		tscrolldown(term.c.y, n);
 }
 
 void
 tdeleteline(int n) {
-	if(term.c.y < term.top || term.c.y > term.bot)
-		return;
-
-	tscrollup(term.c.y, n);
+	if(BETWEEN(term.c.y, term.top, term.bot))
+		tscrollup(term.c.y, n);
 }
 
 int32_t
