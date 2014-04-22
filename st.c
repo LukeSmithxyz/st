@@ -360,7 +360,7 @@ static void strparse(void);
 static void strreset(void);
 
 static int tattrset(int);
-static void tprinter(char *s, size_t len);
+static void tprinter(char *, size_t);
 static void tdumpsel(void);
 static void tdumpline(int);
 static void tdump(void);
@@ -371,7 +371,7 @@ static void tdeleteline(int);
 static void tinsertblank(int);
 static void tinsertblankline(int);
 static void tmoveto(int, int);
-static void tmoveato(int x, int y);
+static void tmoveato(int, int);
 static void tnew(int, int);
 static void tnewline(int);
 static void tputtab(bool);
@@ -380,7 +380,7 @@ static void treset(void);
 static int tresize(int, int);
 static void tscrollup(int, int);
 static void tscrolldown(int, int);
-static void tsetattr(int*, int);
+static void tsetattr(int *, int);
 static void tsetchar(char *, Glyph *, int, int);
 static void tsetscroll(int, int);
 static void tswapscreen(void);
@@ -413,9 +413,9 @@ static void xsettitle(char *);
 static void xresettitle(void);
 static void xsetpointermotion(int);
 static void xseturgency(int);
-static void xsetsel(char*);
+static void xsetsel(char *);
 static void xtermclear(int, int, int, int);
-static void xunloadfont(Font *f);
+static void xunloadfont(Font *);
 static void xunloadfonts(void);
 static void xresize(int, int);
 
@@ -453,7 +453,7 @@ static size_t utf8validate(long *, size_t);
 static ssize_t xwrite(int, char *, size_t);
 static void *xmalloc(size_t);
 static void *xrealloc(void *, size_t);
-static char *xstrdup(char *s);
+static char *xstrdup(char *);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
