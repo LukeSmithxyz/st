@@ -549,12 +549,10 @@ xrealloc(void *p, size_t len) {
 
 char *
 xstrdup(char *s) {
-	char *p = strdup(s);
-
-	if (!p)
+	if((s = strdup(s)) == NULL)
 		die("Out of memory\n");
 
-	return p;
+	return s;
 }
 
 size_t
