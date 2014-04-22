@@ -1544,8 +1544,7 @@ tsetchar(char *c, Glyph *attr, int x, int y) {
 	 * The table is proudly stolen from rxvt.
 	 */
 	if(attr->mode & ATTR_GFX) {
-		if(c[0] >= 0x41 && c[0] <= 0x7e
-				&& vt100_0[c[0] - 0x41]) {
+		if(BETWEEN(c[0], 0x41, 0x7e) && vt100_0[c[0] - 0x41]) {
 			c = vt100_0[c[0] - 0x41];
 		}
 	}
