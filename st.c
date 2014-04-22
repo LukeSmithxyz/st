@@ -298,13 +298,13 @@ typedef struct {
 
 typedef union {
 	int i;
-	unsigned int ui;
+	uint ui;
 	float f;
 	const void *v;
 } Arg;
 
 typedef struct {
-	unsigned int mod;
+	uint mod;
 	KeySym keysym;
 	void (*func)(const Arg *);
 	const Arg arg;
@@ -3076,7 +3076,7 @@ xinit(void) {
 
 	xw.netwmpid = XInternAtom(xw.dpy, "_NET_WM_PID", False);
 	XChangeProperty(xw.dpy, xw.win, xw.netwmpid, XA_CARDINAL, 32,
-			PropModeReplace, (unsigned char *)&thispid, 1);
+			PropModeReplace, (uchar *)&thispid, 1);
 
 	xresettitle();
 	XMapWindow(xw.dpy, xw.win);
