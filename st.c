@@ -2256,8 +2256,7 @@ printsel(const Arg *arg) {
 }
 
 void
-tdumpsel(void)
-{
+tdumpsel(void) {
 	char *ptr;
 
 	if((ptr = getsel())) {
