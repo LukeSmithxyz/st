@@ -1586,37 +1586,31 @@ tclearregion(int x1, int y1, int x2, int y2) {
 
 void
 tdeletechar(int n) {
-	int src = term.c.x + n;
-	int dst = term.c.x;
-	int size = term.col - src;
+	int dst, src, size;
 
-	term.dirty[term.c.y] = 1;
+	LIMIT(n, 0, term.col - term.c.x);
 
-	if(src >= term.col) {
-		tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
-		return;
-	}
+	dst = term.c.x;
+	src = term.c.x + n;
+	size = term.col - src;
 
 	memmove(&term.line[term.c.y][dst], &term.line[term.c.y][src],
-			size * sizeof(Glyph));
+	        size * sizeof(Glyph));
 	tclearregion(term.col-n, term.c.y, term.col-1, term.c.y);
 }
 
 void
 tinsertblank(int n) {
-	int src = term.c.x;
-	int dst = src + n;
-	int size = term.col - dst;
+	int dst, src, size;
 
-	term.dirty[term.c.y] = 1;
+	LIMIT(n, 0, term.col - term.c.x);
 
-	if(dst >= term.col) {
-		tclearregion(term.c.x, term.c.y, term.col-1, term.c.y);
-		return;
-	}
+	dst = term.c.x + n;
+	src = term.c.x;
+	size = term.col - dst;
 
 	memmove(&term.line[term.c.y][dst], &term.line[term.c.y][src],
-			size * sizeof(Glyph));
+	        size * sizeof(Glyph));
 	tclearregion(src, term.c.y, dst - 1, term.c.y);
 }
 
