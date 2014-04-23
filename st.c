@@ -2751,10 +2751,10 @@ int
 xsetcolorname(int x, const char *name) {
 	XRenderColor color = { .alpha = 0xffff };
 	Colour colour;
-	if (x < 0 || x > LEN(colorname))
+	if(!BETWEEN(x, 0, LEN(colorname)))
 		return -1;
 	if(!name) {
-		if(16 <= x && x < 16 + 216) {
+		if(BETWEEN(x, 16, 16 + 215)) {
 			int r = (x - 16) / 36, g = ((x - 16) % 36) / 6, b = (x - 16) % 6;
 			color.red = sixd_to_16bit(r);
 			color.green = sixd_to_16bit(g);
@@ -2763,7 +2763,7 @@ xsetcolorname(int x, const char *name) {
 				return 0; /* something went wrong */
 			dc.col[x] = colour;
 			return 1;
-		} else if (16 + 216 <= x && x < 256) {
+		} else if(BETWEEN(x, 16 + 216, 255)) {
 			color.red = color.green = color.blue = 0x0808 + 0x0a0a * (x - (16 + 216));
 			if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &colour))
 				return 0; /* something went wrong */
