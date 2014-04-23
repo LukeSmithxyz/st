@@ -3457,7 +3457,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 	bool ena_sel = sel.ob.x != -1;
 	long unicodep;
 
-	if(sel.alt ^ IS_SET(MODE_ALTSCREEN))
+	if(sel.alt != IS_SET(MODE_ALTSCREEN))
 		ena_sel = 0;
 
 	if(!(xw.state & WIN_VISIBLE))
