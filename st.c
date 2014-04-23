@@ -375,7 +375,7 @@ static void tmoveto(int, int);
 static void tmoveato(int, int);
 static void tnew(int, int);
 static void tnewline(int);
-static void tputtab(bool);
+static void tputtab(int);
 static void tputc(char *, int);
 static void treset(void);
 static int tresize(int, int);
@@ -1996,8 +1996,7 @@ csihandle(void) {
 		break;
 	case 'I': /* CHT -- Cursor Forward Tabulation <n> tab stops */
 		DEFAULT(csiescseq.arg[0], 1);
-		while(csiescseq.arg[0]--)
-			tputtab(1);
+		tputtab(csiescseq.arg[0]);
 		break;
 	case 'J': /* ED -- Clear screen */
 		selclear(NULL);
@@ -2065,8 +2064,7 @@ csihandle(void) {
 		break;
 	case 'Z': /* CBT -- Cursor Backward Tabulation <n> tab stops */
 		DEFAULT(csiescseq.arg[0], 1);
-		while(csiescseq.arg[0]--)
-			tputtab(0);
+		tputtab(-csiescseq.arg[0]);
 		break;
 	case 'd': /* VPA -- Move to <row> */
 		DEFAULT(csiescseq.arg[0], 1);
@@ -2281,19 +2279,17 @@ tdump(void) {
 }
 
 void
-tputtab(bool forward) {
+tputtab(int n) {
 	uint x = term.c.x;
 
-	if(forward) {
-		if(x == term.col)
-			return;
-		for(++x; x < term.col && !term.tabs[x]; ++x)
-			/* nothing */ ;
-	} else {
-		if(x == 0)
-			return;
-		for(--x; x > 0 && !term.tabs[x]; --x)
-			/* nothing */ ;
+	if(n > 0) {
+		while(x < term.col && n--)
+			for(++x; x < term.col && !term.tabs[x]; ++x)
+				/* nothing */ ;
+	} else if(n < 0) {
+		while(x > 0 && n++)
+			for(--x; x > 0 && !term.tabs[x]; --x)
+				/* nothing */ ;
 	}
 	tmoveto(x, term.c.y);
 }
