@@ -2674,7 +2674,9 @@ tresize(int col, int row) {
 		if(0 < col && minrow < row) {
 			tclearregion(0, minrow, col - 1, row - 1);
 		}
+		tcursor(CURSOR_SAVE);
 		tswapscreen();
+		tcursor(CURSOR_LOAD);
 	} while(orig != term.line);
 
 	return (slide > 0);
