@@ -2452,10 +2452,6 @@ tputc(char *c, int len) {
 				csiparse();
 				csihandle();
 			}
-		} else if(term.esc & ESC_STR_END) {
-			term.esc = 0;
-			if(ascii == '\\')
-				strhandle();
 		} else if(term.esc & ESC_ALTCHARSET) {
 			tdeftran(ascii);
 			tselcs();
@@ -2545,7 +2541,9 @@ tputc(char *c, int len) {
 				tcursor(CURSOR_LOAD);
 				term.esc = 0;
 				break;
-			case '\\': /* ST -- Stop */
+			case '\\': /* ST -- String Terminator */
+				if(term.esc & ESC_STR_END)
+					strhandle();
 				term.esc = 0;
 				break;
 			default:
