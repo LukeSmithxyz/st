@@ -70,6 +70,8 @@ char *argv0;
 #define LEN(a)     (sizeof(a) / sizeof(a)[0])
 #define DEFAULT(a, b)     (a) = (a) ? (a) : (b)
 #define BETWEEN(x, a, b)  ((a) <= (x) && (x) <= (b))
+#define ISCONTROLC0(c) (BETWEEN((uchar) (c), 0, 0x1f))
+#define ISCONTROLC1(c) (BETWEEN((uchar) (c), 0x80, 0x9f))
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) ((term.mode & (flag)) != 0)
@@ -390,6 +392,7 @@ static void tsetdirtattr(int);
 static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 static void techo(char *, int);
+static bool tcontrolcode(uchar );
 static int32_t tdefcolor(int *, int *, int);
 static void tselcs(void);
 static void tdeftran(char);
@@ -399,6 +402,7 @@ static void ttyread(void);
 static void ttyresize(void);
 static void ttysend(char *, size_t);
 static void ttywrite(const char *, size_t);
+static inline bool iscontrol(char);
 
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
@@ -2136,6 +2140,7 @@ strhandle(void) {
 	char *p = NULL;
 	int j, narg, par;
 
+	term.esc &= ~(ESC_STR_END|ESC_STR);
 	strparse();
 	narg = strescseq.narg;
 	par = atoi(strescseq.args[0]);
@@ -2295,13 +2300,22 @@ tputtab(int n) {
 	tmoveto(x, term.c.y);
 }
 
+static inline bool
+iscontrol(char c) {
+	return ISCONTROLC0(c) || ISCONTROLC1(c);
+}
+
 void
 techo(char *buf, int len) {
 	for(; len > 0; buf++, len--) {
 		char c = *buf;
 
-		if(BETWEEN(c, 0x00, 0x1f) || c == 0x7f) { /* control code */
-			if(c != '\n' && c != '\r' && c != '\t') {
+		if(iscontrol(c)) { /* control code */
+			if(c & 0x80) {
+				c &= 0x7f;
+				tputc("^", 1);
+				tputc("[", 1);
+			} else if(c != '\n' && c != '\r' && c != '\t') {
 				c ^= '\x40';
 				tputc("^", 1);
 			}
@@ -2340,58 +2354,135 @@ tselcs(void) {
 	       ATTR_GFX);
 }
 
+bool
+tcontrolcode(uchar ascii) {
+	static char question[UTF_SIZ] = "?";
+
+	switch(ascii) {
+	case '\t':   /* HT */
+		tputtab(1);
+		break;
+	case '\b':   /* BS */
+		tmoveto(term.c.x-1, term.c.y);
+		break;
+	case '\r':   /* CR */
+		tmoveto(0, term.c.y);
+		break;
+	case '\f':   /* LF */
+	case '\v':   /* VT */
+	case '\n':   /* LF */
+		/* go to first col if the mode is set */
+		tnewline(IS_SET(MODE_CRLF));
+		break;
+	case '\a':   /* BEL */
+		if(term.esc & ESC_STR_END) {
+			/* backwards compatibility to xterm */
+			strhandle();
+		} else {
+			if(!(xw.state & WIN_FOCUSED))
+				xseturgency(1);
+			if (bellvolume)
+				XBell(xw.dpy, bellvolume);
+		}
+		break;
+	case '\033': /* ESC */
+		csireset();
+		term.esc &= ~(ESC_CSI|ESC_ALTCHARSET|ESC_TEST);
+		term.esc |= ESC_START;
+		return 1;
+	case '\016': /* SO */
+		term.charset = 0;
+		tselcs();
+		break;
+	case '\017': /* SI */
+		term.charset = 1;
+		tselcs();
+		break;
+	case '\032': /* SUB */
+		tsetchar(question, &term.c.attr, term.c.x, term.c.y);
+	case '\030': /* CAN */
+		csireset();
+		break;
+	case '\005': /* ENQ (IGNORED) */
+	case '\000': /* NUL (IGNORED) */
+	case '\021': /* XON (IGNORED) */
+	case '\023': /* XOFF (IGNORED) */
+	case 0177:   /* DEL (IGNORED) */
+	case 0x84:   /* TODO: IND */
+	case 0x85:   /* TODO: NEL */
+	case 0x88:   /* TODO: HTS */
+	case 0x8d:   /* TODO: RI */
+	case 0x8e:   /* TODO: SS2 */
+	case 0x8f:   /* TODO: SS3 */
+	case 0x90:   /* TODO: DCS */
+	case 0x98:   /* TODO: SOS */
+	case 0x9a:   /* TODO: DECID */
+	case 0x9b:   /* TODO: CSI */
+	case 0x9c:   /* TODO: ST */
+	case 0x9d:   /* TODO: OSC */
+	case 0x9e:   /* TODO: PM */
+	case 0x9f:   /* TODO: APC */
+		break;
+	default:
+		return 0;
+	}
+	term.esc &= ~(ESC_STR_END|ESC_STR);
+	return 1;
+}
+
 void
 tputc(char *c, int len) {
-	uchar ascii = *c;
-	bool control = ascii < '\x20' || ascii == 0177;
+	uchar ascii;
+	bool control;
 	long unicodep;
 	int width;
 
 	if(len == 1) {
 		width = 1;
+		ascii = *c;
 	} else {
 		utf8decode(c, &unicodep, UTF_SIZ);
 		width = wcwidth(unicodep);
+		ascii = unicodep;
 	}
 
+	control = iscontrol(ascii) && width == 1;
 	if(IS_SET(MODE_PRINT))
 		tprinter(c, len);
 
 	/*
-	 * STR sequences must be checked before anything else
-	 * because it can use some control codes as part of the sequence.
+	 * STR sequence must be checked before anything else
+	 * because it uses all following characters until it
+	 * receives a ESC, a SUB, a ST or any other C1 control
+	 * character.
 	 */
 	if(term.esc & ESC_STR) {
-		switch(ascii) {
-		case '\033':
-			term.esc = ESC_START | ESC_STR_END;
-			break;
-		case '\a': /* backwards compatibility to xterm */
-			term.esc = 0;
-			strhandle();
-			break;
-		default:
-			if(strescseq.len + len < sizeof(strescseq.buf) - 1) {
-				memmove(&strescseq.buf[strescseq.len], c, len);
-				strescseq.len += len;
-			} else {
-			/*
-			 * Here is a bug in terminals. If the user never sends
-			 * some code to stop the str or esc command, then st
-			 * will stop responding. But this is better than
-			 * silently failing with unknown characters. At least
-			 * then users will report back.
-			 *
-			 * In the case users ever get fixed, here is the code:
-			 */
-			/*
-			 * term.esc = 0;
-			 * strhandle();
-			 */
-			}
-			break;
+		if(width == 1 &&
+		   (ascii == '\a' || ascii == 030 ||
+		    ascii == 032  || ascii == 033 ||
+		    ISCONTROLC1(ascii))) {
+			term.esc &= ~ESC_STR;
+			term.esc |= ESC_STR_END;
+		} else if(strescseq.len + len < sizeof(strescseq.buf) - 1) {
+			memmove(&strescseq.buf[strescseq.len], c, len);
+			strescseq.len += len;
+			return;
+		} else {
+		/*
+		 * Here is a bug in terminals. If the user never sends
+		 * some code to stop the str or esc command, then st
+		 * will stop responding. But this is better than
+		 * silently failing with unknown characters. At least
+		 * then users will report back.
+		 *
+		 * In the case users ever get fixed, here is the code:
+		 */
+		/*
+		 * term.esc = 0;
+		 * strhandle();
+		 */
+			return;
 		}
-		return;
 	}
 
 	/*
@@ -2400,51 +2491,8 @@ tputc(char *c, int len) {
 	 * they must not cause conflicts with sequences.
 	 */
 	if(control) {
-		switch(ascii) {
-		case '\t':   /* HT */
-			tputtab(1);
+		if (tcontrolcode(ascii))
 			return;
-		case '\b':   /* BS */
-			tmoveto(term.c.x-1, term.c.y);
-			return;
-		case '\r':   /* CR */
-			tmoveto(0, term.c.y);
-			return;
-		case '\f':   /* LF */
-		case '\v':   /* VT */
-		case '\n':   /* LF */
-			/* go to first col if the mode is set */
-			tnewline(IS_SET(MODE_CRLF));
-			return;
-		case '\a':   /* BEL */
-			if(!(xw.state & WIN_FOCUSED))
-				xseturgency(1);
-			if (bellvolume)
-				XBell(xw.dpy, bellvolume);
-			return;
-		case '\033': /* ESC */
-			csireset();
-			term.esc = ESC_START;
-			return;
-		case '\016': /* SO */
-			term.charset = 0;
-			tselcs();
-			return;
-		case '\017': /* SI */
-			term.charset = 1;
-			tselcs();
-			return;
-		case '\032': /* SUB */
-		case '\030': /* CAN */
-			csireset();
-			return;
-		case '\005': /* ENQ (IGNORED) */
-		case '\000': /* NUL (IGNORED) */
-		case '\021': /* XON (IGNORED) */
-		case '\023': /* XOFF (IGNORED) */
-		case 0177:   /* DEL (IGNORED) */
-			return;
-		}
 	} else if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
 			csiescseq.buf[csiescseq.len++] = ascii;
