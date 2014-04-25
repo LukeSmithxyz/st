@@ -2503,10 +2503,10 @@ tputc(char *c, int len) {
 				csiparse();
 				csihandle();
 			}
+			return;
 		} else if(term.esc & ESC_ALTCHARSET) {
 			tdeftran(ascii);
 			tselcs();
-			term.esc = 0;
 		} else if(term.esc & ESC_TEST) {
 			if(ascii == '8') { /* DEC screen alignment test. */
 				char E[UTF_SIZ] = "E";
@@ -2517,15 +2517,14 @@ tputc(char *c, int len) {
 						tsetchar(E, &term.c.attr, x, y);
 				}
 			}
-			term.esc = 0;
 		} else {
 			switch(ascii) {
 			case '[':
 				term.esc |= ESC_CSI;
-				break;
+				return;
 			case '#':
 				term.esc |= ESC_TEST;
-				break;
+				return;
 			case 'P': /* DCS -- Device Control String */
 			case '_': /* APC -- Application Program Command */
 			case '^': /* PM -- Privacy Message */
@@ -2534,29 +2533,26 @@ tputc(char *c, int len) {
 				strreset();
 				strescseq.type = ascii;
 				term.esc |= ESC_STR;
-				break;
+				return;
 			case '(': /* set primary charset G0 */
 			case ')': /* set secondary charset G1 */
 			case '*': /* set tertiary charset G2 */
 			case '+': /* set quaternary charset G3 */
 				term.icharset = ascii - '(';
 				term.esc |= ESC_ALTCHARSET;
-				break;
+				return;
 			case 'D': /* IND -- Linefeed */
 				if(term.c.y == term.bot) {
 					tscrollup(term.top, 1);
 				} else {
 					tmoveto(term.c.x, term.c.y+1);
 				}
-				term.esc = 0;
 				break;
 			case 'E': /* NEL -- Next line */
 				tnewline(1); /* always go to first col */
-				term.esc = 0;
 				break;
 			case 'H': /* HTS -- Horizontal tab stop */
 				term.tabs[term.c.x] = 1;
-				term.esc = 0;
 				break;
 			case 'M': /* RI -- Reverse index */
 				if(term.c.y == term.top) {
@@ -2564,46 +2560,38 @@ tputc(char *c, int len) {
 				} else {
 					tmoveto(term.c.x, term.c.y-1);
 				}
-				term.esc = 0;
 				break;
 			case 'Z': /* DECID -- Identify Terminal */
 				ttywrite(VT102ID, sizeof(VT102ID) - 1);
-				term.esc = 0;
 				break;
 			case 'c': /* RIS -- Reset to inital state */
 				treset();
-				term.esc = 0;
 				xresettitle();
 				xloadcols();
 				break;
 			case '=': /* DECPAM -- Application keypad */
 				term.mode |= MODE_APPKEYPAD;
-				term.esc = 0;
 				break;
 			case '>': /* DECPNM -- Normal keypad */
 				term.mode &= ~MODE_APPKEYPAD;
-				term.esc = 0;
 				break;
 			case '7': /* DECSC -- Save Cursor */
 				tcursor(CURSOR_SAVE);
-				term.esc = 0;
 				break;
 			case '8': /* DECRC -- Restore Cursor */
 				tcursor(CURSOR_LOAD);
-				term.esc = 0;
 				break;
 			case '\\': /* ST -- String Terminator */
 				if(term.esc & ESC_STR_END)
 					strhandle();
-				term.esc = 0;
 				break;
 			default:
 				fprintf(stderr, "erresc: unknown sequence ESC 0x%02X '%c'\n",
 					(uchar) ascii, isprint(ascii)? ascii:'.');
-				term.esc = 0;
 				break;
 			}
 		}
+		term.esc = 0;
 		/*
 		 * All characters which form part of a sequence are not
 		 * printed
