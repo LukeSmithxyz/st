@@ -1837,7 +1837,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				if (!allowaltscreen)
 					break;
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
-				/* FALLTHRU */
+				/* FALLTHROUGH */
 			case 47: /* swap screen */
 			case 1047:
 				if (!allowaltscreen)
@@ -1851,7 +1851,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 					tswapscreen();
 				if(*args != 1049)
 					break;
-				/* FALLTRU */
+				/* FALLTHROUGH */
 			case 1048:
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
 				break;
@@ -2146,7 +2146,7 @@ strhandle(void) {
 			if(narg < 3)
 				break;
 			p = strescseq.args[2];
-			/* fall through */
+			/* FALLTHROUGH */
 		case 104: /* color reset, here p = NULL */
 			j = (narg > 1) ? atoi(strescseq.args[1]) : -1;
 			if (!xsetcolorname(j, p)) {
