@@ -149,7 +149,7 @@ enum charset {
 enum escape_state {
 	ESC_START      = 1,
 	ESC_CSI        = 2,
-	ESC_STR        = 4,  /* DSC, OSC, PM, APC */
+	ESC_STR        = 4,  /* DCS, OSC, PM, APC */
 	ESC_ALTCHARSET = 8,
 	ESC_STR_END    = 16, /* a final string was encountered */
 	ESC_TEST       = 32, /* Enter in test mode */
@@ -2169,7 +2169,7 @@ strhandle(void) {
 	case 'k': /* old title set compatibility */
 		xsettitle(strescseq.args[0]);
 		return;
-	case 'P': /* DSC -- Device Control String */
+	case 'P': /* DCS -- Device Control String */
 	case '_': /* APC -- Application Program Command */
 	case '^': /* PM -- Privacy Message */
 		return;
