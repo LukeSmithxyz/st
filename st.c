@@ -1781,7 +1781,6 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 	for(lim = args + narg; args < lim; ++args) {
 		if(priv) {
 			switch(*args) {
-				break;
 			case 1: /* DECCKM -- Cursor key */
 				MODBIT(term.mode, set, MODE_APPCURSOR);
 				break;
