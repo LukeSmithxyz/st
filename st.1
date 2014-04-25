@@ -10,6 +10,7 @@ st \- simple terminal
 .IR font ]
 .RB [ \-g
 .IR geometry ]
+.RB [ \-i ]
 .RB [ \-o
 .IR file ]
 .RB [ \-t 
@@ -36,10 +37,13 @@ defines the
 to use when st is run.
 .TP
 .BI \-g " geometry"
-defines the X11 geometry string, which will fixate the height and width of st. 
-The form is [=][<width>{xX}<height>][{+-}<xoffset>{+-}<yoffset>]. See
+defines the X11 geometry string.
+The form is [=][<cols>{xX}<rows>][{+-}<xoffset>{+-}<yoffset>]. See
 .BR XParseGeometry (3)
 for further details.
+.TP
+.B \-f
+will fixate the position given with the -g option.
 .TP
 .BI \-o " file"
 writes all the I/O to

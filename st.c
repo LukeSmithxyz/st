@@ -250,7 +250,8 @@ typedef struct {
 	XSetWindowAttributes attrs;
 	int scr;
 	bool isfixed; /* is fixed geometry? */
-	int fx, fy, fw, fh; /* fixed geometry */
+	int l, t; /* left and top offset */
+	int gm; /* geometry mask */
 	int tw, th; /* tty width and height */
 	int w, h; /* window width and height */
 	int ch; /* char height */
@@ -406,6 +407,7 @@ static void xdrawcursor(void);
 static void xinit(void);
 static void xloadcols(void);
 static int xsetcolorname(int, const char *);
+static int xgeommasktogravity(int);
 static int xloadfont(Font *, FcPattern *);
 static void xloadfonts(char *, double);
 static int xloadfontset(Font *);
@@ -2804,23 +2806,42 @@ xhints(void) {
 	XSizeHints *sizeh = NULL;
 
 	sizeh = XAllocSizeHints();
-	if(xw.isfixed == False) {
-		sizeh->flags = PSize | PResizeInc | PBaseSize;
-		sizeh->height = xw.h;
-		sizeh->width = xw.w;
-		sizeh->height_inc = xw.ch;
-		sizeh->width_inc = xw.cw;
-		sizeh->base_height = 2 * borderpx;
-		sizeh->base_width = 2 * borderpx;
-	} else {
-		sizeh->flags = PMaxSize | PMinSize;
-		sizeh->min_width = sizeh->max_width = xw.fw;
-		sizeh->min_height = sizeh->max_height = xw.fh;
+
+	sizeh->flags = PSize | PResizeInc | PBaseSize;
+	sizeh->height = xw.h;
+	sizeh->width = xw.w;
+	sizeh->height_inc = xw.ch;
+	sizeh->width_inc = xw.cw;
+	sizeh->base_height = 2 * borderpx;
+	sizeh->base_width = 2 * borderpx;
+	if(xw.isfixed == True) {
+		sizeh->flags |= PMaxSize | PMinSize;
+		sizeh->min_width = sizeh->max_width = xw.w;
+		sizeh->min_height = sizeh->max_height = xw.h;
+	}
+	if(xw.gm & (XValue|YValue)) {
+		sizeh->flags |= USPosition | PWinGravity;
+		sizeh->x = xw.l;
+		sizeh->y = xw.t;
+		sizeh->win_gravity = xgeommasktogravity(xw.gm);
 	}
 
 	XSetWMProperties(xw.dpy, xw.win, NULL, NULL, NULL, 0, sizeh, &wm,
 			&class);
 	XFree(sizeh);
+}
+
+int
+xgeommasktogravity(int mask) {
+	switch(mask & (XNegative|YNegative)) {
+	case 0:
+		return NorthWestGravity;
+	case XNegative:
+		return NorthEastGravity;
+	case YNegative:
+		return SouthWestGravity;
+	}
+	return SouthEastGravity;
 }
 
 int
@@ -2968,7 +2989,6 @@ xinit(void) {
 	XGCValues gcvalues;
 	Cursor cursor;
 	Window parent;
-	int sw, sh;
 	pid_t thispid = getpid();
 
 	if(!(xw.dpy = XOpenDisplay(NULL)))
@@ -2988,23 +3008,12 @@ xinit(void) {
 	xloadcols();
 
 	/* adjust fixed window geometry */
-	if(xw.isfixed) {
-		sw = DisplayWidth(xw.dpy, xw.scr);
-		sh = DisplayHeight(xw.dpy, xw.scr);
-		if(xw.fx < 0)
-			xw.fx = sw + xw.fx - xw.fw - 1;
-		if(xw.fy < 0)
-			xw.fy = sh + xw.fy - xw.fh - 1;
-
-		xw.h = xw.fh;
-		xw.w = xw.fw;
-	} else {
-		/* window - default size */
-		xw.h = 2 * borderpx + term.row * xw.ch;
-		xw.w = 2 * borderpx + term.col * xw.cw;
-		xw.fx = 0;
-		xw.fy = 0;
-	}
+	xw.w = 2 * borderpx + term.col * xw.cw;
+	xw.h = 2 * borderpx + term.row * xw.ch;
+	if(xw.gm & XNegative)
+		xw.l += DisplayWidth(xw.dpy, xw.scr) - xw.w - 2;
+	if(xw.gm & YNegative)
+		xw.t += DisplayWidth(xw.dpy, xw.scr) - xw.h - 2;
 
 	/* Events */
 	xw.attrs.background_pixel = dc.col[defaultbg].pixel;
@@ -3017,7 +3026,7 @@ xinit(void) {
 
 	parent = opt_embed ? strtol(opt_embed, NULL, 0) : \
 			XRootWindow(xw.dpy, xw.scr);
-	xw.win = XCreateWindow(xw.dpy, parent, xw.fx, xw.fy,
+	xw.win = XCreateWindow(xw.dpy, parent, xw.l, xw.t,
 			xw.w, xw.h, 0, XDefaultDepth(xw.dpy, xw.scr), InputOutput,
 			xw.vis, CWBackPixel | CWBorderPixel | CWBitGravity
 			| CWEventMask | CWColormap, &xw.attrs);
@@ -3714,10 +3723,7 @@ run(void) {
 	}
 
 	ttynew();
-	if(!xw.isfixed)
-		cresize(w, h);
-	else
-		cresize(xw.fw, xw.fh);
+	cresize(w, h);
 
 	gettimeofday(&last, NULL);
 	lastblink = last;
@@ -3807,11 +3813,10 @@ usage(void) {
 
 int
 main(int argc, char *argv[]) {
-	int bitm, xr, yr;
-	uint wr, hr;
 	char *titles;
+	uint cols = 80, rows = 24;
 
-	xw.fw = xw.fh = xw.fx = xw.fy = 0;
+	xw.l = xw.t = 0;
 	xw.isfixed = False;
 
 	ARGBEGIN {
@@ -3835,22 +3840,11 @@ main(int argc, char *argv[]) {
 		opt_font = EARGF(usage());
 		break;
 	case 'g':
-		bitm = XParseGeometry(EARGF(usage()), &xr, &yr, &wr, &hr);
-		if(bitm & XValue)
-			xw.fx = xr;
-		if(bitm & YValue)
-			xw.fy = yr;
-		if(bitm & WidthValue)
-			xw.fw = (int)wr;
-		if(bitm & HeightValue)
-			xw.fh = (int)hr;
-		if(bitm & XNegative && xw.fx == 0)
-			xw.fx = -1;
-		if(bitm & YNegative && xw.fy == 0)
-			xw.fy = -1;
-
-		if(xw.fh != 0 && xw.fw != 0)
-			xw.isfixed = True;
+		xw.gm = XParseGeometry(EARGF(usage()),
+				&xw.l, &xw.t, &cols, &rows);
+		break;
+	case 'i':
+		xw.isfixed = True;
 		break;
 	case 'o':
 		opt_io = EARGF(usage());
@@ -3869,7 +3863,7 @@ main(int argc, char *argv[]) {
 run:
 	setlocale(LC_CTYPE, "");
 	XSetLocaleModifiers("");
-	tnew(80, 24);
+	tnew(cols? cols : 1, rows? rows : 1);
 	xinit();
 	selinit();
 	run();
