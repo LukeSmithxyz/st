@@ -452,7 +452,7 @@ static char utf8encodebyte(long, size_t);
 static size_t utf8len(char *);
 static size_t utf8validate(long *, size_t);
 
-static ssize_t xwrite(int, char *, size_t);
+static ssize_t xwrite(int, const char *, size_t);
 static void *xmalloc(size_t);
 static void *xrealloc(void *, size_t);
 static char *xstrdup(char *);
@@ -518,7 +518,7 @@ static Fontcache frc[16];
 static int frclen = 0;
 
 ssize_t
-xwrite(int fd, char *s, size_t len) {
+xwrite(int fd, const char *s, size_t len) {
 	size_t aux = len;
 
 	while(len > 0) {
@@ -1270,7 +1270,7 @@ ttyread(void) {
 
 void
 ttywrite(const char *s, size_t n) {
-	if(write(cmdfd, s, n) == -1)
+	if(xwrite(cmdfd, s, n) == -1)
 		die("write error on tty: %s\n", strerror(errno));
 }
 
