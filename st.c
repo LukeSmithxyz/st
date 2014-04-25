@@ -992,7 +992,7 @@ selnotify(XEvent *e) {
 		}
 
 		/*
-		 * As seen in selcopy:
+		 * As seen in getsel:
 		 * Line endings are inconsistent in the terminal and GUI world
 		 * copy and pasting. When receiving some selection data,
 		 * replace all '\n' with '\r'.
