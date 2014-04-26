@@ -2087,8 +2087,8 @@ csihandle(void) {
 			len = snprintf(buf, sizeof(buf),"\033[%i;%iR",
 					term.c.y+1, term.c.x+1);
 			ttywrite(buf, len);
-			break;
 		}
+		break;
 	case 'r': /* DECSTBM -- Set Scrolling Region */
 		if(csiescseq.priv) {
 			goto unknown;
