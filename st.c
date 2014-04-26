@@ -394,6 +394,7 @@ static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 static void techo(char *, int);
 static bool tcontrolcode(uchar );
+static void tdectest(char );
 static int32_t tdefcolor(int *, int *, int);
 static void tselcs(void);
 static void tdeftran(char);
@@ -2426,6 +2427,19 @@ tcontrolcode(uchar ascii) {
 }
 
 void
+tdectest(char c) {
+	static char E[UTF_SIZ] = "E";
+	int x, y;
+
+	if(c == '8') { /* DEC screen alignment test. */
+		for(x = 0; x < term.col; ++x) {
+			for(y = 0; y < term.row; ++y)
+				tsetchar(E, &term.c.attr, x, y);
+		}
+	}
+}
+
+void
 tputc(char *c, int len) {
 	uchar ascii;
 	bool control;
@@ -2504,15 +2518,7 @@ tputc(char *c, int len) {
 			tdeftran(ascii);
 			tselcs();
 		} else if(term.esc & ESC_TEST) {
-			if(ascii == '8') { /* DEC screen alignment test. */
-				char E[UTF_SIZ] = "E";
-				int x, y;
-
-				for(x = 0; x < term.col; ++x) {
-					for(y = 0; y < term.row; ++y)
-						tsetchar(E, &term.c.attr, x, y);
-				}
-			}
+			tdectest(ascii);
 		} else {
 			switch(ascii) {
 			case '[':
