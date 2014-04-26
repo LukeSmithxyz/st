@@ -1228,6 +1228,7 @@ ttynew(void) {
 					opt_io, strerror(errno));
 			}
 		}
+		break;
 	}
 }
 
@@ -1673,6 +1674,7 @@ tdefcolor(int *attr, int *npar, int l) {
 	default:
 		fprintf(stderr,
 		        "erresc(38): gfx attr %d unknown\n", attr[*npar]);
+		break;
 	}
 
 	return idx;
@@ -2387,6 +2389,7 @@ tputc(char *c, int len) {
 			 * strhandle();
 			 */
 			}
+			break;
 		}
 		return;
 	}
@@ -2550,6 +2553,7 @@ tputc(char *c, int len) {
 				fprintf(stderr, "erresc: unknown sequence ESC 0x%02X '%c'\n",
 					(uchar) ascii, isprint(ascii)? ascii:'.');
 				term.esc = 0;
+				break;
 			}
 		}
 		/*
