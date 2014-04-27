@@ -399,7 +399,6 @@ static int32_t tdefcolor(int *, int *, int);
 static void tselcs(void);
 static void tdeftran(char);
 static inline bool match(uint, uint);
-static void dump(char c);
 static void ttynew(void);
 static void ttyread(void);
 static void ttyresize(void);
@@ -1240,15 +1239,6 @@ ttynew(void) {
 		}
 		break;
 	}
-}
-
-void
-dump(char c) {
-	static int col;
-
-	fprintf(stderr, " %02x '%c' ", c, isprint(c)?c:'.');
-	if(++col % 10 == 0)
-		fprintf(stderr, "\n");
 }
 
 void
