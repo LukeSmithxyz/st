@@ -2993,13 +2993,9 @@ xunloadfont(Font *f) {
 
 void
 xunloadfonts(void) {
-	int i;
-
 	/* Free the loaded fonts in the font cache.  */
-	for(i = 0; i < frclen; i++) {
-		XftFontClose(xw.dpy, frc[i].font);
-	}
-	frclen = 0;
+	while(frclen > 0)
+		XftFontClose(xw.dpy, frc[--frclen].font);
 
 	xunloadfont(&dc.font);
 	xunloadfont(&dc.bfont);
