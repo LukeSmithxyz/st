@@ -10,8 +10,8 @@ static int borderpx = 2;
 static char shell[] = "/bin/sh";
 
 /* Kerning / character bounding-box mutlipliers */
-float cwscale = 1.0;
-float chscale = 1.0;
+static float cwscale = 1.0;
+static float chscale = 1.0;
 
 /*
  * word delimiter string
