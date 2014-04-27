@@ -3491,11 +3491,8 @@ drawregion(int x1, int y1, int x2, int y2) {
 	int ic, ib, x, y, ox, sl;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
-	bool ena_sel = sel.ob.x != -1;
+	bool ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
 	long unicodep;
-
-	if(sel.alt != IS_SET(MODE_ALTSCREEN))
-		ena_sel = 0;
 
 	if(!(xw.state & WIN_VISIBLE))
 		return;
