@@ -2445,6 +2445,7 @@ tputc(char *c, int len) {
 	bool control;
 	long unicodep;
 	int width;
+	Glyph *gp;
 
 	if(len == 1) {
 		width = 1;
@@ -2607,16 +2608,15 @@ tputc(char *c, int len) {
 		return;
 	if(sel.ob.x != -1 && BETWEEN(term.c.y, sel.ob.y, sel.oe.y))
 		selclear(NULL);
+
+	gp = &term.line[term.c.y][term.c.x];
 	if(IS_SET(MODE_WRAP) && (term.c.state & CURSOR_WRAPNEXT)) {
-		term.line[term.c.y][term.c.x].mode |= ATTR_WRAP;
+		gp->mode |= ATTR_WRAP;
 		tnewline(1);
 	}
 
-	if(IS_SET(MODE_INSERT) && term.c.x+1 < term.col) {
-		memmove(&term.line[term.c.y][term.c.x+1],
-			&term.line[term.c.y][term.c.x],
-			(term.col - term.c.x - 1) * sizeof(Glyph));
-	}
+	if(IS_SET(MODE_INSERT) && term.c.x+1 < term.col)
+		memmove(gp+1, gp, (term.col - term.c.x - 1) * sizeof(Glyph));
 
 	if(term.c.x+width > term.col)
 		tnewline(1);
@@ -2624,10 +2624,10 @@ tputc(char *c, int len) {
 	tsetchar(c, &term.c.attr, term.c.x, term.c.y);
 
 	if(width == 2) {
-		term.line[term.c.y][term.c.x].mode |= ATTR_WIDE;
+		gp->mode |= ATTR_WIDE;
 		if(term.c.x+1 < term.col) {
-			term.line[term.c.y][term.c.x+1].c[0] = '\0';
-			term.line[term.c.y][term.c.x+1].mode = ATTR_WDUMMY;
+			gp[1].c[0] = '\0';
+			gp[1].mode = ATTR_WDUMMY;
 		}
 	}
 	if(term.c.x+width < term.col) {
