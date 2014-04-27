@@ -3570,7 +3570,7 @@ void
 xseturgency(int add) {
 	XWMHints *h = XGetWMHints(xw.dpy, xw.win);
 
-	h->flags = add ? (h->flags | XUrgencyHint) : (h->flags & ~XUrgencyHint);
+	MODBIT(h->flags, add, XUrgencyHint);
 	XSetWMHints(xw.dpy, xw.win, h);
 	XFree(h);
 }
