@@ -922,60 +922,59 @@ getsel(void) {
 	int x, y, bufsize, size, i, ex;
 	Glyph *gp, *last;
 
-	if(sel.ob.x == -1) {
-		str = NULL;
-	} else {
-		bufsize = (term.col+1) * (sel.ne.y-sel.nb.y+1) * UTF_SIZ;
-		ptr = str = xmalloc(bufsize);
+	if(sel.ob.x == -1)
+		return NULL;
 
-		/* append every set & selected glyph to the selection */
-		for(y = sel.nb.y; y < sel.ne.y + 1; y++) {
-			gp = &term.line[y][0];
-			last = &gp[term.col-1];
+	bufsize = (term.col+1) * (sel.ne.y-sel.nb.y+1) * UTF_SIZ;
+	ptr = str = xmalloc(bufsize);
 
-			while(last >= gp && !(selected(last - gp, y) &&
-			                      strcmp(last->c, " ") != 0)) {
-				--last;
-			}
+	/* append every set & selected glyph to the selection */
+	for(y = sel.nb.y; y < sel.ne.y + 1; y++) {
+		gp = &term.line[y][0];
+		last = &gp[term.col-1];
 
-			for(x = 0; gp <= last; x++, ++gp) {
-				if(!selected(x, y) || (gp->mode & ATTR_WDUMMY))
-					continue;
-
-				size = utf8len(gp->c);
-				memcpy(ptr, gp->c, size);
-				ptr += size;
-			}
-
-			/*
-			 * Copy and pasting of line endings is inconsistent
-			 * in the inconsistent terminal and GUI world.
-			 * The best solution seems like to produce '\n' when
-			 * something is copied from st and convert '\n' to
-			 * '\r', when something to be pasted is received by
-			 * st.
-			 * FIXME: Fix the computer world.
-			 */
-			if(y < sel.ne.y && x > 0 && !((gp-1)->mode & ATTR_WRAP))
-				*ptr++ = '\n';
-
-			/*
-			 * If the last selected line expands in the selection
-			 * after the visible text '\n' is appended.
-			 */
-			if(y == sel.ne.y) {
-				i = term.col;
-				while(--i > 0 && term.line[y][i].c[0] == ' ')
-					/* nothing */;
-				ex = sel.ne.x;
-				if(sel.nb.y == sel.ne.y && sel.ne.x < sel.nb.x)
-					ex = sel.nb.x;
-				if(i < ex)
-					*ptr++ = '\n';
-			}
+		while(last >= gp && !(selected(last - gp, y) &&
+				      strcmp(last->c, " ") != 0)) {
+			--last;
 		}
-		*ptr = 0;
+
+		for(x = 0; gp <= last; x++, ++gp) {
+			if(!selected(x, y) || (gp->mode & ATTR_WDUMMY))
+				continue;
+
+			size = utf8len(gp->c);
+			memcpy(ptr, gp->c, size);
+			ptr += size;
+		}
+
+		/*
+		 * Copy and pasting of line endings is inconsistent
+		 * in the inconsistent terminal and GUI world.
+		 * The best solution seems like to produce '\n' when
+		 * something is copied from st and convert '\n' to
+		 * '\r', when something to be pasted is received by
+		 * st.
+		 * FIXME: Fix the computer world.
+		 */
+		if(y < sel.ne.y && x > 0 && !((gp-1)->mode & ATTR_WRAP))
+			*ptr++ = '\n';
+
+		/*
+		 * If the last selected line expands in the selection
+		 * after the visible text '\n' is appended.
+		 */
+		if(y == sel.ne.y) {
+			i = term.col;
+			while(--i > 0 && term.line[y][i].c[0] == ' ')
+				/* nothing */;
+			ex = sel.ne.x;
+			if(sel.nb.y == sel.ne.y && sel.ne.x < sel.nb.x)
+				ex = sel.nb.x;
+			if(i < ex)
+				*ptr++ = '\n';
+		}
 	}
+	*ptr = 0;
 	return str;
 }
 
