@@ -382,7 +382,7 @@ static void tnewline(int);
 static void tputtab(int);
 static void tputc(char *, int);
 static void treset(void);
-static int tresize(int, int);
+static void tresize(int, int);
 static void tscrollup(int, int);
 static void tscrolldown(int, int);
 static void tsetattr(int *, int);
@@ -2656,7 +2656,7 @@ tputc(char *c, int len) {
 	}
 }
 
-int
+void
 tresize(int col, int row) {
 	int i;
 	int minrow = MIN(row, term.row);
@@ -2666,8 +2666,11 @@ tresize(int col, int row) {
 	Line *orig;
 	TCursor c;
 
-	if(col < 1 || row < 1)
-		return 0;
+	if(col < 1 || row < 1) {
+		fprintf(stderr,
+		        "tresize: error resizing to %dx%d\n", col, row);
+		return;
+	}
 
 	/* free unneeded rows */
 	i = 0;
@@ -2738,8 +2741,6 @@ tresize(int col, int row) {
 		tcursor(CURSOR_LOAD);
 	} while(orig != term.line);
 	term.c = c;
-
-	return (slide > 0);
 }
 
 void
