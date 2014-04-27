@@ -674,18 +674,13 @@ selsort(void) {
 
 static inline bool
 selected(int x, int y) {
-	if(sel.ne.y == y && sel.nb.y == y)
-		return BETWEEN(x, sel.nb.x, sel.ne.x);
+	if(sel.type == SEL_RECTANGULAR)
+		return BETWEEN(y, sel.nb.y, sel.ne.y)
+		    && BETWEEN(x, sel.nb.x, sel.ne.x);
 
-	if(sel.type == SEL_RECTANGULAR) {
-		return ((sel.nb.y <= y && y <= sel.ne.y)
-			&& (sel.nb.x <= x && x <= sel.ne.x));
-	}
-
-	return ((sel.nb.y < y && y < sel.ne.y)
-		|| (y == sel.ne.y && x <= sel.ne.x))
-		|| (y == sel.nb.y && x >= sel.nb.x
-			&& (x <= sel.ne.x || sel.nb.y != sel.ne.y));
+	return BETWEEN(y, sel.nb.y, sel.ne.y)
+	    && (y != sel.nb.y || x >= sel.nb.x)
+	    && (y != sel.ne.y || x <= sel.ne.x);
 }
 
 void
