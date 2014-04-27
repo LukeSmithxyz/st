@@ -399,6 +399,7 @@ static int32_t tdefcolor(int *, int *, int);
 static void tselcs(void);
 static void tdeftran(char);
 static inline bool match(uint, uint);
+static void dump(char c);
 static void ttynew(void);
 static void ttyread(void);
 static void ttyresize(void);
@@ -449,6 +450,8 @@ static char *getsel(void);
 static void selcopy(void);
 static void selscroll(int, int);
 static void selsnap(int, int *, int *, int);
+static void getbuttoninfo(XEvent *);
+static void mousereport(XEvent *);
 
 static size_t utf8decode(char *, long *, size_t);
 static long utf8decodebyte(char, size_t *);
@@ -461,6 +464,8 @@ static ssize_t xwrite(int, const char *, size_t);
 static void *xmalloc(size_t);
 static void *xrealloc(void *, size_t);
 static char *xstrdup(char *);
+
+static void usage(void);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
