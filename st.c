@@ -70,8 +70,9 @@ char *argv0;
 #define LEN(a)     (sizeof(a) / sizeof(a)[0])
 #define DEFAULT(a, b)     (a) = (a) ? (a) : (b)
 #define BETWEEN(x, a, b)  ((a) <= (x) && (x) <= (b))
-#define ISCONTROLC0(c) (BETWEEN((uchar) (c), 0, 0x1f))
-#define ISCONTROLC1(c) (BETWEEN((uchar) (c), 0x80, 0x9f))
+#define ISCONTROLC0(c) (BETWEEN(c, 0, 0x1f))
+#define ISCONTROLC1(c) (BETWEEN(c, 0x80, 0x9f))
+#define ISCONTROL(c) (ISCONTROLC0(c) || ISCONTROLC1(c))
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) ((term.mode & (flag)) != 0)
@@ -402,7 +403,6 @@ static void ttyread(void);
 static void ttyresize(void);
 static void ttysend(char *, size_t);
 static void ttywrite(const char *, size_t);
-static inline bool iscontrol(char);
 
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
@@ -2300,17 +2300,12 @@ tputtab(int n) {
 	tmoveto(x, term.c.y);
 }
 
-static inline bool
-iscontrol(char c) {
-	return ISCONTROLC0(c) || ISCONTROLC1(c);
-}
-
 void
 techo(char *buf, int len) {
 	for(; len > 0; buf++, len--) {
 		char c = *buf;
 
-		if(iscontrol(c)) { /* control code */
+		if(ISCONTROL(c)) { /* control code */
 			if(c & 0x80) {
 				c &= 0x7f;
 				tputc("^", 1);
@@ -2439,16 +2434,17 @@ tputc(char *c, int len) {
 
 	if(len == 1) {
 		width = 1;
-		ascii = *c;
+		unicodep = ascii = *c;
 	} else {
 		utf8decode(c, &unicodep, UTF_SIZ);
 		width = wcwidth(unicodep);
+		control = ISCONTROLC1(unicodep);
 		ascii = unicodep;
 	}
 
-	control = iscontrol(ascii) && width == 1;
 	if(IS_SET(MODE_PRINT))
 		tprinter(c, len);
+	control = ISCONTROL(unicodep);
 
 	/*
 	 * STR sequence must be checked before anything else
@@ -2460,7 +2456,7 @@ tputc(char *c, int len) {
 		if(width == 1 &&
 		   (ascii == '\a' || ascii == 030 ||
 		    ascii == 032  || ascii == 033 ||
-		    ISCONTROLC1(ascii))) {
+		    ISCONTROLC1(unicodep))) {
 			term.esc &= ~ESC_STR;
 			term.esc |= ESC_STR_END;
 		} else if(strescseq.len + len < sizeof(strescseq.buf) - 1) {
