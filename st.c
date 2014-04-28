@@ -2634,6 +2634,7 @@ tresize(int col, int row) {
 	int slide = term.c.y - row + 1;
 	bool *bp;
 	Line *orig;
+	TCursor c;
 
 	if(col < 1 || row < 1)
 		return 0;
@@ -2695,6 +2696,7 @@ tresize(int col, int row) {
 	tmoveto(term.c.x, term.c.y);
 	/* Clearing both screens */
 	orig = term.line;
+	c = term.c;
 	do {
 		if(mincol < col && 0 < minrow) {
 			tclearregion(mincol, 0, col - 1, minrow - 1);
@@ -2702,10 +2704,10 @@ tresize(int col, int row) {
 		if(0 < col && minrow < row) {
 			tclearregion(0, minrow, col - 1, row - 1);
 		}
-		tcursor(CURSOR_SAVE);
 		tswapscreen();
 		tcursor(CURSOR_LOAD);
 	} while(orig != term.line);
+	term.c = c;
 
 	return (slide > 0);
 }
