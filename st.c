@@ -392,7 +392,7 @@ static void tsetdirtattr(int);
 static void tsetmode(bool, bool, int *, int);
 static void tfulldirt(void);
 static void techo(char *, int);
-static bool tcontrolcode(uchar );
+static void tcontrolcode(uchar );
 static void tdectest(char );
 static int32_t tdefcolor(int *, int *, int);
 static void tdeftran(char);
@@ -2328,7 +2328,7 @@ tdeftran(char ascii) {
 		term.trantbl[term.icharset] = (*bp)[1];
 }
 
-bool
+void
 tcontrolcode(uchar ascii) {
 	static char question[UTF_SIZ] = "?";
 
@@ -2363,7 +2363,7 @@ tcontrolcode(uchar ascii) {
 		csireset();
 		term.esc &= ~(ESC_CSI|ESC_ALTCHARSET|ESC_TEST);
 		term.esc |= ESC_START;
-		return 1;
+		return;
 	case '\016': /* SO */
 		term.charset = 0;
 		break;
@@ -2395,11 +2395,9 @@ tcontrolcode(uchar ascii) {
 	case 0x9e:   /* TODO: PM */
 	case 0x9f:   /* TODO: APC */
 		break;
-	default:
-		return 0;
 	}
 	term.esc &= ~(ESC_STR_END|ESC_STR);
-	return 1;
+	return;
 }
 
 void
@@ -2478,8 +2476,11 @@ tputc(char *c, int len) {
 	 * they must not cause conflicts with sequences.
 	 */
 	if(control) {
-		if (tcontrolcode(ascii))
-			return;
+		tcontrolcode(ascii);
+		/*
+		 * control codes are not shown ever
+		 */
+		return;
 	} else if(term.esc & ESC_START) {
 		if(term.esc & ESC_CSI) {
 			csiescseq.buf[csiescseq.len++] = ascii;
@@ -2576,11 +2577,6 @@ tputc(char *c, int len) {
 		 */
 		return;
 	}
-	/*
-	 * Display control codes only if we are in graphic mode
-	 */
-	if(control && term.trantbl[term.charset] != CS_GRAPHIC0)
-		return;
 	if(sel.ob.x != -1 && BETWEEN(term.c.y, sel.ob.y, sel.oe.y))
 		selclear(NULL);
 
