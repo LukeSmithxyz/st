@@ -94,12 +94,11 @@ enum glyph_attribute {
 	ATTR_REVERSE   = 1,
 	ATTR_UNDERLINE = 2,
 	ATTR_BOLD      = 4,
-	ATTR_GFX       = 8,
-	ATTR_ITALIC    = 16,
-	ATTR_BLINK     = 32,
-	ATTR_WRAP      = 64,
-	ATTR_WIDE      = 128,
-	ATTR_WDUMMY    = 256,
+	ATTR_ITALIC    = 8,
+	ATTR_BLINK     = 16,
+	ATTR_WRAP      = 32,
+	ATTR_WIDE      = 64,
+	ATTR_WDUMMY    = 128,
 };
 
 enum cursor_movement {
@@ -396,7 +395,6 @@ static void techo(char *, int);
 static bool tcontrolcode(uchar );
 static void tdectest(char );
 static int32_t tdefcolor(int *, int *, int);
-static void tselcs(void);
 static void tdeftran(char);
 static inline bool match(uint, uint);
 static void ttynew(void);
@@ -1535,7 +1533,7 @@ tsetchar(char *c, Glyph *attr, int x, int y) {
 	/*
 	 * The table is proudly stolen from rxvt.
 	 */
-	if(attr->mode & ATTR_GFX) {
+	if(term.trantbl[term.charset] == CS_GRAPHIC0) {
 		if(BETWEEN(c[0], 0x41, 0x7e) && vt100_0[c[0] - 0x41]) {
 			c = vt100_0[c[0] - 0x41];
 		}
@@ -2317,9 +2315,7 @@ void
 tdeftran(char ascii) {
 	char c, (*bp)[2];
 	static char tbl[][2] = {
-		{'0', CS_GRAPHIC0}, {'1', CS_GRAPHIC1}, {'A', CS_UK},
-		{'B', CS_USA},      {'<', CS_MULTI},    {'K', CS_GER},
-		{'5', CS_FIN},      {'C', CS_FIN},
+		{'0', CS_GRAPHIC0}, {'B', CS_USA},
 		{0, 0}
 	};
 
@@ -2330,13 +2326,6 @@ tdeftran(char ascii) {
 		fprintf(stderr, "esc unhandled charset: ESC ( %c\n", ascii);
 	else
 		term.trantbl[term.icharset] = (*bp)[1];
-}
-
-void
-tselcs(void) {
-	MODBIT(term.c.attr.mode,
-	       term.trantbl[term.charset] == CS_GRAPHIC0,
-	       ATTR_GFX);
 }
 
 bool
@@ -2377,11 +2366,9 @@ tcontrolcode(uchar ascii) {
 		return 1;
 	case '\016': /* SO */
 		term.charset = 0;
-		tselcs();
 		break;
 	case '\017': /* SI */
 		term.charset = 1;
-		tselcs();
 		break;
 	case '\032': /* SUB */
 		tsetchar(question, &term.c.attr, term.c.x, term.c.y);
@@ -2506,7 +2493,6 @@ tputc(char *c, int len) {
 			return;
 		} else if(term.esc & ESC_ALTCHARSET) {
 			tdeftran(ascii);
-			tselcs();
 		} else if(term.esc & ESC_TEST) {
 			tdectest(ascii);
 		} else {
@@ -2593,7 +2579,7 @@ tputc(char *c, int len) {
 	/*
 	 * Display control codes only if we are in graphic mode
 	 */
-	if(control && !(term.c.attr.mode & ATTR_GFX))
+	if(control && term.trantbl[term.charset] != CS_GRAPHIC0)
 		return;
 	if(sel.ob.x != -1 && BETWEEN(term.c.y, sel.ob.y, sel.oe.y))
 		selclear(NULL);
