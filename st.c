@@ -2446,7 +2446,7 @@ tputc(char *c, int len) {
 		   (ascii == '\a' || ascii == 030 ||
 		    ascii == 032  || ascii == 033 ||
 		    ISCONTROLC1(unicodep))) {
-			term.esc &= ~ESC_STR;
+			term.esc &= ~(ESC_START|ESC_STR);
 			term.esc |= ESC_STR_END;
 		} else if(strescseq.len + len < sizeof(strescseq.buf) - 1) {
 			memmove(&strescseq.buf[strescseq.len], c, len);
