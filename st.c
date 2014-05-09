@@ -2335,19 +2335,19 @@ tcontrolcode(uchar ascii) {
 	switch(ascii) {
 	case '\t':   /* HT */
 		tputtab(1);
-		break;
+		return;
 	case '\b':   /* BS */
 		tmoveto(term.c.x-1, term.c.y);
-		break;
+		return;
 	case '\r':   /* CR */
 		tmoveto(0, term.c.y);
-		break;
+		return;
 	case '\f':   /* LF */
 	case '\v':   /* VT */
 	case '\n':   /* LF */
 		/* go to first col if the mode is set */
 		tnewline(IS_SET(MODE_CRLF));
-		break;
+		return;
 	case '\a':   /* BEL */
 		if(term.esc & ESC_STR_END) {
 			/* backwards compatibility to xterm */
@@ -2366,10 +2366,10 @@ tcontrolcode(uchar ascii) {
 		return;
 	case '\016': /* SO */
 		term.charset = 0;
-		break;
+		return;
 	case '\017': /* SI */
 		term.charset = 1;
-		break;
+		return;
 	case '\032': /* SUB */
 		tsetchar(question, &term.c.attr, term.c.x, term.c.y);
 	case '\030': /* CAN */
@@ -2380,6 +2380,7 @@ tcontrolcode(uchar ascii) {
 	case '\021': /* XON (IGNORED) */
 	case '\023': /* XOFF (IGNORED) */
 	case 0177:   /* DEL (IGNORED) */
+		return;
 	case 0x84:   /* TODO: IND */
 	case 0x85:   /* TODO: NEL */
 	case 0x88:   /* TODO: HTS */
@@ -2396,6 +2397,7 @@ tcontrolcode(uchar ascii) {
 	case 0x9f:   /* TODO: APC */
 		break;
 	}
+	/* only CAN, SUB, \a and C1 chars interrupt a sequence */
 	term.esc &= ~(ESC_STR_END|ESC_STR);
 	return;
 }
