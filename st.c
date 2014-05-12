@@ -765,7 +765,7 @@ selsnap(int mode, int *x, int *y, int direction) {
 void
 getbuttoninfo(XEvent *e) {
 	int type;
-	uint state = e->xbutton.state &~Button1Mask;
+	uint state = e->xbutton.state & ~(Button1Mask | forceselmod);
 
 	sel.alt = IS_SET(MODE_ALTSCREEN);
 
@@ -858,7 +858,7 @@ bpress(XEvent *e) {
 	struct timeval now;
 	Mousekey *mk;
 
-	if(IS_SET(MODE_MOUSE)) {
+	if(IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
 		mousereport(e);
 		return;
 	}
@@ -1090,7 +1090,7 @@ xsetsel(char *str) {
 
 void
 brelease(XEvent *e) {
-	if(IS_SET(MODE_MOUSE)) {
+	if(IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
 		mousereport(e);
 		return;
 	}
@@ -1113,7 +1113,7 @@ void
 bmotion(XEvent *e) {
 	int oldey, oldex, oldsby, oldsey;
 
-	if(IS_SET(MODE_MOUSE)) {
+	if(IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
 		mousereport(e);
 		return;
 	}

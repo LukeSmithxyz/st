@@ -154,6 +154,11 @@ static KeySym mappedkeys[] = { -1 };
  */
 static uint ignoremod = Mod2Mask|XK_SWITCH_MOD;
 
+/* Override mouse-select while mask is active (when MODE_MOUSE is set).
+ * Note that if you want to use ShiftMask with selmasks, set this to an other
+ * modifier, set to 0 to not use it. */
+static uint forceselmod = ShiftMask;
+
 static Key key[] = {
 	/* keysym           mask            string      appkey appcursor crlf */
 	{ XK_KP_Home,       ShiftMask,      "\033[2J",       0,   -1,    0},
@@ -357,7 +362,6 @@ static Key key[] = {
  * ButtonRelease and MotionNotify.
  * If no match is found, regular selection is used.
  */
-
 static uint selmasks[] = {
 	[SEL_RECTANGULAR] = Mod1Mask,
 };
