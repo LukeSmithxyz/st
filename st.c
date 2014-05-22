@@ -340,7 +340,7 @@ typedef struct {
 
 /* Drawing Context */
 typedef struct {
-	Colour col[LEN(colorname) < 256 ? 256 : LEN(colorname)];
+	Colour col[MAX(LEN(colorname), 256)];
 	Font font, bfont, ifont, ibfont;
 	GC gc;
 } DC;
@@ -2715,7 +2715,7 @@ sixd_to_16bit(int x) {
 
 void
 xloadcols(void) {
-	int i, r, g, b;
+	int i;
 	XRenderColor color = { .alpha = 0xffff };
 	static bool loaded;
 	Colour *cp;
@@ -2725,7 +2725,7 @@ xloadcols(void) {
 			XftColorFree(xw.dpy, xw.vis, xw.cmap, cp);
 	}
 
-	/* load colors [0-15] colors and [256-LEN(colorname)[ (config.h) */
+	/* load colours [0-15] and [256-LEN(colorname)] (config.h) */
 	for(i = 0; i < LEN(colorname); i++) {
 		if(!colorname[i])
 			continue;
@@ -2734,27 +2734,20 @@ xloadcols(void) {
 		}
 	}
 
-	/* load colors [16-255] ; same colors as xterm */
-	for(i = 16, r = 0; r < 6; r++) {
-		for(g = 0; g < 6; g++) {
-			for(b = 0; b < 6; b++) {
-				color.red = sixd_to_16bit(r);
-				color.green = sixd_to_16bit(g);
-				color.blue = sixd_to_16bit(b);
-				if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &dc.col[i])) {
-					die("Could not allocate color %d\n", i);
-				}
-				i++;
-			}
-		}
-	}
-
-	for(r = 0; r < 24; r++, i++) {
-		color.red = color.green = color.blue = 0x0808 + 0x0a0a * r;
-		if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color,
-					&dc.col[i])) {
+	/* load colours [16-231] ; same colours as xterm */
+	for(i = 16; i < 6*6*6+16; i++) {
+		color.red   = sixd_to_16bit( ((i-16)/36)%6 );
+		color.green = sixd_to_16bit( ((i-16)/6) %6 );
+		color.blue  = sixd_to_16bit( ((i-16)/1) %6 );
+		if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &dc.col[i]))
 			die("Could not allocate color %d\n", i);
-		}
+	}
+	
+	/* load colours [232-255] ; grayscale */
+	for(; i < 256; i++) {
+		color.red = color.green = color.blue = 0x0808 + 0x0a0a * (i-(6*6*6+16));
+		if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &dc.col[i]))
+			die("Could not allocate color %d\n", i);
 	}
 	loaded = true;
 }
@@ -3149,22 +3142,13 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	}
 
 	if(base.mode & ATTR_BOLD) {
-		if(BETWEEN(base.fg, 0, 7)) {
-			/* basic system colors */
-			fg = &dc.col[base.fg + 8];
-		} else if(BETWEEN(base.fg, 16, 195)) {
-			/* 256 colors */
-			fg = &dc.col[base.fg + 36];
-		} else if(BETWEEN(base.fg, 232, 251)) {
-			/* greyscale */
-			fg = &dc.col[base.fg + 4];
-		}
 		/*
-		 * Those ranges will not be brightened:
-		 *    8 - 15 – bright system colors
-		 *    196 - 231 – highest 256 color cube
-		 *    252 - 255 – brightest colors in greyscale
+		 * change basic system colours [0-7] 
+		 * to bright system colours [8-15]
 		 */
+		if(BETWEEN(base.fg, 0, 7))
+			fg = &dc.col[base.fg + 8];
+		
 		font = &dc.bfont;
 		frcflags = FRC_BOLD;
 	}
