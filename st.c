@@ -2742,7 +2742,7 @@ xloadcols(void) {
 		if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &dc.col[i]))
 			die("Could not allocate color %d\n", i);
 	}
-	
+
 	/* load colours [232-255] ; grayscale */
 	for(; i < 256; i++) {
 		color.red = color.green = color.blue = 0x0808 + 0x0a0a * (i-(6*6*6+16));
@@ -3143,12 +3143,12 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	if(base.mode & ATTR_BOLD) {
 		/*
-		 * change basic system colours [0-7] 
+		 * change basic system colours [0-7]
 		 * to bright system colours [8-15]
 		 */
 		if(BETWEEN(base.fg, 0, 7))
 			fg = &dc.col[base.fg + 8];
-		
+
 		font = &dc.bfont;
 		frcflags = FRC_BOLD;
 	}
