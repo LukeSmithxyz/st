@@ -2757,32 +2757,28 @@ xloadcols(void) {
 int
 xsetcolorname(int x, const char *name) {
 	XRenderColor color = { .alpha = 0xffff };
-	Colour colour;
+
 	if(!BETWEEN(x, 0, LEN(colorname)))
 		return -1;
 	if(!name) {
-		if(BETWEEN(x, 16, 16 + 215)) {
-			int r = (x - 16) / 36, g = ((x - 16) % 36) / 6, b = (x - 16) % 6;
-			color.red = sixd_to_16bit(r);
-			color.green = sixd_to_16bit(g);
-			color.blue = sixd_to_16bit(b);
-			if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &colour))
-				return 0; /* something went wrong */
-			dc.col[x] = colour;
+		if(BETWEEN(x, 16, 6*6*6+16)) { /* 256 colour */
+			color.red   = sixd_to_16bit( ((x-16)/36)%6 );
+			color.green = sixd_to_16bit( ((x-16)/6) %6 );
+			color.blue  = sixd_to_16bit( ((x-16)/1) %6 );
+			if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &dc.col[x]))
+				die("Could not allocate color %d\n", x);
 			return 1;
-		} else if(BETWEEN(x, 16 + 216, 255)) {
-			color.red = color.green = color.blue = 0x0808 + 0x0a0a * (x - (16 + 216));
-			if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &colour))
-				return 0; /* something went wrong */
-			dc.col[x] = colour;
+		} else if(BETWEEN(x, 6*6*6+16, 255)) { /* grayscale */
+			color.red = color.green = color.blue = 0x0808 + 0x0a0a * (x-(6*6*6+16));
+			if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &dc.col[x]))
+				die("Could not allocate color %d\n", x);
 			return 1;
-		} else {
+		} else { /* system colours */
 			name = colorname[x];
 		}
 	}
-	if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, name, &colour))
-		return 0;
-	dc.col[x] = colour;
+	if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, name, &dc.col[x]))
+		return 0; /* invalid name */
 	return 1;
 }
 
