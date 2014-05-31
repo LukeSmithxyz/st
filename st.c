@@ -829,6 +829,8 @@ mousereport(XEvent *e) {
 			/* MODE_MOUSEX10: no button release reporting */
 			if(IS_SET(MODE_MOUSEX10))
 				return;
+			if (button == 64 || button == 65)
+				return;
 		}
 	}
 
