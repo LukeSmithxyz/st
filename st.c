@@ -179,8 +179,8 @@ typedef unsigned long ulong;
 typedef unsigned short ushort;
 
 typedef XftDraw *Draw;
-typedef XftColor Colour;
-typedef Colormap Colourmap;
+typedef XftColor Color;
+typedef Colormap Colormap;
 
 typedef struct {
 	char c[UTF_SIZ]; /* character code */
@@ -241,7 +241,7 @@ typedef struct {
 /* Purely graphic info */
 typedef struct {
 	Display *dpy;
-	Colourmap cmap;
+	Colormap cmap;
 	Window win;
 	Drawable buf;
 	Atom xembed, wmdeletewin, netwmname, netwmpid;
@@ -340,7 +340,7 @@ typedef struct {
 
 /* Drawing Context */
 typedef struct {
-	Colour col[MAX(LEN(colorname), 256)];
+	Color col[MAX(LEN(colorname), 256)];
 	Font font, bfont, ifont, ibfont;
 	GC gc;
 } DC;
@@ -1631,7 +1631,7 @@ tdefcolor(int *attr, int *npar, int l) {
 	uint r, g, b;
 
 	switch (attr[*npar + 1]) {
-	case 2: /* direct colour in RGB space */
+	case 2: /* direct color in RGB space */
 		if (*npar + 4 >= l) {
 			fprintf(stderr,
 				"erresc(38): Incorrect number of parameters (%d)\n",
@@ -1648,7 +1648,7 @@ tdefcolor(int *attr, int *npar, int l) {
 		else
 			idx = TRUECOLOR(r, g, b);
 		break;
-	case 5: /* indexed colour */
+	case 5: /* indexed color */
 		if (*npar + 2 >= l) {
 			fprintf(stderr,
 				"erresc(38): Incorrect number of parameters (%d)\n",
@@ -1663,8 +1663,8 @@ tdefcolor(int *attr, int *npar, int l) {
 		break;
 	case 0: /* implemented defined (only foreground) */
 	case 1: /* transparent */
-	case 3: /* direct colour in CMY space */
-	case 4: /* direct colour in CMYK space */
+	case 3: /* direct color in CMY space */
+	case 4: /* direct color in CMYK space */
 	default:
 		fprintf(stderr,
 		        "erresc(38): gfx attr %d unknown\n", attr[*npar]);
@@ -2151,7 +2151,7 @@ strhandle(void) {
 			/* FALLTHROUGH */
 		case 104: /* color reset, here p = NULL */
 			j = (narg > 1) ? atoi(strescseq.args[1]) : -1;
-			if (!xsetcolorname(j, p)) {
+			if(xsetcolorname(j, p)) {
 				fprintf(stderr, "erresc: invalid color %s\n", p);
 			} else {
 				/*
@@ -2720,14 +2720,14 @@ xloadcols(void) {
 	int i;
 	XRenderColor color = { .alpha = 0xffff };
 	static bool loaded;
-	Colour *cp;
+	Color *cp;
 
 	if(loaded) {
 		for (cp = dc.col; cp < dc.col + LEN(dc.col); ++cp)
 			XftColorFree(xw.dpy, xw.vis, xw.cmap, cp);
 	}
 
-	/* load colours [0-15] and [256-LEN(colorname)] (config.h) */
+	/* load colors [0-15] and [256-LEN(colorname)] (config.h) */
 	for(i = 0; i < LEN(colorname); i++) {
 		if(!colorname[i])
 			continue;
@@ -2736,7 +2736,7 @@ xloadcols(void) {
 		}
 	}
 
-	/* load colours [16-231] ; same colours as xterm */
+	/* load colors [16-231] ; same colors as xterm */
 	for(i = 16; i < 6*6*6+16; i++) {
 		color.red   = sixd_to_16bit( ((i-16)/36)%6 );
 		color.green = sixd_to_16bit( ((i-16)/6) %6 );
@@ -2745,7 +2745,7 @@ xloadcols(void) {
 			die("Could not allocate color %d\n", i);
 	}
 
-	/* load colours [232-255] ; grayscale */
+	/* load colors [232-255] ; grayscale */
 	for(; i < 256; i++) {
 		color.red = color.green = color.blue = 0x0808 + 0x0a0a * (i-(6*6*6+16));
 		if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &dc.col[i]))
@@ -2757,33 +2757,45 @@ xloadcols(void) {
 int
 xsetcolorname(int x, const char *name) {
 	XRenderColor color = { .alpha = 0xffff };
-	Colour colour;
+	Color ncolor;
+
 	if(!BETWEEN(x, 0, LEN(colorname)))
-		return -1;
+		return 1;
+
 	if(!name) {
-		if(BETWEEN(x, 16, 16 + 215)) {
-			int r = (x - 16) / 36, g = ((x - 16) % 36) / 6, b = (x - 16) % 6;
-			color.red = sixd_to_16bit(r);
-			color.green = sixd_to_16bit(g);
-			color.blue = sixd_to_16bit(b);
-			if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &colour))
-				return 0; /* something went wrong */
-			dc.col[x] = colour;
-			return 1;
-		} else if(BETWEEN(x, 16 + 216, 255)) {
-			color.red = color.green = color.blue = 0x0808 + 0x0a0a * (x - (16 + 216));
-			if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &colour))
-				return 0; /* something went wrong */
-			dc.col[x] = colour;
-			return 1;
-		} else {
+		if(BETWEEN(x, 16, 16 + 215)) { /* 256 color */
+			color.red   = sixd_to_16bit( ((x-16)/36)%6 );
+			color.green = sixd_to_16bit( ((x-16)/6) %6 );
+			color.blue  = sixd_to_16bit( ((x-16)/1) %6 );
+			if(!XftColorAllocValue(xw.dpy, xw.vis,
+						xw.cmap, &color, &ncolor)) {
+				return 1;
+			}
+
+			XftColorFree(xw.dpy, xw.vis, xw.cmap, &dc.col[x]);
+			dc.col[x] = ncolor;
+			return 0;
+		} else if(BETWEEN(x, 16 + 216, 255)) { /* greyscale */
+			color.red = color.green = color.blue = \
+				    0x0808 + 0x0a0a * (x - (16 + 216));
+			if(!XftColorAllocValue(xw.dpy, xw.vis,
+						xw.cmap, &color, &ncolor)) {
+				return 1;
+			}
+
+			XftColorFree(xw.dpy, xw.vis, xw.cmap, &dc.col[x]);
+			dc.col[x] = ncolor;
+			return 0;
+		} else { /* system colors */
 			name = colorname[x];
 		}
 	}
-	if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, name, &colour))
-		return 0;
-	dc.col[x] = colour;
-	return 1;
+	if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, name, &ncolor))
+		return 1;
+
+	XftColorFree(xw.dpy, xw.vis, xw.cmap, &dc.col[x]);
+	dc.col[x] = ncolor;
+	return 0;
 }
 
 void
@@ -3099,7 +3111,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	FcPattern *fcpattern, *fontpattern;
 	FcFontSet *fcsets[] = { NULL };
 	FcCharSet *fccharset;
-	Colour *fg, *bg, *temp, revfg, revbg, truefg, truebg;
+	Color *fg, *bg, *temp, revfg, revbg, truefg, truebg;
 	XRenderColor colfg, colbg;
 	XRectangle r;
 	int oneatatime;
@@ -3145,8 +3157,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 
 	if(base.mode & ATTR_BOLD) {
 		/*
-		 * change basic system colours [0-7]
-		 * to bright system colours [8-15]
+		 * change basic system colors [0-7]
+		 * to bright system colors [8-15]
 		 */
 		if(BETWEEN(base.fg, 0, 7))
 			fg = &dc.col[base.fg + 8];
