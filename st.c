@@ -3149,8 +3149,13 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		if(BETWEEN(base.fg, 0, 7))
 			fg = &dc.col[base.fg + 8];
 
-		font = &dc.bfont;
-		frcflags = FRC_BOLD;
+		if(base.mode & ATTR_ITALIC) {
+			font = &dc.ibfont;
+			frcflags = FRC_ITALICBOLD;
+		} else {
+			font = &dc.bfont;
+			frcflags = FRC_BOLD;
+		}
 	}
 
 	if(IS_SET(MODE_REVERSE)) {
