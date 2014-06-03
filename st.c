@@ -920,7 +920,7 @@ bpress(XEvent *e) {
 char *
 getsel(void) {
 	char *str, *ptr;
-	int x, y, bufsize, size, i, ex;
+	int x, y, bufsize, size, ex;
 	Glyph *gp, *last;
 
 	if(sel.ob.x == -1)
@@ -965,13 +965,10 @@ getsel(void) {
 		 * after the visible text '\n' is appended.
 		 */
 		if(y == sel.ne.y) {
-			i = term.col;
-			while(--i > 0 && term.line[y][i].c[0] == ' ')
-				/* nothing */;
 			ex = sel.ne.x;
 			if(sel.nb.y == sel.ne.y && sel.ne.x < sel.nb.x)
 				ex = sel.nb.x;
-			if(i < ex)
+			if(tlinelen(y) < ex)
 				*ptr++ = '\n';
 		}
 	}
