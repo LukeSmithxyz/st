@@ -441,7 +441,7 @@ static void selclear(XEvent *);
 static void selrequest(XEvent *);
 
 static void selinit(void);
-static void selsort(void);
+static void selnormalize(void);
 static inline bool selected(int, int);
 static char *getsel(void);
 static void selcopy(void);
@@ -657,8 +657,19 @@ y2row(int y) {
 	return LIMIT(y, 0, term.row-1);
 }
 
+static int tlinelen(int y) {
+	int i = term.col;
+
+	while (i > 0 && term.line[y][i - 1].c[0] == ' ')
+		--i;
+
+	return i;
+}
+
 static void
-selsort(void) {
+selnormalize(void) {
+	int i;
+
 	if(sel.ob.y == sel.oe.y) {
 		sel.nb.x = MIN(sel.ob.x, sel.oe.x);
 		sel.ne.x = MAX(sel.ob.x, sel.oe.x);
@@ -668,6 +679,15 @@ selsort(void) {
 	}
 	sel.nb.y = MIN(sel.ob.y, sel.oe.y);
 	sel.ne.y = MAX(sel.ob.y, sel.oe.y);
+
+	/* expand selection over line breaks */
+	if (sel.type == SEL_RECTANGULAR)
+		return;
+	i = tlinelen(sel.nb.y);
+	if (i < sel.nb.x)
+		sel.nb.x = i;
+	if (tlinelen(sel.ne.y) <= sel.ne.x)
+		sel.ne.x = term.col - 1;
 }
 
 static inline bool
@@ -683,8 +703,6 @@ selected(int x, int y) {
 
 void
 selsnap(int mode, int *x, int *y, int direction) {
-	int i;
-
 	switch(mode) {
 	case SNAP_WORD:
 		/*
@@ -716,7 +734,7 @@ selsnap(int mode, int *x, int *y, int direction) {
 				continue;
 			}
 
-			if(strchr(worddelimiters,
+			if(*x >= tlinelen(*y) || strchr(worddelimiters,
 					term.line[*y][*x+direction].c[0])) {
 				break;
 			}
@@ -747,18 +765,6 @@ selsnap(int mode, int *x, int *y, int direction) {
 			}
 		}
 		break;
-	default:
-		/*
-		 * Select the whole line when the end of line is reached.
-		 */
-		if(direction > 0) {
-			i = term.col;
-			while(--i > 0 && term.line[*y][i].c[0] == ' ')
-				/* nothing */;
-			if(i > 0 && i < *x)
-				*x = term.col - 1;
-		}
-		break;
 	}
 }
 
@@ -780,7 +786,7 @@ getbuttoninfo(XEvent *e) {
 		selsnap(sel.snap, &sel.oe.x, &sel.oe.y, -1);
 		selsnap(sel.snap, &sel.ob.x, &sel.ob.y, +1);
 	}
-	selsort();
+	selnormalize();
 
 	sel.type = SEL_REGULAR;
 	for(type = 1; type < LEN(selmasks); ++type) {
@@ -896,7 +902,7 @@ bpress(XEvent *e) {
 		}
 		selsnap(sel.snap, &sel.ob.x, &sel.ob.y, -1);
 		selsnap(sel.snap, &sel.oe.x, &sel.oe.y, +1);
-		selsort();
+		selnormalize();
 
 		/*
 		 * Draw selection, unless it's regular and we don't want to
@@ -1451,7 +1457,7 @@ selscroll(int orig, int n) {
 				sel.oe.x = term.col;
 			}
 		}
-		selsort();
+		selnormalize();
 	}
 }
 
