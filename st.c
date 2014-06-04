@@ -670,7 +670,7 @@ static void
 selnormalize(void) {
 	int i;
 
-	if(sel.ob.y == sel.oe.y) {
+	if(sel.ob.y == sel.oe.y || sel.type == SEL_RECTANGULAR) {
 		sel.nb.x = MIN(sel.ob.x, sel.oe.x);
 		sel.ne.x = MAX(sel.ob.x, sel.oe.x);
 	} else {
