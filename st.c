@@ -703,6 +703,9 @@ selected(int x, int y) {
 
 void
 selsnap(int mode, int *x, int *y, int direction) {
+	int newx, newy, xt, yt;
+	Glyph *gp;
+
 	switch(mode) {
 	case SNAP_WORD:
 		/*
@@ -710,36 +713,31 @@ selsnap(int mode, int *x, int *y, int direction) {
 		 * beginning of a line.
 		 */
 		for(;;) {
-			if(direction < 0 && *x <= 0) {
-				if(*y > 0 && term.line[*y - 1][term.col-1].mode
-						& ATTR_WRAP) {
-					*y -= 1;
-					*x = term.col-1;
-				} else {
+			newx = *x + direction;
+			newy = *y;
+			if(!BETWEEN(newx, 0, term.col - 1)) {
+				newy += direction;
+				newx = (newx + term.col) % term.col;
+				if (!BETWEEN(newy, 0, term.row - 1))
 					break;
-				}
-			}
-			if(direction > 0 && *x >= term.col-1) {
-				if(*y < term.row-1 && term.line[*y][*x].mode
-						& ATTR_WRAP) {
-					*y += 1;
-					*x = 0;
-				} else {
+
+				if(direction > 0)
+					yt = *y, xt = *x;
+				else
+					yt = newy, xt = newx;
+				if(!(term.line[yt][xt].mode & ATTR_WRAP))
 					break;
-				}
 			}
 
-			if(term.line[*y][*x+direction].mode & ATTR_WDUMMY) {
-				*x += direction;
-				continue;
-			}
-
-			if(*x >= tlinelen(*y) || strchr(worddelimiters,
-					term.line[*y][*x+direction].c[0])) {
+			if (newx >= tlinelen(newy))
 				break;
-			}
 
-			*x += direction;
+			gp = &term.line[newy][newx];
+			if (!(gp->mode & ATTR_WDUMMY) && strchr(worddelimiters, gp->c[0]))
+				break;
+
+			*x = newx;
+			*y = newy;
 		}
 		break;
 	case SNAP_LINE:
