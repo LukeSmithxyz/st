@@ -3245,28 +3245,22 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 			bytelen -= u8cblen;
 
 			doesexist = XftCharExists(xw.dpy, font->match, unicodep);
-			if(oneatatime || !doesexist || bytelen <= 0) {
-				if(oneatatime || bytelen <= 0) {
-					if(doesexist) {
-						u8fl++;
-						u8fblen += u8cblen;
-					}
-				}
-
-				if(u8fl > 0) {
-					XftDrawStringUtf8(xw.draw, fg,
-							font->match, xp,
-							winy + font->ascent,
-							(FcChar8 *)u8fs,
-							u8fblen);
-					xp += xw.cw * u8fl;
-
-				}
-				break;
+			if(doesexist) {
+					u8fl++;
+					u8fblen += u8cblen;
+					if(!oneatatime && bytelen > 0)
+							continue;
 			}
 
-			u8fl++;
-			u8fblen += u8cblen;
+			if(u8fl > 0) {
+				XftDrawStringUtf8(xw.draw, fg,
+						font->match, xp,
+						winy + font->ascent,
+						(FcChar8 *)u8fs,
+						u8fblen);
+				xp += xw.cw * u8fl;
+			}
+			break;
 		}
 		if(doesexist) {
 			if(oneatatime)
