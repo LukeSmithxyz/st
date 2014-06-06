@@ -180,7 +180,6 @@ typedef unsigned short ushort;
 
 typedef XftDraw *Draw;
 typedef XftColor Color;
-typedef Colormap Colormap;
 
 typedef struct {
 	char c[UTF_SIZ]; /* character code */
