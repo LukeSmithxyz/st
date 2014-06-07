@@ -2319,10 +2319,11 @@ tdeftran(char ascii) {
 	static int vcs[] = {CS_GRAPHIC0, CS_USA};
 	char *p;
 
-	if((p = strchr(cs, ascii)) == NULL)
+	if((p = strchr(cs, ascii)) == NULL) {
 		fprintf(stderr, "esc unhandled charset: ESC ( %c\n", ascii);
-	else
+	} else {
 		term.trantbl[term.icharset] = vcs[p - cs];
+	}
 }
 
 void
