@@ -2315,19 +2315,14 @@ techo(char *buf, int len) {
 
 void
 tdeftran(char ascii) {
-	char c, (*bp)[2];
-	static char tbl[][2] = {
-		{'0', CS_GRAPHIC0}, {'B', CS_USA},
-		{0, 0}
-	};
+	static char cs[] = "0B";
+	static int vcs[] = {CS_GRAPHIC0, CS_USA};
+	char *p;
 
-	for (bp = &tbl[0]; (c = (*bp)[0]) && c != ascii; ++bp)
-		/* nothing */;
-
-	if (c == 0)
+	if((p = strchr(cs, ascii)) == NULL)
 		fprintf(stderr, "esc unhandled charset: ESC ( %c\n", ascii);
 	else
-		term.trantbl[term.icharset] = (*bp)[1];
+		term.trantbl[term.icharset] = vcs[p - cs];
 }
 
 void
