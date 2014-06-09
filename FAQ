@@ -37,7 +37,7 @@ Taken from the terminfo manpage:
 	are pressed, this information can be given. Note that it is not
 	possible to handle terminals where the keypad only works in
 	local (this applies, for example, to the unshifted HP 2621 keys).
-	If the keypad can be set to transmit or not transmit, tive these
+	If the keypad can be set to transmit or not transmit, give these
 	codes as smkx and rmkx. Otherwise the keypad is assumed to
 	always transmit.
 
@@ -48,7 +48,7 @@ sequences.
 But buggy applications like bash and irssi for example don't do this. A fast
 solution for them is to use the following command:
 
-	$ printf "\033?1h\033=" >/dev/tty
+	$ printf '\033[?1h\033=' >/dev/tty
 
 or
 	$ echo $(tput smkx) >/dev/tty
