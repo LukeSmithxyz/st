@@ -2993,6 +2993,7 @@ xzoom(const Arg *arg) {
 	xloadfonts(usedfont, usedfontsize + arg->i);
 	cresize(0, 0);
 	redraw(0);
+	xhints();
 }
 
 void
