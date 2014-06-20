@@ -2401,7 +2401,10 @@ tcontrolcode(uchar ascii) {
 	case 0177:   /* DEL (IGNORED) */
 		return;
 	case 0x84:   /* TODO: IND */
-	case 0x85:   /* TODO: NEL */
+		break;
+	case 0x85:   /* NEL -- Next line */
+		tnewline(1); /* always go to first col */
+		break;
 	case 0x88:   /* TODO: HTS */
 	case 0x8d:   /* TODO: RI */
 	case 0x8e:   /* TODO: SS2 */
