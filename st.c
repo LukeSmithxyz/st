@@ -405,6 +405,7 @@ static void ttyread(void);
 static void ttyresize(void);
 static void ttysend(char *, size_t);
 static void ttywrite(const char *, size_t);
+static void tstrsequence(uchar c);
 
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
@@ -2348,6 +2349,30 @@ tdeftran(char ascii) {
 }
 
 void
+tstrsequence(uchar c) {
+	if (c & 0x80) {
+		switch (c) {
+		case 0x90:   /* DCS -- Device Control String */
+			c = 'P';
+			break;
+		case 0x9f:   /* APC -- Application Program Command */
+			c = '_';
+			break;
+		case 0x9e:   /* PM -- Privacy Message */
+			c = '^';
+			break;
+		case 0x9d:   /* OSC -- Operating System Command */
+			c = ']';
+			break;
+		}
+	}
+	strreset();
+	strescseq.type = c;
+	term.esc |= ESC_STR;
+	return;
+}
+
+void
 tcontrolcode(uchar ascii) {
 	static char question[UTF_SIZ] = "?";
 
@@ -2411,7 +2436,6 @@ tcontrolcode(uchar ascii) {
 	case 0x8d:   /* TODO: RI */
 	case 0x8e:   /* TODO: SS2 */
 	case 0x8f:   /* TODO: SS3 */
-	case 0x90:   /* TODO: DCS */
 	case 0x98:   /* TODO: SOS */
 		break;
 	case 0x9a:   /* DECID -- Identify Terminal */
@@ -2419,10 +2443,13 @@ tcontrolcode(uchar ascii) {
 		break;
 	case 0x9b:   /* TODO: CSI */
 	case 0x9c:   /* TODO: ST */
-	case 0x9d:   /* TODO: OSC */
-	case 0x9e:   /* TODO: PM */
-	case 0x9f:   /* TODO: APC */
 		break;
+	case 0x90:   /* DCS -- Device Control String */
+	case 0x9f:   /* APC -- Application Program Command */
+	case 0x9e:   /* PM -- Privacy Message */
+	case 0x9d:   /* OSC -- Operating System Command */
+		tstrsequence(ascii);
+		return;
 	}
 	/* only CAN, SUB, \a and C1 chars interrupt a sequence */
 	term.esc &= ~(ESC_STR_END|ESC_STR);
@@ -2538,9 +2565,7 @@ tputc(char *c, int len) {
 			case '^': /* PM -- Privacy Message */
 			case ']': /* OSC -- Operating System Command */
 			case 'k': /* old title set compatibility */
-				strreset();
-				strescseq.type = ascii;
-				term.esc |= ESC_STR;
+				tstrsequence(ascii);
 				return;
 			case '(': /* set primary charset G0 */
 			case ')': /* set secondary charset G1 */
