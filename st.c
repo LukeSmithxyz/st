@@ -2408,7 +2408,10 @@ tcontrolcode(uchar ascii) {
 	case 0x8f:   /* TODO: SS3 */
 	case 0x90:   /* TODO: DCS */
 	case 0x98:   /* TODO: SOS */
-	case 0x9a:   /* TODO: DECID */
+		break;
+	case 0x9a:   /* DECID -- Identify Terminal */
+		ttywrite(VT102ID, sizeof(VT102ID) - 1);
+		break;
 	case 0x9b:   /* TODO: CSI */
 	case 0x9c:   /* TODO: ST */
 	case 0x9d:   /* TODO: OSC */
