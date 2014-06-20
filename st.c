@@ -2405,7 +2405,9 @@ tcontrolcode(uchar ascii) {
 	case 0x85:   /* NEL -- Next line */
 		tnewline(1); /* always go to first col */
 		break;
-	case 0x88:   /* TODO: HTS */
+	case 0x88:   /* HTS -- Horizontal tab stop */
+		term.tabs[term.c.x] = 1;
+		break;
 	case 0x8d:   /* TODO: RI */
 	case 0x8e:   /* TODO: SS2 */
 	case 0x8f:   /* TODO: SS3 */
