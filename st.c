@@ -3179,7 +3179,7 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		 * change basic system colors [0-7]
 		 * to bright system colors [8-15]
 		 */
-		if(BETWEEN(base.fg, 0, 7))
+		if(BETWEEN(base.fg, 0, 7) && !(base.mode & ATTR_FAINT))
 			fg = &dc.col[base.fg + 8];
 
 		if(base.mode & ATTR_ITALIC) {
@@ -3221,6 +3221,14 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		temp = fg;
 		fg = bg;
 		bg = temp;
+	}
+
+	if(base.mode & ATTR_FAINT && !(base.mode & ATTR_BOLD)) {
+		colfg.red = fg->color.red / 2;
+		colfg.green = fg->color.green / 2;
+		colfg.blue = fg->color.blue / 2;
+		XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &colfg, &revfg);
+		fg = &revfg;
 	}
 
 	if(base.mode & ATTR_BLINK && term.mode & MODE_BLINK)
