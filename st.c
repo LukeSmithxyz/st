@@ -3383,6 +3383,11 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 				width, 1);
 	}
 
+	if(base.mode & ATTR_STRUCK) {
+		XftDrawRect(xw.draw, fg, winx, winy + 2 * font->ascent / 3,
+				width, 1);
+	}
+
 	/* Reset clip to none. */
 	XftDrawSetClip(xw.draw, 0);
 }
