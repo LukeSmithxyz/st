@@ -89,15 +89,19 @@ char *argv0;
 #define VT102ID "\033[?6c"
 
 enum glyph_attribute {
-	ATTR_NULL      = 0,
-	ATTR_REVERSE   = 1,
-	ATTR_UNDERLINE = 2,
-	ATTR_BOLD      = 4,
-	ATTR_ITALIC    = 8,
+        ATTR_NULL      = 0,
+	ATTR_BOLD      = 1,
+	ATTR_FAINT     = 2,
+	ATTR_ITALIC    = 4,
+	ATTR_UNDERLINE = 8,
 	ATTR_BLINK     = 16,
-	ATTR_WRAP      = 32,
-	ATTR_WIDE      = 64,
-	ATTR_WDUMMY    = 128,
+	ATTR_FASTBLINK = 32,
+	ATTR_REVERSE   = 64,
+	ATTR_INVISIBLE = 128,
+	ATTR_STRUCK    = 256,
+	ATTR_WRAP      = 512,
+	ATTR_WIDE      = 1024,
+	ATTR_WDUMMY    = 2048,
 };
 
 enum cursor_movement {
@@ -1681,14 +1685,24 @@ tsetattr(int *attr, int l) {
 	for(i = 0; i < l; i++) {
 		switch(attr[i]) {
 		case 0:
-			term.c.attr.mode &= ~(ATTR_REVERSE | ATTR_UNDERLINE \
-					| ATTR_BOLD | ATTR_ITALIC \
-					| ATTR_BLINK);
+			term.c.attr.mode &= ~(
+				ATTR_BOLD       |
+				ATTR_FAINT      |
+				ATTR_ITALIC     |
+				ATTR_UNDERLINE  |
+				ATTR_BLINK      |
+				ATTR_FASTBLINK  |
+				ATTR_REVERSE    |
+				ATTR_INVISIBLE  |
+				ATTR_STRUCK     );
 			term.c.attr.fg = defaultfg;
 			term.c.attr.bg = defaultbg;
 			break;
 		case 1:
 			term.c.attr.mode |= ATTR_BOLD;
+			break;
+		case 2:
+			term.c.attr.mode |= ATTR_FAINT;
 			break;
 		case 3:
 			term.c.attr.mode |= ATTR_ITALIC;
@@ -1697,15 +1711,25 @@ tsetattr(int *attr, int l) {
 			term.c.attr.mode |= ATTR_UNDERLINE;
 			break;
 		case 5: /* slow blink */
-		case 6: /* rapid blink */
 			term.c.attr.mode |= ATTR_BLINK;
+			break;
+		case 6: /* rapid blink */
+			term.c.attr.mode |= ATTR_FASTBLINK;
 			break;
 		case 7:
 			term.c.attr.mode |= ATTR_REVERSE;
 			break;
+		case 8:
+			term.c.attr.mode |= ATTR_INVISIBLE;
+			break;
+		case 9:
+			term.c.attr.mode |= ATTR_STRUCK;
+			break;
 		case 21:
-		case 22:
 			term.c.attr.mode &= ~ATTR_BOLD;
+			break;
+		case 22:
+			term.c.attr.mode &= ~ATTR_FAINT;
 			break;
 		case 23:
 			term.c.attr.mode &= ~ATTR_ITALIC;
@@ -1714,11 +1738,19 @@ tsetattr(int *attr, int l) {
 			term.c.attr.mode &= ~ATTR_UNDERLINE;
 			break;
 		case 25:
-		case 26:
 			term.c.attr.mode &= ~ATTR_BLINK;
+			break;
+		case 26:
+			term.c.attr.mode &= ~ATTR_FASTBLINK;
 			break;
 		case 27:
 			term.c.attr.mode &= ~ATTR_REVERSE;
+			break;
+		case 28:
+			term.c.attr.mode &= ~ATTR_INVISIBLE;
+			break;
+		case 29:
+			term.c.attr.mode &= ~ATTR_STRUCK;
 			break;
 		case 38:
 			if ((idx = tdefcolor(attr, &i, l)) >= 0)
