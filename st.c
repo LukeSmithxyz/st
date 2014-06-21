@@ -3236,6 +3236,9 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 	if(base.mode & ATTR_BLINK && term.mode & MODE_BLINK)
 		fg = bg;
 
+	if(base.mode & ATTR_INVISIBLE)
+		fg = bg;
+
 	/* Intelligent cleaning up of the borders. */
 	if(x == 0) {
 		xclear(0, (y == 0)? 0 : winy, borderpx,
