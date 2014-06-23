@@ -76,7 +76,7 @@ char *argv0;
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) ((term.mode & (flag)) != 0)
-#define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_usec-t2.tv_usec)/1000)
+#define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_nsec-t2.tv_nsec)/10E6)
 #define CEIL(x) (((x) != (int) (x)) ? (x) + 1 : (x))
 #define MODBIT(x, set, bit) ((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
 
@@ -294,8 +294,8 @@ typedef struct {
 	char *clip;
 	Atom xtarget;
 	bool alt;
-	struct timeval tclick1;
-	struct timeval tclick2;
+	struct timespec tclick1;
+	struct timespec tclick2;
 } Selection;
 
 typedef union {
@@ -860,7 +860,7 @@ mousereport(XEvent *e) {
 
 void
 bpress(XEvent *e) {
-	struct timeval now;
+	struct timespec now;
 	Mousekey *mk;
 
 	if(IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
@@ -877,7 +877,7 @@ bpress(XEvent *e) {
 	}
 
 	if(e->xbutton.button == Button1) {
-		gettimeofday(&now, NULL);
+		clock_gettime(CLOCK_MONOTONIC, &now);
 
 		/* Clear previous selection, logically and visually. */
 		selclear(NULL);
@@ -3709,7 +3709,8 @@ run(void) {
 	int w = xw.w, h = xw.h;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dpy), xev, blinkset = 0, dodraw = 0;
-	struct timeval drawtimeout, *tv = NULL, now, last, lastblink;
+	struct timespec drawtimeout, *tv = NULL, now, last, lastblink;
+	long deltatime;
 
 	/* Waiting for window mapping */
 	while(1) {
@@ -3725,17 +3726,15 @@ run(void) {
 	ttynew();
 	cresize(w, h);
 
-	gettimeofday(&last, NULL);
+	clock_gettime(CLOCK_MONOTONIC, &last);
 	lastblink = last;
 
 	for(xev = actionfps;;) {
-		long deltatime;
-
 		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &rfd);
 		FD_SET(xfd, &rfd);
 
-		if(select(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, tv) < 0) {
+		if(pselect(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, tv, NULL) < 0) {
 			if(errno == EINTR)
 				continue;
 			die("select failed: %s\n", strerror(errno));
@@ -3752,9 +3751,9 @@ run(void) {
 		if(FD_ISSET(xfd, &rfd))
 			xev = actionfps;
 
-		gettimeofday(&now, NULL);
+		clock_gettime(CLOCK_MONOTONIC, &now);
 		drawtimeout.tv_sec = 0;
-		drawtimeout.tv_usec = (1000/xfps) * 1000;
+		drawtimeout.tv_nsec = (1000/xfps) * 10E6;
 		tv = &drawtimeout;
 
 		dodraw = 0;
@@ -3789,9 +3788,9 @@ run(void) {
 				if(blinkset) {
 					if(TIMEDIFF(now, lastblink) \
 							> blinktimeout) {
-						drawtimeout.tv_usec = 1;
+						drawtimeout.tv_nsec = 1000;
 					} else {
-						drawtimeout.tv_usec = (1000 * \
+						drawtimeout.tv_nsec = (10E6 * \
 							(blinktimeout - \
 							TIMEDIFF(now,
 								lastblink)));
