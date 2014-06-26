@@ -76,7 +76,7 @@ char *argv0;
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) ((term.mode & (flag)) != 0)
-#define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_nsec-t2.tv_nsec)/10E6)
+#define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_nsec-t2.tv_nsec)/1E6)
 #define CEIL(x) (((x) != (int) (x)) ? (x) + 1 : (x))
 #define MODBIT(x, set, bit) ((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
 
@@ -3753,7 +3753,7 @@ run(void) {
 
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		drawtimeout.tv_sec = 0;
-		drawtimeout.tv_nsec = (1000/xfps) * 10E6;
+		drawtimeout.tv_nsec = (1000/xfps) * 1E6;
 		tv = &drawtimeout;
 
 		dodraw = 0;
@@ -3790,7 +3790,7 @@ run(void) {
 							> blinktimeout) {
 						drawtimeout.tv_nsec = 1000;
 					} else {
-						drawtimeout.tv_nsec = (10E6 * \
+						drawtimeout.tv_nsec = (1E6 * \
 							(blinktimeout - \
 							TIMEDIFF(now,
 								lastblink)));
