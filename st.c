@@ -77,7 +77,6 @@ char *argv0;
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) ((term.mode & (flag)) != 0)
 #define TIMEDIFF(t1, t2) ((t1.tv_sec-t2.tv_sec)*1000 + (t1.tv_nsec-t2.tv_nsec)/1E6)
-#define CEIL(x) (((x) != (int) (x)) ? (x) + 1 : (x))
 #define MODBIT(x, set, bit) ((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
 
 #define TRUECOLOR(r,g,b) (1 << 24 | (r) << 16 | (g) << 8 | (b))
@@ -2892,6 +2891,7 @@ xloadfonts(char *fontstr, double fontsize) {
 	FcPattern *pattern;
 	FcResult r_sz, r_psz;
 	double fontval;
+	float ceilf(float);
 
 	if(fontstr[0] == '-') {
 		pattern = XftXlfdParse(fontstr, False, False);
@@ -2937,8 +2937,8 @@ xloadfonts(char *fontstr, double fontsize) {
 	}
 
 	/* Setting character width and height. */
-	xw.cw = CEIL(dc.font.width * cwscale);
-	xw.ch = CEIL(dc.font.height * chscale);
+	xw.cw = ceilf(dc.font.width * cwscale);
+	xw.ch = ceilf(dc.font.height * chscale);
 
 	FcPatternDel(pattern, FC_SLANT);
 	FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ITALIC);
