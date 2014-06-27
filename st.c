@@ -375,6 +375,7 @@ static void tdeletechar(int);
 static void tdeleteline(int);
 static void tinsertblank(int);
 static void tinsertblankline(int);
+static int tlinelen(int);
 static void tmoveto(int, int);
 static void tmoveato(int, int);
 static void tnew(int, int);
@@ -920,7 +921,7 @@ bpress(XEvent *e) {
 char *
 getsel(void) {
 	char *str, *ptr;
-	int x, y, bufsize, size, ex;
+	int y, bufsize, size, lastx, linelen;
 	Glyph *gp, *last;
 
 	if(sel.ob.x == -1)
@@ -931,16 +932,19 @@ getsel(void) {
 
 	/* append every set & selected glyph to the selection */
 	for(y = sel.nb.y; y < sel.ne.y + 1; y++) {
-		gp = &term.line[y][0];
-		last = &gp[term.col-1];
+		linelen = tlinelen(y);
 
-		while(last >= gp && !(selected(last - gp, y) &&
-				      strcmp(last->c, " ") != 0)) {
-			--last;
+		if(sel.type == SEL_RECTANGULAR) {
+			gp = &term.line[y][sel.nb.x];
+			lastx = sel.ne.x;
+		} else {
+			gp = &term.line[y][sel.nb.y == y ? sel.nb.x : 0];
+			lastx = (sel.ne.y == y) ? sel.ne.x : term.col-1;
 		}
+		last = &term.line[y][MIN(lastx, linelen-1)];
 
-		for(x = 0; gp <= last; x++, ++gp) {
-			if(!selected(x, y) || (gp->mode & ATTR_WDUMMY))
+		for( ; gp <= last; ++gp) {
+			if(gp->mode & ATTR_WDUMMY)
 				continue;
 
 			size = utf8len(gp->c);
@@ -957,20 +961,8 @@ getsel(void) {
 		 * st.
 		 * FIXME: Fix the computer world.
 		 */
-		if(y < sel.ne.y && !(x > 0 && (gp-1)->mode & ATTR_WRAP))
+		if(sel.ne.y > y || lastx >= linelen)
 			*ptr++ = '\n';
-
-		/*
-		 * If the last selected line expands in the selection
-		 * after the visible text '\n' is appended.
-		 */
-		if(y == sel.ne.y) {
-			ex = sel.ne.x;
-			if(sel.nb.y == sel.ne.y && sel.ne.x < sel.nb.x)
-				ex = sel.nb.x;
-			if(tlinelen(y) < ex)
-				*ptr++ = '\n';
-		}
 	}
 	*ptr = 0;
 	return str;
@@ -2287,12 +2279,10 @@ tdumpline(int n) {
 	Glyph *bp, *end;
 
 	bp = &term.line[n][0];
-	end = &bp[term.col-1];
-	while(end > bp && !strcmp(" ", end->c))
-		--end;
-	if(bp != end || strcmp(bp->c, " ")) {
+	end = &bp[MIN(tlinelen(n), term.col) - 1];
+	if(bp != end || bp->c[0] != ' ') {
 		for( ;bp <= end; ++bp)
-			tprinter(bp->c, strlen(bp->c));
+			tprinter(bp->c, utf8len(bp->c));
 	}
 	tprinter("\n", 1);
 }
