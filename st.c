@@ -89,7 +89,7 @@ char *argv0;
 #define VT102ID "\033[?6c"
 
 enum glyph_attribute {
-        ATTR_NULL      = 0,
+	ATTR_NULL      = 0,
 	ATTR_BOLD      = 1,
 	ATTR_FAINT     = 2,
 	ATTR_ITALIC    = 4,
