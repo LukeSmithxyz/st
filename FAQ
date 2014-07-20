@@ -89,3 +89,10 @@ Putting these lines into your .zshrc will fix the problems.
  St supports meta in 8bit mode, but the default terminfo entry doesn't
  use this capability. If you want it, you have to use the 'st-meta' value
  in TERM.
+
+## I cannot compile st in OpenBSD
+
+OpenBSD lacks of librt, but it is mandatory in POSIX
+<http://pubs.opengroup.org/onlinepubs/9699919799/utilities/c99.html#tag_20_11_13>.
+If you want compile st for OpenBSD you have to remove -lrt from config.mk.
+
