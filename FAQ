@@ -94,5 +94,7 @@ Putting these lines into your .zshrc will fix the problems.
 
 OpenBSD lacks of librt, but it is mandatory in POSIX
 <http://pubs.opengroup.org/onlinepubs/9699919799/utilities/c99.html#tag_20_11_13>.
-If you want compile st for OpenBSD you have to remove -lrt from config.mk.
+If you want compile st for OpenBSD you have to remove -lrt from config.mk, and
+st will compile without any loss of functionality because all the functions are
+included in libc on this platform.
 
