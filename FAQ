@@ -98,3 +98,61 @@ If you want to compile st for OpenBSD you have to remove -lrt from config.mk, an
 st will compile without any loss of functionality, because all the functions are
 included in libc on this platform.
 
+## Backspace key does not work
+
+This is an issue that was discussed in suckless mailing list
+<http://lists.suckless.org/dev/1404/20697.html>:
+
+	Well, I am going to comment why I want to change the behaviour
+	of this key. When ascii was defined in 1968 communication
+	with computers were done using punched cards, or hardcopy
+	terminals (basically a typewritter machine connected with
+	the computer using a serial port). Due to this, ascii defines
+	DELETE as 7F, because in the puched cards, it means all the
+	holes of the card punched, so it is a kind of 'phisical
+	delete'. In the same way, BACKSPACE key was a non destructive
+	back space, as in typewriter machines.  So, if you wanted
+	to delete a character, you had to BACKSPACE and then DELETE.
+	Other use of BACKSPACE was accented characters, for example
+	'a BACKSPACE `'. The VT100 had no BACKSPACE key, it was
+	generated using the CONTROL key as another control character
+	(CONTROL key sets to 0 b7 b6 b5, so it converts H (code
+	0x48) into BACKSPACE (code 0x08)), but it had a DELETE key
+	in a similar position where BACKSPACE key is located today
+	in common PC keyboards. All the terminal emulators emulated
+	correctly the difference between these keys, and backspace
+	key generated a BACKSPACE (^H) and delete key generated a
+	DELETE (^?).
+
+	But the problem arised when Linus Torvald wrote Linux, and
+	he did that the virtual terminal (the terminal emulator
+	integrated in the kernel) returns a DELETE when backspace
+	was pressed, due to the fact of the key in that position
+	in VT100 was a delete key. This created a lot of problems
+	(you can see it in [1] and [2]), and how Linux became the
+	king, a lot of terminal emulators today generate a DELETE
+	when backspace key is pressed in order to avoid problems
+	with linux. It causes that the only way of generating a
+	BACKSPACE in these systems is using CONTROL + H. I also
+	think that emacs had an important point here because CONTROL
+	+ H prefix is used in emacs in some commands (help commands).
+
+	From point of view of the kernel, you can change the key
+	for deleting a previous character with stty erase. When you
+	connect a real terminal into a machine you describe the
+	type of terminal, so getty configure the correct value of
+	stty erase for this terminal, but in the case of terminal
+	emulators you don't have any getty that can set the correct
+	value of stty erase, so you always get the default value.
+	So it means that in case of changing the value of the
+	backspace keyboard, you have to add a 'stty erase ^H' into
+	your profile. Of course, other solution can be that st
+	itself modify the value of stty erase.  I have usually the
+	inverse problem, when I connect with non Unix machines, and
+	I have to press control + h to get a BACKSPACE, or the
+	inverse, when a user connects to my unix machines from a
+	different system with a correct backspace key.
+
+	[1] http://www.ibb.net/~anne/keyboard.html
+	[2] http://www.tldp.org/HOWTO/Keyboard-and-Console-HOWTO-5.html
+
