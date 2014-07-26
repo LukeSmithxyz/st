@@ -1718,11 +1718,8 @@ tsetattr(int *attr, int l) {
 		case 9:
 			term.c.attr.mode |= ATTR_STRUCK;
 			break;
-		case 21:
-			term.c.attr.mode &= ~ATTR_BOLD;
-			break;
 		case 22:
-			term.c.attr.mode &= ~ATTR_FAINT;
+			term.c.attr.mode &= ~(ATTR_BOLD | ATTR_FAINT);
 			break;
 		case 23:
 			term.c.attr.mode &= ~ATTR_ITALIC;
@@ -1731,10 +1728,7 @@ tsetattr(int *attr, int l) {
 			term.c.attr.mode &= ~ATTR_UNDERLINE;
 			break;
 		case 25:
-			term.c.attr.mode &= ~ATTR_BLINK;
-			break;
-		case 26:
-			term.c.attr.mode &= ~ATTR_FASTBLINK;
+			term.c.attr.mode &= ~(ATTR_BLINK | ATTR_FASTBLINK);
 			break;
 		case 27:
 			term.c.attr.mode &= ~ATTR_REVERSE;
