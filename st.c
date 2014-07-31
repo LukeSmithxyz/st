@@ -95,13 +95,12 @@ enum glyph_attribute {
 	ATTR_ITALIC    = 4,
 	ATTR_UNDERLINE = 8,
 	ATTR_BLINK     = 16,
-	ATTR_FASTBLINK = 32,
-	ATTR_REVERSE   = 64,
-	ATTR_INVISIBLE = 128,
-	ATTR_STRUCK    = 256,
-	ATTR_WRAP      = 512,
-	ATTR_WIDE      = 1024,
-	ATTR_WDUMMY    = 2048,
+	ATTR_REVERSE   = 32,
+	ATTR_INVISIBLE = 64,
+	ATTR_STRUCK    = 128,
+	ATTR_WRAP      = 256,
+	ATTR_WIDE      = 512,
+	ATTR_WDUMMY    = 1024,
 };
 
 enum cursor_movement {
@@ -1684,7 +1683,6 @@ tsetattr(int *attr, int l) {
 				ATTR_ITALIC     |
 				ATTR_UNDERLINE  |
 				ATTR_BLINK      |
-				ATTR_FASTBLINK  |
 				ATTR_REVERSE    |
 				ATTR_INVISIBLE  |
 				ATTR_STRUCK     );
@@ -1704,10 +1702,9 @@ tsetattr(int *attr, int l) {
 			term.c.attr.mode |= ATTR_UNDERLINE;
 			break;
 		case 5: /* slow blink */
-			term.c.attr.mode |= ATTR_BLINK;
-			break;
+			/* FALLTHROUGH */
 		case 6: /* rapid blink */
-			term.c.attr.mode |= ATTR_FASTBLINK;
+			term.c.attr.mode |= ATTR_BLINK;
 			break;
 		case 7:
 			term.c.attr.mode |= ATTR_REVERSE;
@@ -1728,7 +1725,7 @@ tsetattr(int *attr, int l) {
 			term.c.attr.mode &= ~ATTR_UNDERLINE;
 			break;
 		case 25:
-			term.c.attr.mode &= ~(ATTR_BLINK | ATTR_FASTBLINK);
+			term.c.attr.mode &= ~ATTR_BLINK;
 			break;
 		case 27:
 			term.c.attr.mode &= ~ATTR_REVERSE;
