@@ -1176,16 +1176,15 @@ execsh(void) {
 
 void
 sigchld(int a) {
-	int stat = 0;
+	int stat, ret;
 
 	if(waitpid(pid, &stat, 0) < 0)
 		die("Waiting for pid %hd failed: %s\n", pid, strerror(errno));
 
-	if(WIFEXITED(stat)) {
-		exit(WEXITSTATUS(stat));
-	} else {
-		exit(EXIT_FAILURE);
-	}
+	ret = WIFEXITED(stat) ? WEXITSTATUS(stat) : EXIT_FAILURE;
+	if (ret != EXIT_SUCCESS)
+		die("child finished with error '%d'\n", stat);
+	exit(EXIT_SUCCESS);
 }
 
 void
