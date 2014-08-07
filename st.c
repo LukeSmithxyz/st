@@ -1553,6 +1553,7 @@ tsetchar(char *c, Glyph *attr, int x, int y) {
 void
 tclearregion(int x1, int y1, int x2, int y2) {
 	int x, y, temp;
+	Glyph *gp;
 
 	if(x1 > x2)
 		temp = x1, x1 = x2, x2 = temp;
@@ -1567,10 +1568,13 @@ tclearregion(int x1, int y1, int x2, int y2) {
 	for(y = y1; y <= y2; y++) {
 		term.dirty[y] = 1;
 		for(x = x1; x <= x2; x++) {
+			gp = &term.line[y][x];
 			if(selected(x, y))
 				selclear(NULL);
-			term.line[y][x] = term.c.attr;
-			memcpy(term.line[y][x].c, " ", 2);
+			gp->fg = term.c.attr.fg;
+			gp->bg = term.c.attr.bg;
+			gp->mode = 0;
+			memcpy(gp->c, " ", 2);
 		}
 	}
 }
