@@ -183,7 +183,6 @@ st| simpleterm,
 	smul=\E[4m,
 	tbc=\E[3g,
 	tsl=\E]0;,
-	ul,
 	xenl,
 	vpa=\E[%i%p1%dd,
 
