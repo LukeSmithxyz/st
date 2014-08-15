@@ -9,6 +9,9 @@ static char font[] = "Liberation Mono:pixelsize=12:antialias=false:autohint=fals
 static int borderpx = 2;
 static char shell[] = "/bin/sh";
 
+/* identification sequence returned in DA and DECID */
+static char vtiden[] = "\033[?6c";
+
 /* Kerning / character bounding-box multipliers */
 static float cwscale = 1.0;
 static float chscale = 1.0;

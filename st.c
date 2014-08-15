@@ -86,8 +86,6 @@ char *argv0;
 #define TRUEBLUE(x)      (((x) & 0xff) << 8)
 
 
-#define VT102ID "\033[?6c"
-
 enum glyph_attribute {
 	ATTR_NULL      = 0,
 	ATTR_BOLD      = 1,
@@ -1965,7 +1963,7 @@ csihandle(void) {
 		break;
 	case 'c': /* DA -- Device Attributes */
 		if(csiescseq.arg[0] == 0)
-			ttywrite(VT102ID, sizeof(VT102ID) - 1);
+			ttywrite(vtiden, sizeof(vtiden) - 1);
 		break;
 	case 'C': /* CUF -- Cursor <n> Forward */
 	case 'a': /* HPR -- Cursor <n> Forward */
@@ -2433,7 +2431,7 @@ tcontrolcode(uchar ascii) {
 	case 0x98:   /* TODO: SOS */
 		break;
 	case 0x9a:   /* DECID -- Identify Terminal */
-		ttywrite(VT102ID, sizeof(VT102ID) - 1);
+		ttywrite(vtiden, sizeof(vtiden) - 1);
 		break;
 	case 0x9b:   /* TODO: CSI */
 	case 0x9c:   /* TODO: ST */
@@ -2589,7 +2587,7 @@ tputc(char *c, int len) {
 				}
 				break;
 			case 'Z': /* DECID -- Identify Terminal */
-				ttywrite(VT102ID, sizeof(VT102ID) - 1);
+				ttywrite(vtiden, sizeof(vtiden) - 1);
 				break;
 			case 'c': /* RIS -- Reset to inital state */
 				treset();
