@@ -2311,13 +2311,13 @@ techo(char *buf, int len) {
 	for(; len > 0; buf++, len--) {
 		char c = *buf;
 
-		if(ISCONTROL(c)) { /* control code */
+		if(ISCONTROL((uchar) c)) { /* control code */
 			if(c & 0x80) {
 				c &= 0x7f;
 				tputc("^", 1);
 				tputc("[", 1);
 			} else if(c != '\n' && c != '\r' && c != '\t') {
-				c ^= '\x40';
+				c ^= 0x40;
 				tputc("^", 1);
 			}
 			tputc(&c, 1);
