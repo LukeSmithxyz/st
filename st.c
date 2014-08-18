@@ -1139,23 +1139,29 @@ die(const char *errstr, ...) {
 
 void
 execsh(void) {
-	char **args;
-	char *envshell = getenv("SHELL");
-	const struct passwd *pass = getpwuid(getuid());
+	char **args, *sh;
+	const struct passwd *pw;
 	char buf[sizeof(long) * 8 + 1];
 
+	errno = 0;
+	if((pw = getpwuid(getuid())) == NULL) {
+		if(errno)
+			die("getpwuid:%s\n", strerror(errno));
+		else
+			die("who are you?\n");
+	}
 	unsetenv("COLUMNS");
 	unsetenv("LINES");
 	unsetenv("TERMCAP");
 
-	if(pass) {
-		setenv("LOGNAME", pass->pw_name, 1);
-		setenv("USER", pass->pw_name, 1);
-		setenv("SHELL", pass->pw_shell, 0);
-		setenv("HOME", pass->pw_dir, 0);
-	}
-
+	sh = (pw->pw_shell[0]) ? pw->pw_shell : shell;
 	snprintf(buf, sizeof(buf), "%lu", xw.win);
+
+	setenv("LOGNAME", pw->pw_name, 1);
+	setenv("USER", pw->pw_name, 1);
+	setenv("SHELL", sh, 1);
+	setenv("HOME", pw->pw_dir, 1);
+	setenv("TERM", termname, 1);
 	setenv("WINDOWID", buf, 1);
 
 	signal(SIGCHLD, SIG_DFL);
@@ -1165,9 +1171,7 @@ execsh(void) {
 	signal(SIGTERM, SIG_DFL);
 	signal(SIGALRM, SIG_DFL);
 
-	DEFAULT(envshell, shell);
-	setenv("TERM", termname, 1);
-	args = opt_cmd ? opt_cmd : (char *[]){envshell, "-i", NULL};
+	args = opt_cmd ? opt_cmd : (char *[]){sh, "-i", NULL};
 	execvp(args[0], args);
 	exit(EXIT_FAILURE);
 }
