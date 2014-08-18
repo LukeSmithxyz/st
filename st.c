@@ -1356,9 +1356,12 @@ treset(void) {
 	memset(term.trantbl, sizeof(term.trantbl), CS_USA);
 	term.charset = 0;
 
-	tclearregion(0, 0, term.col-1, term.row-1);
-	tmoveto(0, 0);
-	tcursor(CURSOR_SAVE);
+	for(i = 0; i < 2; i++) {
+		tmoveto(0, 0);
+		tcursor(CURSOR_SAVE);
+		tclearregion(0, 0, term.col-1, term.row-1);
+		tswapscreen();
+	}
 }
 
 void
