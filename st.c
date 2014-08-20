@@ -356,6 +356,7 @@ static void csidump(void);
 static void csihandle(void);
 static void csiparse(void);
 static void csireset(void);
+static int eschandle(uchar ascii);
 static void strdump(void);
 static void strhandle(void);
 static void strparse(void);
@@ -2348,6 +2349,19 @@ tdeftran(char ascii) {
 }
 
 void
+tdectest(char c) {
+	static char E[UTF_SIZ] = "E";
+	int x, y;
+
+	if(c == '8') { /* DEC screen alignment test. */
+		for(x = 0; x < term.col; ++x) {
+			for(y = 0; y < term.row; ++y)
+				tsetchar(E, &term.c.attr, x, y);
+		}
+	}
+}
+
+void
 tstrsequence(uchar c) {
 	if (c & 0x80) {
 		switch (c) {
@@ -2455,17 +2469,83 @@ tcontrolcode(uchar ascii) {
 	return;
 }
 
-void
-tdectest(char c) {
-	static char E[UTF_SIZ] = "E";
-	int x, y;
-
-	if(c == '8') { /* DEC screen alignment test. */
-		for(x = 0; x < term.col; ++x) {
-			for(y = 0; y < term.row; ++y)
-				tsetchar(E, &term.c.attr, x, y);
+/*
+ * returns 1 when the sequence is finished and it hasn't to read
+ * more characters for this sequence, otherwise 0
+ */
+int
+eschandle(uchar ascii) {
+	switch(ascii) {
+	case '[':
+		term.esc |= ESC_CSI;
+		return 0;
+	case '#':
+		term.esc |= ESC_TEST;
+		return 0;
+	case 'P': /* DCS -- Device Control String */
+	case '_': /* APC -- Application Program Command */
+	case '^': /* PM -- Privacy Message */
+	case ']': /* OSC -- Operating System Command */
+	case 'k': /* old title set compatibility */
+		tstrsequence(ascii);
+		return 0;
+	case '(': /* set primary charset G0 */
+	case ')': /* set secondary charset G1 */
+	case '*': /* set tertiary charset G2 */
+	case '+': /* set quaternary charset G3 */
+		term.icharset = ascii - '(';
+		term.esc |= ESC_ALTCHARSET;
+		return 0;
+	case 'D': /* IND -- Linefeed */
+		if(term.c.y == term.bot) {
+			tscrollup(term.top, 1);
+		} else {
+			tmoveto(term.c.x, term.c.y+1);
 		}
+		break;
+	case 'E': /* NEL -- Next line */
+		tnewline(1); /* always go to first col */
+		break;
+	case 'H': /* HTS -- Horizontal tab stop */
+		term.tabs[term.c.x] = 1;
+		break;
+	case 'M': /* RI -- Reverse index */
+		if(term.c.y == term.top) {
+			tscrolldown(term.top, 1);
+		} else {
+			tmoveto(term.c.x, term.c.y-1);
+		}
+		break;
+	case 'Z': /* DECID -- Identify Terminal */
+		ttywrite(vtiden, sizeof(vtiden) - 1);
+		break;
+	case 'c': /* RIS -- Reset to inital state */
+		treset();
+		xresettitle();
+		xloadcols();
+		break;
+	case '=': /* DECPAM -- Application keypad */
+		term.mode |= MODE_APPKEYPAD;
+		break;
+	case '>': /* DECPNM -- Normal keypad */
+		term.mode &= ~MODE_APPKEYPAD;
+		break;
+	case '7': /* DECSC -- Save Cursor */
+		tcursor(CURSOR_SAVE);
+		break;
+	case '8': /* DECRC -- Restore Cursor */
+		tcursor(CURSOR_LOAD);
+		break;
+	case '\\': /* ST -- String Terminator */
+		if(term.esc & ESC_STR_END)
+			strhandle();
+		break;
+	default:
+		fprintf(stderr, "erresc: unknown sequence ESC 0x%02X '%c'\n",
+			(uchar) ascii, isprint(ascii)? ascii:'.');
+		break;
 	}
+	return 1;
 }
 
 void
@@ -2552,76 +2632,9 @@ tputc(char *c, int len) {
 		} else if(term.esc & ESC_TEST) {
 			tdectest(ascii);
 		} else {
-			switch(ascii) {
-			case '[':
-				term.esc |= ESC_CSI;
+			if (!eschandle(ascii))
 				return;
-			case '#':
-				term.esc |= ESC_TEST;
-				return;
-			case 'P': /* DCS -- Device Control String */
-			case '_': /* APC -- Application Program Command */
-			case '^': /* PM -- Privacy Message */
-			case ']': /* OSC -- Operating System Command */
-			case 'k': /* old title set compatibility */
-				tstrsequence(ascii);
-				return;
-			case '(': /* set primary charset G0 */
-			case ')': /* set secondary charset G1 */
-			case '*': /* set tertiary charset G2 */
-			case '+': /* set quaternary charset G3 */
-				term.icharset = ascii - '(';
-				term.esc |= ESC_ALTCHARSET;
-				return;
-			case 'D': /* IND -- Linefeed */
-				if(term.c.y == term.bot) {
-					tscrollup(term.top, 1);
-				} else {
-					tmoveto(term.c.x, term.c.y+1);
-				}
-				break;
-			case 'E': /* NEL -- Next line */
-				tnewline(1); /* always go to first col */
-				break;
-			case 'H': /* HTS -- Horizontal tab stop */
-				term.tabs[term.c.x] = 1;
-				break;
-			case 'M': /* RI -- Reverse index */
-				if(term.c.y == term.top) {
-					tscrolldown(term.top, 1);
-				} else {
-					tmoveto(term.c.x, term.c.y-1);
-				}
-				break;
-			case 'Z': /* DECID -- Identify Terminal */
-				ttywrite(vtiden, sizeof(vtiden) - 1);
-				break;
-			case 'c': /* RIS -- Reset to inital state */
-				treset();
-				xresettitle();
-				xloadcols();
-				break;
-			case '=': /* DECPAM -- Application keypad */
-				term.mode |= MODE_APPKEYPAD;
-				break;
-			case '>': /* DECPNM -- Normal keypad */
-				term.mode &= ~MODE_APPKEYPAD;
-				break;
-			case '7': /* DECSC -- Save Cursor */
-				tcursor(CURSOR_SAVE);
-				break;
-			case '8': /* DECRC -- Restore Cursor */
-				tcursor(CURSOR_LOAD);
-				break;
-			case '\\': /* ST -- String Terminator */
-				if(term.esc & ESC_STR_END)
-					strhandle();
-				break;
-			default:
-				fprintf(stderr, "erresc: unknown sequence ESC 0x%02X '%c'\n",
-					(uchar) ascii, isprint(ascii)? ascii:'.');
-				break;
-			}
+			/* sequence already finished */
 		}
 		term.esc = 0;
 		/*
