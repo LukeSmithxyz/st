@@ -709,7 +709,8 @@ selected(int x, int y) {
 void
 selsnap(int mode, int *x, int *y, int direction) {
 	int newx, newy, xt, yt;
-	Glyph *gp;
+	bool delim, prevdelim;
+	Glyph *gp, *prevgp;
 
 	switch(mode) {
 	case SNAP_WORD:
@@ -717,6 +718,8 @@ selsnap(int mode, int *x, int *y, int direction) {
 		 * Snap around if the word wraps around at the end or
 		 * beginning of a line.
 		 */
+		prevgp = &term.line[*y][*x];
+		prevdelim = strchr(worddelimiters, prevgp->c[0]) != NULL;
 		for(;;) {
 			newx = *x + direction;
 			newy = *y;
@@ -738,11 +741,15 @@ selsnap(int mode, int *x, int *y, int direction) {
 				break;
 
 			gp = &term.line[newy][newx];
-			if (!(gp->mode & ATTR_WDUMMY) && strchr(worddelimiters, gp->c[0]))
+			delim = strchr(worddelimiters, gp->c[0]) != NULL;
+			if(!(gp->mode & ATTR_WDUMMY) && (delim != prevdelim
+					|| (delim && gp->c[0] != prevgp->c[0])))
 				break;
 
 			*x = newx;
 			*y = newy;
+			prevgp = gp;
+			prevdelim = delim;
 		}
 		break;
 	case SNAP_LINE:
