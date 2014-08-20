@@ -2496,10 +2496,10 @@ eschandle(uchar ascii) {
 	case 'k': /* old title set compatibility */
 		tstrsequence(ascii);
 		return 0;
-	case '(': /* set primary charset G0 */
-	case ')': /* set secondary charset G1 */
-	case '*': /* set tertiary charset G2 */
-	case '+': /* set quaternary charset G3 */
+	case '(': /* GZD4 -- set primary charset G0 */
+	case ')': /* G1D4 -- set secondary charset G1 */
+	case '*': /* G2D4 -- set tertiary charset G2 */
+	case '+': /* G3D4 -- set quaternary charset G3 */
 		term.icharset = ascii - '(';
 		term.esc |= ESC_ALTCHARSET;
 		return 0;
