@@ -682,6 +682,9 @@ selnormalize(void) {
 	sel.nb.y = MIN(sel.ob.y, sel.oe.y);
 	sel.ne.y = MAX(sel.ob.y, sel.oe.y);
 
+	selsnap(sel.snap, &sel.nb.x, &sel.nb.y, -1);
+	selsnap(sel.snap, &sel.ne.x, &sel.ne.y, +1);
+
 	/* expand selection over line breaks */
 	if (sel.type == SEL_RECTANGULAR)
 		return;
@@ -777,15 +780,6 @@ getbuttoninfo(XEvent *e) {
 
 	sel.oe.x = x2col(e->xbutton.x);
 	sel.oe.y = y2row(e->xbutton.y);
-
-	if(sel.ob.y < sel.oe.y
-			|| (sel.ob.y == sel.oe.y && sel.ob.x < sel.oe.x)) {
-		selsnap(sel.snap, &sel.ob.x, &sel.ob.y, -1);
-		selsnap(sel.snap, &sel.oe.x, &sel.oe.y, +1);
-	} else {
-		selsnap(sel.snap, &sel.oe.x, &sel.oe.y, -1);
-		selsnap(sel.snap, &sel.ob.x, &sel.ob.y, +1);
-	}
 	selnormalize();
 
 	sel.type = SEL_REGULAR;
@@ -900,8 +894,6 @@ bpress(XEvent *e) {
 		} else {
 			sel.snap = 0;
 		}
-		selsnap(sel.snap, &sel.ob.x, &sel.ob.y, -1);
-		selsnap(sel.snap, &sel.oe.x, &sel.oe.y, +1);
 		selnormalize();
 
 		/*
