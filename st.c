@@ -662,7 +662,10 @@ y2row(int y) {
 static int tlinelen(int y) {
 	int i = term.col;
 
-	while (i > 0 && term.line[y][i - 1].c[0] == ' ')
+	if(term.line[y][i - 1].mode & ATTR_WRAP)
+		return i;
+
+	while(i > 0 && term.line[y][i - 1].c[0] == ' ')
 		--i;
 
 	return i;
@@ -959,7 +962,7 @@ getsel(void) {
 		 * st.
 		 * FIXME: Fix the computer world.
 		 */
-		if(sel.ne.y > y || lastx >= linelen)
+		if((y < sel.ne.y || lastx >= linelen) && !(last->mode & ATTR_WRAP))
 			*ptr++ = '\n';
 	}
 	*ptr = 0;
