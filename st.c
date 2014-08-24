@@ -3459,39 +3459,40 @@ xdrawcursor(void) {
 	xdraws(term.line[oldy][oldx].c, term.line[oldy][oldx], oldx,
 			oldy, width, sl);
 
-	/* draw the new one */
-	if(!(IS_SET(MODE_HIDE))) {
-		if(xw.state & WIN_FOCUSED) {
-			if(IS_SET(MODE_REVERSE)) {
-				g.mode |= ATTR_REVERSE;
-				g.fg = defaultcs;
-				g.bg = defaultfg;
-			}
+	if(IS_SET(MODE_HIDE))
+		return;
 
-			sl = utf8len(g.c);
-			width = (term.line[term.c.y][curx].mode & ATTR_WIDE)\
-				? 2 : 1;
-			xdraws(g.c, g, term.c.x, term.c.y, width, sl);
-		} else {
-			XftDrawRect(xw.draw, &dc.col[defaultcs],
-					borderpx + curx * xw.cw,
-					borderpx + term.c.y * xw.ch,
-					xw.cw - 1, 1);
-			XftDrawRect(xw.draw, &dc.col[defaultcs],
-					borderpx + curx * xw.cw,
-					borderpx + term.c.y * xw.ch,
-					1, xw.ch - 1);
-			XftDrawRect(xw.draw, &dc.col[defaultcs],
-					borderpx + (curx + 1) * xw.cw - 1,
-					borderpx + term.c.y * xw.ch,
-					1, xw.ch - 1);
-			XftDrawRect(xw.draw, &dc.col[defaultcs],
-					borderpx + curx * xw.cw,
-					borderpx + (term.c.y + 1) * xw.ch - 1,
-					xw.cw, 1);
+	/* draw the new one */
+	if(xw.state & WIN_FOCUSED) {
+		if(IS_SET(MODE_REVERSE)) {
+			g.mode |= ATTR_REVERSE;
+			g.fg = defaultcs;
+			g.bg = defaultfg;
 		}
-		oldx = curx, oldy = term.c.y;
+
+		sl = utf8len(g.c);
+		width = (term.line[term.c.y][curx].mode & ATTR_WIDE)\
+			? 2 : 1;
+		xdraws(g.c, g, term.c.x, term.c.y, width, sl);
+	} else {
+		XftDrawRect(xw.draw, &dc.col[defaultcs],
+				borderpx + curx * xw.cw,
+				borderpx + term.c.y * xw.ch,
+				xw.cw - 1, 1);
+		XftDrawRect(xw.draw, &dc.col[defaultcs],
+				borderpx + curx * xw.cw,
+				borderpx + term.c.y * xw.ch,
+				1, xw.ch - 1);
+		XftDrawRect(xw.draw, &dc.col[defaultcs],
+				borderpx + (curx + 1) * xw.cw - 1,
+				borderpx + term.c.y * xw.ch,
+				1, xw.ch - 1);
+		XftDrawRect(xw.draw, &dc.col[defaultcs],
+				borderpx + curx * xw.cw,
+				borderpx + (term.c.y + 1) * xw.ch - 1,
+				xw.cw, 1);
 	}
+	oldx = curx, oldy = term.c.y;
 }
 
 
