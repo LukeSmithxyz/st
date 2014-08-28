@@ -8,6 +8,7 @@
 static char font[] = "Liberation Mono:pixelsize=12:antialias=false:autohint=false";
 static int borderpx = 2;
 static char shell[] = "/bin/sh";
+static char *utmp = NULL;
 
 /* identification sequence returned in DA and DECID */
 static char vtiden[] = "\033[?6c";

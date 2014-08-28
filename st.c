@@ -1153,16 +1153,22 @@ execsh(void) {
 		else
 			die("who are you?\n");
 	}
+
+	if (utmp)
+		sh = utmp;
+	else if (pw->pw_shell[0])
+		sh = pw->pw_shell;
+	else
+		sh = shell;
+	args = (opt_cmd) ? opt_cmd : (char *[]){sh, NULL};
+	snprintf(buf, sizeof(buf), "%lu", xw.win);
+
 	unsetenv("COLUMNS");
 	unsetenv("LINES");
 	unsetenv("TERMCAP");
-
-	sh = (pw->pw_shell[0]) ? pw->pw_shell : shell;
-	snprintf(buf, sizeof(buf), "%lu", xw.win);
-
 	setenv("LOGNAME", pw->pw_name, 1);
 	setenv("USER", pw->pw_name, 1);
-	setenv("SHELL", sh, 1);
+	setenv("SHELL", args[0], 1);
 	setenv("HOME", pw->pw_dir, 1);
 	setenv("TERM", termname, 1);
 	setenv("WINDOWID", buf, 1);
@@ -1174,7 +1180,6 @@ execsh(void) {
 	signal(SIGTERM, SIG_DFL);
 	signal(SIGALRM, SIG_DFL);
 
-	args = opt_cmd ? opt_cmd : (char *[]){sh, "-i", NULL};
 	execvp(args[0], args);
 	exit(EXIT_FAILURE);
 }
