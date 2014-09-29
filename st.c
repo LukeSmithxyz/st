@@ -3064,10 +3064,10 @@ xunloadfonts(void) {
 	xunloadfont(&dc.ibfont);
 }
 
-
 void
 xzoom(const Arg *arg) {
 	Arg larg;
+
 	larg.i = usedfontsize + arg->i;
 	xzoomabs(&larg);
 }
@@ -3084,6 +3084,7 @@ xzoomabs(const Arg *arg) {
 void
 xzoomreset(const Arg *arg) {
 	Arg larg;
+
 	if(defaultfontsize > 0) {
 		larg.i = defaultfontsize;
 		xzoomabs(&larg);
