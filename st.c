@@ -317,6 +317,8 @@ static void clippaste(const Arg *);
 static void numlock(const Arg *);
 static void selpaste(const Arg *);
 static void xzoom(const Arg *);
+static void xzoomabs(const Arg *);
+static void xzoomreset(const Arg *);
 static void printsel(const Arg *);
 static void printscreen(const Arg *) ;
 static void toggleprinter(const Arg *);
@@ -503,6 +505,7 @@ static int oldbutton = 3; /* button event on startup: 3 = release */
 
 static char *usedfont = NULL;
 static double usedfontsize = 0;
+static double defaultfontsize = 0;
 
 static uchar utfbyte[UTF_SIZ + 1] = {0x80,    0, 0xC0, 0xE0, 0xF0};
 static uchar utfmask[UTF_SIZ + 1] = {0xC0, 0x80, 0xE0, 0xF0, 0xF8};
@@ -2993,6 +2996,7 @@ xloadfonts(char *fontstr, double fontsize) {
 			FcPatternAddDouble(pattern, FC_PIXEL_SIZE, 12);
 			usedfontsize = 12;
 		}
+		defaultfontsize = usedfontsize;
 	}
 
 	FcConfigSubstitute(0, pattern, FcMatchPattern);
@@ -3005,6 +3009,8 @@ xloadfonts(char *fontstr, double fontsize) {
 		FcPatternGetDouble(dc.font.match->pattern,
 		                   FC_PIXEL_SIZE, 0, &fontval);
 		usedfontsize = fontval;
+		if(fontsize == 0)
+			defaultfontsize = fontval;
 	}
 
 	/* Setting character width and height. */
@@ -3058,13 +3064,30 @@ xunloadfonts(void) {
 	xunloadfont(&dc.ibfont);
 }
 
+
 void
 xzoom(const Arg *arg) {
+	Arg larg;
+	larg.i = usedfontsize + arg->i;
+	xzoomabs(&larg);
+}
+
+void
+xzoomabs(const Arg *arg) {
 	xunloadfonts();
-	xloadfonts(usedfont, usedfontsize + arg->i);
+	xloadfonts(usedfont, arg->i);
 	cresize(0, 0);
 	redraw(0);
 	xhints();
+}
+
+void
+xzoomreset(const Arg *arg) {
+	Arg larg;
+	if(defaultfontsize > 0) {
+		larg.i = defaultfontsize;
+		xzoomabs(&larg);
+	}
 }
 
 void
