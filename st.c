@@ -27,6 +27,7 @@
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <X11/Xft/Xft.h>
+#include <X11/XKBlib.h>
 #include <fontconfig/fontconfig.h>
 #include <wchar.h>
 
@@ -2423,7 +2424,7 @@ tcontrolcode(uchar ascii) {
 			if(!(xw.state & WIN_FOCUSED))
 				xseturgency(1);
 			if (bellvolume)
-				XBell(xw.dpy, bellvolume);
+				XkbBell(xw.dpy, xw.win, bellvolume, (Atom)NULL);
 		}
 		break;
 	case '\033': /* ESC */
