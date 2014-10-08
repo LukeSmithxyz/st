@@ -2497,6 +2497,10 @@ eschandle(uchar ascii) {
 	case 'k': /* old title set compatibility */
 		tstrsequence(ascii);
 		return 0;
+	case 'n': /* LS2 -- Locking shift 2 */
+	case 'o': /* LS3 -- Locking shift 3 */
+		term.charset = 2 + (ascii - 'n');
+		break;
 	case '(': /* GZD4 -- set primary charset G0 */
 	case ')': /* G1D4 -- set secondary charset G1 */
 	case '*': /* G2D4 -- set tertiary charset G2 */
