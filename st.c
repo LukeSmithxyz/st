@@ -2431,11 +2431,9 @@ tcontrolcode(uchar ascii) {
 		term.esc &= ~(ESC_CSI|ESC_ALTCHARSET|ESC_TEST);
 		term.esc |= ESC_START;
 		return;
-	case '\016': /* SO */
-		term.charset = 0;
-		return;
-	case '\017': /* SI */
-		term.charset = 1;
+	case '\016': /* SO (LS1 -- Locking shift 1) */
+	case '\017': /* SI (LS0 -- Locking shift 0) */
+		term.charset = 1 - (ascii - '\016');
 		return;
 	case '\032': /* SUB */
 		tsetchar(question, &term.c.attr, term.c.x, term.c.y);
