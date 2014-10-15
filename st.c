@@ -1146,7 +1146,7 @@ die(const char *errstr, ...) {
 
 void
 execsh(void) {
-	char **args, *sh;
+	char **args, *sh, *prog;
 	const struct passwd *pw;
 	char buf[sizeof(long) * 8 + 1];
 
@@ -1158,13 +1158,15 @@ execsh(void) {
 			die("who are you?\n");
 	}
 
-	if (utmp)
-		sh = utmp;
-	else if (pw->pw_shell[0])
-		sh = pw->pw_shell;
+	sh = (pw->pw_shell[0]) ? pw->pw_shell : shell;
+	if(opt_cmd)
+		prog = opt_cmd[0];
+	else if(utmp)
+		prog = utmp;
 	else
-		sh = shell;
-	args = (opt_cmd) ? opt_cmd : (char *[]){sh, NULL};
+		prog = sh;
+	args = (opt_cmd) ? opt_cmd : (char *[]) {prog, NULL};
+
 	snprintf(buf, sizeof(buf), "%lu", xw.win);
 
 	unsetenv("COLUMNS");
@@ -1172,7 +1174,7 @@ execsh(void) {
 	unsetenv("TERMCAP");
 	setenv("LOGNAME", pw->pw_name, 1);
 	setenv("USER", pw->pw_name, 1);
-	setenv("SHELL", args[0], 1);
+	setenv("SHELL", sh, 1);
 	setenv("HOME", pw->pw_dir, 1);
 	setenv("TERM", termname, 1);
 	setenv("WINDOWID", buf, 1);
@@ -1184,7 +1186,7 @@ execsh(void) {
 	signal(SIGTERM, SIG_DFL);
 	signal(SIGALRM, SIG_DFL);
 
-	execvp(args[0], args);
+	execvp(prog, args);
 	exit(EXIT_FAILURE);
 }
 
