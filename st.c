@@ -2576,7 +2576,10 @@ tputc(char *c, int len) {
 		unicodep = ascii = *c;
 	} else {
 		utf8decode(c, &unicodep, UTF_SIZ);
-		width = wcwidth(unicodep);
+		if ((width = wcwidth(unicodep)) == -1) {
+			c = "\357\277\275";	/* UTF_INVALID */
+			width = 1;
+		}
 		control = ISCONTROLC1(unicodep);
 		ascii = unicodep;
 	}
