@@ -1190,7 +1190,7 @@ execsh(void) {
 	signal(SIGALRM, SIG_DFL);
 
 	execvp(prog, args);
-	exit(EXIT_FAILURE);
+	_exit(EXIT_FAILURE);
 }
 
 void
