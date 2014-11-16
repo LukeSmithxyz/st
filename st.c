@@ -947,6 +947,8 @@ getsel(void) {
 			lastx = (sel.ne.y == y) ? sel.ne.x : term.col-1;
 		}
 		last = &term.line[y][MIN(lastx, linelen-1)];
+		while(last >= gp && last->c[0] == ' ')
+			--last;
 
 		for( ; gp <= last; ++gp) {
 			if(gp->mode & ATTR_WDUMMY)
