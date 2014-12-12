@@ -3922,6 +3922,9 @@ run(void) {
 							TIMEDIFF(now,
 								lastblink)));
 					}
+					drawtimeout.tv_sec = \
+					    drawtimeout.tv_nsec / 1E9;
+					drawtimeout.tv_nsec %= (long)1E9;
 				} else {
 					tv = NULL;
 				}
