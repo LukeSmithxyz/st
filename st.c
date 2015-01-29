@@ -2673,13 +2673,16 @@ tputc(char *c, int len) {
 	if(IS_SET(MODE_WRAP) && (term.c.state & CURSOR_WRAPNEXT)) {
 		gp->mode |= ATTR_WRAP;
 		tnewline(1);
+		gp = &term.line[term.c.y][term.c.x];
 	}
 
 	if(IS_SET(MODE_INSERT) && term.c.x+1 < term.col)
 		memmove(gp+1, gp, (term.col - term.c.x - 1) * sizeof(Glyph));
 
-	if(term.c.x+width > term.col)
+	if(term.c.x+width > term.col) {
 		tnewline(1);
+		gp = &term.line[term.c.y][term.c.x];
+	}
 
 	tsetchar(c, &term.c.attr, term.c.x, term.c.y);
 
