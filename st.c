@@ -2676,8 +2676,8 @@ tputc(char *c, int len) {
 		gp = &term.line[term.c.y][term.c.x];
 	}
 
-	if(IS_SET(MODE_INSERT) && term.c.x+1 < term.col)
-		memmove(gp+1, gp, (term.col - term.c.x - 1) * sizeof(Glyph));
+	if(IS_SET(MODE_INSERT) && term.c.x+width < term.col)
+		memmove(gp+width, gp, (term.col - term.c.x - width) * sizeof(Glyph));
 
 	if(term.c.x+width > term.col) {
 		tnewline(1);
