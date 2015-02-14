@@ -63,8 +63,6 @@ char *argv0;
 #define XK_NO_MOD     0
 #define XK_SWITCH_MOD (1<<13)
 
-#define REDRAW_TIMEOUT (80*1000) /* 80 ms */
-
 /* macros */
 #define MIN(a, b)  ((a) < (b) ? (a) : (b))
 #define MAX(a, b)  ((a) < (b) ? (b) : (a))
@@ -349,7 +347,7 @@ typedef struct {
 
 static void die(const char *, ...);
 static void draw(void);
-static void redraw(int);
+static void redraw(void);
 static void drawregion(int, int, int, int);
 static void execsh(void);
 static void sigchld(int);
@@ -1826,7 +1824,7 @@ tsetmode(bool priv, bool set, int *args, int narg) {
 				mode = term.mode;
 				MODBIT(term.mode, set, MODE_REVERSE);
 				if(mode != term.mode)
-					redraw(REDRAW_TIMEOUT);
+					redraw();
 				break;
 			case 6: /* DECOM -- Origin */
 				MODBIT(term.c.state, set, CURSOR_ORIGIN);
@@ -2200,7 +2198,7 @@ strhandle(void) {
 				 * TODO if defaultbg color is changed, borders
 				 * are dirty
 				 */
-				redraw(0);
+				redraw();
 			}
 			return;
 		}
@@ -3093,7 +3091,7 @@ xzoomabs(const Arg *arg) {
 	xunloadfonts();
 	xloadfonts(usedfont, arg->i);
 	cresize(0, 0);
-	redraw(0);
+	redraw();
 	xhints();
 }
 
@@ -3558,16 +3556,9 @@ xresettitle(void) {
 }
 
 void
-redraw(int timeout) {
-	struct timespec tv = {0, timeout * 1000};
-
+redraw(void) {
 	tfulldirt();
 	draw();
-
-	if(timeout > 0) {
-		nanosleep(&tv, NULL);
-		XSync(xw.dpy, False); /* necessary for a good tput flash */
-	}
 }
 
 void
@@ -3634,7 +3625,7 @@ expose(XEvent *ev) {
 		if(!e->count)
 			xw.state &= ~WIN_REDRAW;
 	}
-	redraw(0);
+	redraw();
 }
 
 void
