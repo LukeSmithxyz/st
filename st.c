@@ -2992,7 +2992,7 @@ xloadfonts(char *fontstr, double fontsize) {
 	if(!pattern)
 		die("st: can't open font %s\n", fontstr);
 
-	if(fontsize > 0) {
+	if(fontsize > 1) {
 		FcPatternDel(pattern, FC_PIXEL_SIZE);
 		FcPatternDel(pattern, FC_SIZE);
 		FcPatternAddDouble(pattern, FC_PIXEL_SIZE, (double)fontsize);
