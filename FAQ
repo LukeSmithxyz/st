@@ -51,7 +51,7 @@ solution for them is to use the following command:
 	$ printf '\033[?1h\033=' >/dev/tty
 
 or
-	$ echo $(tput smkx) >/dev/tty
+	$ tput smkx
 
 In the case of bash, readline is used. Readline has a different note in its
 manpage about this issue:
@@ -86,9 +86,9 @@ Putting these lines into your .zshrc will fix the problems.
 
 ## How can I use meta in 8bit mode?
 
- St supports meta in 8bit mode, but the default terminfo entry doesn't
- use this capability. If you want it, you have to use the 'st-meta' value
- in TERM.
+St supports meta in 8bit mode, but the default terminfo entry doesn't
+use this capability. If you want it, you have to use the 'st-meta' value
+in TERM.
 
 ## I cannot compile st in OpenBSD
 
@@ -155,3 +155,11 @@ This is an issue that was discussed in suckless mailing list
 	[1] http://www.ibb.net/~anne/keyboard.html
 	[2] http://www.tldp.org/HOWTO/Keyboard-and-Console-HOWTO-5.html
 
+## But I really want a wrong backspace key and a wrong delete key
+
+If you really want emulate the errors of another terminal emulators
+and have a backspace key that generates a DELETE and a delete key
+that generates BACKSPACE, then you can apply the patch
+found in [1], but please do not tell me it.
+
+[1] http://st.suckless.org/patches/delkey
