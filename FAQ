@@ -98,10 +98,14 @@ If you want to compile st for OpenBSD you have to remove -lrt from config.mk, an
 st will compile without any loss of functionality, because all the functions are
 included in libc on this platform.
 
-## Backspace key does not work
+## The Backspace Case
+
+St is emulating the Linux way of handling backspace being delete and delete being
+backspace.
 
 This is an issue that was discussed in suckless mailing list
-<http://lists.suckless.org/dev/1404/20697.html>:
+<http://lists.suckless.org/dev/1404/20697.html>. Here is why some old grumpy
+terminal users wants its backspace to be how he feels it:
 
 	Well, I am going to comment why I want to change the behaviour
 	of this key. When ASCII was defined in 1968, communication
@@ -155,11 +159,9 @@ This is an issue that was discussed in suckless mailing list
 	[1] http://www.ibb.net/~anne/keyboard.html
 	[2] http://www.tldp.org/HOWTO/Keyboard-and-Console-HOWTO-5.html
 
-## But I really want a wrong backspace key and a wrong delete key
+## But I really want the old grumpy behaviour of my terminal
 
-If you really want emulate the errors of another terminal emulators
-and have a backspace key that generates a DELETE and a delete key
-that generates BACKSPACE, then you can apply the patch
-found in [1], but please do not tell me it.
+Apply [1].
 
 [1] http://st.suckless.org/patches/delkey
+
