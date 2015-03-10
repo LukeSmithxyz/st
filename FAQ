@@ -92,7 +92,7 @@ in TERM.
 
 ## I cannot compile st in OpenBSD
 
-OpenBSD lacks of librt, despite it begin mandatory in POSIX
+OpenBSD lacks librt, despite it began to be mandatory in POSIX
 <http://pubs.opengroup.org/onlinepubs/9699919799/utilities/c99.html#tag_20_11_13>.
 If you want to compile st for OpenBSD you have to remove -lrt from config.mk, and
 st will compile without any loss of functionality, because all the functions are
