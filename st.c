@@ -1079,16 +1079,9 @@ selrequest(XEvent *e) {
 
 void
 xsetsel(char *str) {
-	/* register the selection for both the clipboard and the primary */
-	Atom clipboard;
-
 	free(sel.clip);
 	sel.clip = str;
-
 	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, CurrentTime);
-
-	clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
-	XSetSelectionOwner(xw.dpy, clipboard, xw.win, CurrentTime);
 }
 
 void
