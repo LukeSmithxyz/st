@@ -45,9 +45,9 @@ for further details.
 .B \-i
 will fixate the position given with the -g option.
 .TP
-.BI \-o " file"
+.BI \-o " iofile"
 writes all the I/O to
-.I file.
+.I iofile.
 This feature is useful when recording st sessions. A value of "-" means
 standard output.
 .TP
@@ -67,31 +67,40 @@ st executes
 instead of the shell.  If this is used it
 .B must be the last option
 on the command line, as in xterm / rxvt.
-.SH USAGE
+.SH SHORTCUTS
 .TP
 .B Ctrl-Print Screen
-toggleprinter()
+Toggle if st should print to the
+.I iofile.
 .TP
 .B Shift-Print Screen
-printscreen()
+Print the full screen to the
+.I iofile.
 .TP
 .B Print Screen
-printsel()
+Print the selection to the
+.I iofile.
 .TP
 .B Alt-Shift-Page Up
-increase font size
+Increase font size.
 .TP
 .B Alt-Shift-Page Down
-decrease font size
+Decrease font size.
 .TP
 .B Alt-Shift-Home
-reset to default font size
+Reset to default font size.
 .TP
 .B Shift-Insert
-paste from primary selection
+Paste from primary selection (middle mouse button).
 .TP
 .B Alt-Shift-Insert
-paste from clipboard selection
+Paste from clipboard selection.
+.TP
+.B Alt-Shift-c
+Copy the selected text to the clipboard selection.
+.TP
+.B Alt-Shift-v
+Paste from the clipboard selection.
 .SH CUSTOMIZATION
 .B st
 can be customized by creating a custom config.h and (re)compiling the source
