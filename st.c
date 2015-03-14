@@ -290,7 +290,7 @@ typedef struct {
 		int x, y;
 	} nb, ne, ob, oe;
 
-	char *clip;
+	char *primary, *clipboard;
 	Atom xtarget;
 	bool alt;
 	struct timespec tclick1;
@@ -312,6 +312,7 @@ typedef struct {
 } Shortcut;
 
 /* function definitions used in config.h */
+static void clipcopy(const Arg *);
 static void clippaste(const Arg *);
 static void numlock(const Arg *);
 static void selpaste(const Arg *);
@@ -479,7 +480,11 @@ static void (*handler[LASTEvent])(XEvent *) = {
 	[MotionNotify] = bmotion,
 	[ButtonPress] = bpress,
 	[ButtonRelease] = brelease,
-	[SelectionClear] = selclear,
+/*
+ * Uncomment if you want the selection to disappear when you select something
+ * different in another window.
+ */
+/*	[SelectionClear] = selclear, */
 	[SelectionNotify] = selnotify,
 	[SelectionRequest] = selrequest,
 };
@@ -640,7 +645,8 @@ selinit(void) {
 	memset(&sel.tclick2, 0, sizeof(sel.tclick2));
 	sel.mode = 0;
 	sel.ob.x = -1;
-	sel.clip = NULL;
+	sel.primary = NULL;
+	sel.clipboard = NULL;
 	sel.xtarget = XInternAtom(xw.dpy, "UTF8_STRING", 0);
 	if(sel.xtarget == None)
 		sel.xtarget = XA_STRING;
@@ -985,12 +991,15 @@ selnotify(XEvent *e) {
 	int format;
 	uchar *data, *last, *repl;
 	Atom type;
+	XSelectionEvent *xsev;
 
 	ofs = 0;
+	xsev = (XSelectionEvent *)e;
 	do {
-		if(XGetWindowProperty(xw.dpy, xw.win, XA_PRIMARY, ofs, BUFSIZ/4,
-					False, AnyPropertyType, &type, &format,
-					&nitems, &rem, &data)) {
+		if(XGetWindowProperty(xw.dpy, xw.win, xsev->property, ofs,
+					BUFSIZ/4, False, AnyPropertyType,
+					&type, &format, &nitems, &rem,
+					&data)) {
 			fprintf(stderr, "Clipboard allocation failed\n");
 			return;
 		}
@@ -1026,11 +1035,25 @@ selpaste(const Arg *dummy) {
 }
 
 void
+clipcopy(const Arg *dummy) {
+	Atom clipboard;
+
+	if(sel.clipboard != NULL)
+		free(sel.clipboard);
+
+	if(sel.primary != NULL) {
+		sel.clipboard = xstrdup(sel.primary);
+		clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
+		XSetSelectionOwner(xw.dpy, clipboard, xw.win, CurrentTime);
+	}
+}
+
+void
 clippaste(const Arg *dummy) {
 	Atom clipboard;
 
 	clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
-	XConvertSelection(xw.dpy, clipboard, sel.xtarget, XA_PRIMARY,
+	XConvertSelection(xw.dpy, clipboard, sel.xtarget, clipboard,
 			xw.win, CurrentTime);
 }
 
@@ -1046,7 +1069,8 @@ void
 selrequest(XEvent *e) {
 	XSelectionRequestEvent *xsre;
 	XSelectionEvent xev;
-	Atom xa_targets, string;
+	Atom xa_targets, string, clipboard;
+	char *seltext;
 
 	xsre = (XSelectionRequestEvent *) e;
 	xev.type = SelectionNotify;
@@ -1065,11 +1089,25 @@ selrequest(XEvent *e) {
 				XA_ATOM, 32, PropModeReplace,
 				(uchar *) &string, 1);
 		xev.property = xsre->property;
-	} else if(xsre->target == sel.xtarget && sel.clip != NULL) {
-		XChangeProperty(xsre->display, xsre->requestor, xsre->property,
-				xsre->target, 8, PropModeReplace,
-				(uchar *) sel.clip, strlen(sel.clip));
-		xev.property = xsre->property;
+	} else if(xsre->target == sel.xtarget) {
+		clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
+		if(xsre->selection == XA_PRIMARY) {
+			seltext = sel.primary;
+		} else if(xsre->selection == clipboard) {
+			seltext = sel.clipboard;
+		} else {
+			fprintf(stderr,
+				"Unhandled clipboard selection 0x%lx\n",
+				xsre->selection);
+			return;
+		}
+		if(seltext != NULL) {
+			XChangeProperty(xsre->display, xsre->requestor,
+					xsre->property, xsre->target,
+					8, PropModeReplace,
+					(uchar *)seltext, strlen(seltext));
+			xev.property = xsre->property;
+		}
 	}
 
 	/* all done, send a notification to the listener */
@@ -1079,8 +1117,9 @@ selrequest(XEvent *e) {
 
 void
 xsetsel(char *str) {
-	free(sel.clip);
-	sel.clip = str;
+	free(sel.primary);
+	sel.primary = str;
+
 	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, CurrentTime);
 }
 
