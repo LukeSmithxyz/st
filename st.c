@@ -1089,7 +1089,11 @@ selrequest(XEvent *e) {
 				XA_ATOM, 32, PropModeReplace,
 				(uchar *) &string, 1);
 		xev.property = xsre->property;
-	} else if(xsre->target == sel.xtarget) {
+	} else if(xsre->target == sel.xtarget || xsre->target == XA_STRING) {
+		/*
+		 * xith XA_STRING non ascii characters may be incorrect in the
+		 * requestor. It is not our problem, use utf8.
+		 */
 		clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
 		if(xsre->selection == XA_PRIMARY) {
 			seltext = sel.primary;
