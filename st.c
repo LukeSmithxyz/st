@@ -2272,12 +2272,23 @@ strhandle(void) {
 
 void
 strparse(void) {
+	int c;
 	char *p = strescseq.buf;
 
 	strescseq.narg = 0;
 	strescseq.buf[strescseq.len] = '\0';
-	while(p && strescseq.narg < STR_ARG_SIZ)
-		strescseq.args[strescseq.narg++] = strsep(&p, ";");
+
+	if(*p == '\0')
+		return;
+
+	while(strescseq.narg < STR_ARG_SIZ) {
+		strescseq.args[strescseq.narg++] = p;
+		while((c = *p) != ';' && c != '\0')
+			++p;
+		if(c == '\0')
+			return;
+		*p++ = '\0';
+	}
 }
 
 void
