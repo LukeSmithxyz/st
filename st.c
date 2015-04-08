@@ -408,6 +408,7 @@ static void ttysend(char *, size_t);
 static void ttywrite(const char *, size_t);
 static void tstrsequence(uchar);
 
+static inline ushort sixd_to_16bit(int);
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
@@ -452,6 +453,8 @@ static char *getsel(void);
 static void selcopy(void);
 static void selscroll(int, int);
 static void selsnap(int, int *, int *, int);
+static int x2col(int);
+static int y2row(int);
 static void getbuttoninfo(XEvent *);
 static void mousereport(XEvent *);
 
@@ -640,7 +643,7 @@ utf8validate(long *u, size_t i) {
 	return i;
 }
 
-static void
+void
 selinit(void) {
 	memset(&sel.tclick1, 0, sizeof(sel.tclick1));
 	memset(&sel.tclick2, 0, sizeof(sel.tclick2));
@@ -653,7 +656,7 @@ selinit(void) {
 		sel.xtarget = XA_STRING;
 }
 
-static int
+int
 x2col(int x) {
 	x -= borderpx;
 	x /= xw.cw;
@@ -661,7 +664,7 @@ x2col(int x) {
 	return LIMIT(x, 0, term.col-1);
 }
 
-static int
+int
 y2row(int y) {
 	y -= borderpx;
 	y /= xw.ch;
@@ -669,7 +672,7 @@ y2row(int y) {
 	return LIMIT(y, 0, term.row-1);
 }
 
-static int tlinelen(int y) {
+int tlinelen(int y) {
 	int i = term.col;
 
 	if(term.line[y][i - 1].mode & ATTR_WRAP)
@@ -681,7 +684,7 @@ static int tlinelen(int y) {
 	return i;
 }
 
-static void
+void
 selnormalize(void) {
 	int i;
 
@@ -708,7 +711,7 @@ selnormalize(void) {
 		sel.ne.x = term.col - 1;
 }
 
-static inline bool
+bool
 selected(int x, int y) {
 	if(sel.type == SEL_RECTANGULAR)
 		return BETWEEN(y, sel.nb.y, sel.ne.y)
@@ -2857,7 +2860,7 @@ xresize(int col, int row) {
 	xclear(0, 0, xw.w, xw.h);
 }
 
-static inline ushort
+ushort
 sixd_to_16bit(int x) {
 	return x == 0 ? 0 : 0x3737 + 0x2828 * x;
 }
@@ -3772,7 +3775,7 @@ focus(XEvent *ev) {
 	}
 }
 
-static inline bool
+bool
 match(uint mask, uint state) {
 	return mask == XK_ANY_MOD || mask == (state & ~ignoremod);
 }
