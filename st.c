@@ -359,7 +359,7 @@ static void csidump(void);
 static void csihandle(void);
 static void csiparse(void);
 static void csireset(void);
-static int eschandle(uchar ascii);
+static int eschandle(uchar);
 static void strdump(void);
 static void strhandle(void);
 static void strparse(void);
@@ -406,7 +406,7 @@ static void ttyread(void);
 static void ttyresize(void);
 static void ttysend(char *, size_t);
 static void ttywrite(const char *, size_t);
-static void tstrsequence(uchar c);
+static void tstrsequence(uchar);
 
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
