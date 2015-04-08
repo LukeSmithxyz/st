@@ -419,7 +419,6 @@ static int xsetcolorname(int, const char *);
 static int xgeommasktogravity(int);
 static int xloadfont(Font *, FcPattern *);
 static void xloadfonts(char *, double);
-static int xloadfontset(Font *);
 static void xsettitle(char *);
 static void xresettitle(void);
 static void xsetpointermotion(int);
@@ -3116,15 +3115,6 @@ xloadfonts(char *fontstr, double fontsize) {
 	FcPatternDestroy(pattern);
 }
 
-int
-xloadfontset(Font *f) {
-	FcResult result;
-
-	if(!(f->set = FcFontSort(0, f->pattern, FcTrue, 0, &result)))
-		return 1;
-	return 0;
-}
-
 void
 xunloadfont(Font *f) {
 	XftFontClose(xw.dpy, f->match);
@@ -3472,7 +3462,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		/* Nothing was found. */
 		if(i >= frclen) {
 			if(!font->set)
-				xloadfontset(font);
+				font->set = FcFontSort(0, font->pattern,
+				                       FcTrue, 0, &fcres);
 			fcsets[0] = font->set;
 
 			/*
