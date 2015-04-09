@@ -4072,7 +4072,7 @@ main(int argc, char *argv[]) {
 run:
 	setlocale(LC_CTYPE, "");
 	XSetLocaleModifiers("");
-	tnew(cols? cols : 1, rows? rows : 1);
+	tnew(MAX(cols, 1), MAX(rows, 1));
 	xinit();
 	selinit();
 	run();
