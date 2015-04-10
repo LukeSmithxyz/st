@@ -3591,15 +3591,15 @@ xdrawcursor(void) {
 			case 4: /* Steady Underline */
 				XftDrawRect(xw.draw, &dc.col[defaultcs],
 						borderpx + curx * xw.cw,
-						borderpx + (term.c.y + 1) * xw.ch - 1,
-						xw.cw, 1);
+						borderpx + (term.c.y + 1) * xw.ch - cursorthickness,
+						xw.cw, cursorthickness);
 				break;
 			case 5: /* Blinking bar */
 			case 6: /* Steady bar */
 				XftDrawRect(xw.draw, &dc.col[defaultcs],
-								borderpx + curx * xw.cw,
-								borderpx + term.c.y * xw.ch,
-								1, xw.ch);
+						borderpx + curx * xw.cw,
+						borderpx + term.c.y * xw.ch,
+						cursorthickness, xw.ch);
 				break;
 		}
 	} else {
