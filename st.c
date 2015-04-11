@@ -2779,17 +2779,16 @@ tresize(int col, int row) {
 		return;
 	}
 
-	/* free unneeded rows */
+	/*
+	 * slide screen to keep cursor where we expect it -
+	 * tscrollup would work here, but we can optimize to
+	 * memmove because we're freeing the earlier lines
+	 */
 	for(i = 0; i < slide; i++) {
 		free(term.line[i]);
 		free(term.alt[i]);
 	}
 	if(slide > 0) {
-		/*
-		 * slide screen to keep cursor where we expect it -
-		 * tscrollup would work here, but we can optimize to
-		 * memmove because we're freeing the earlier lines
-		 */
 		memmove(term.line, term.line + slide, row * sizeof(Line));
 		memmove(term.alt, term.alt + slide, row * sizeof(Line));
 	}
