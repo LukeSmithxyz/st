@@ -3919,8 +3919,6 @@ run(void) {
 	/* Waiting for window mapping */
 	do {
 		XNextEvent(xw.dpy, &ev);
-		if(XFilterEvent(&ev, None))
-			continue;
 		if(ev.type == ConfigureNotify) {
 			w = ev.xconfigure.width;
 			h = ev.xconfigure.height;
