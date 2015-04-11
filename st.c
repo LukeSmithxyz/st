@@ -2769,7 +2769,6 @@ tresize(int col, int row) {
 	int i;
 	int minrow = MIN(row, term.row);
 	int mincol = MIN(col, term.col);
-	int slide = term.c.y - row + 1;
 	bool *bp;
 	TCursor c;
 
@@ -2784,13 +2783,13 @@ tresize(int col, int row) {
 	 * tscrollup would work here, but we can optimize to
 	 * memmove because we're freeing the earlier lines
 	 */
-	for(i = 0; i < slide; i++) {
+	for(i = 0; i <= term.c.y - row; i++) {
 		free(term.line[i]);
 		free(term.alt[i]);
 	}
-	if(slide > 0) {
-		memmove(term.line, term.line + slide, row * sizeof(Line));
-		memmove(term.alt, term.alt + slide, row * sizeof(Line));
+	if(i > 0) {
+		memmove(term.line, term.line + i, row * sizeof(Line));
+		memmove(term.alt, term.alt + i, row * sizeof(Line));
 	}
 	for(i += row; i < term.row; i++) {
 		free(term.line[i]);
