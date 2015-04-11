@@ -3917,17 +3917,15 @@ run(void) {
 	long deltatime;
 
 	/* Waiting for window mapping */
-	while(1) {
+	do {
 		XNextEvent(xw.dpy, &ev);
 		if(XFilterEvent(&ev, None))
 			continue;
 		if(ev.type == ConfigureNotify) {
 			w = ev.xconfigure.width;
 			h = ev.xconfigure.height;
-		} else if(ev.type == MapNotify) {
-			break;
 		}
-	}
+	} while(ev.type != MapNotify);
 
 	ttynew();
 	cresize(w, h);
