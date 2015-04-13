@@ -1,4 +1,4 @@
-/* See LICENSE for licence details. */
+/* See LICENSE for license details. */
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
