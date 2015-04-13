@@ -2444,21 +2444,19 @@ tdectest(char c) {
 
 void
 tstrsequence(uchar c) {
-	if (c & 0x80) {
-		switch (c) {
-		case 0x90:   /* DCS -- Device Control String */
-			c = 'P';
-			break;
-		case 0x9f:   /* APC -- Application Program Command */
-			c = '_';
-			break;
-		case 0x9e:   /* PM -- Privacy Message */
-			c = '^';
-			break;
-		case 0x9d:   /* OSC -- Operating System Command */
-			c = ']';
-			break;
-		}
+	switch (c) {
+	case 0x90:   /* DCS -- Device Control String */
+		c = 'P';
+		break;
+	case 0x9f:   /* APC -- Application Program Command */
+		c = '_';
+		break;
+	case 0x9e:   /* PM -- Privacy Message */
+		c = '^';
+		break;
+	case 0x9d:   /* OSC -- Operating System Command */
+		c = ']';
+		break;
 	}
 	strreset();
 	strescseq.type = c;
