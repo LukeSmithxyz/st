@@ -15,11 +15,36 @@ st \- simple terminal
 .IR file ]
 .RB [ \-t 
 .IR title ]
+.RB [ \-l
+.IR line ]
 .RB [ \-w 
 .IR windowid ]
 .RB [ \-v ]
 .RB [ \-e
 .IR command ...]
+.RI [ commands ...]
+.PP
+.B st
+.RB [ \-a ]
+.RB [ \-c
+.IR class ]
+.RB [ \-f
+.IR font ]
+.RB [ \-g
+.IR geometry ]
+.RB [ \-i ]
+.RB [ \-o
+.IR file ]
+.RB [ \-t
+.IR title ]
+.RB [ \-l
+.IR line ]
+.RB [ \-w
+.IR windowid ]
+.RB [ \-v ]
+.RB [ \-l
+.IR line ]
+.RI [ stty_args ...]
 .SH DESCRIPTION
 .B st
 is a simple terminal emulator.
@@ -58,6 +83,11 @@ defines the window title (default 'st').
 embeds st within the window identified by 
 .I windowid
 .TP
+.BI \-l " line"
+use a tty line instead of a pseudo terminal.
+When this flag is used
+remaining arguments are used as flags for stty.
+.TP
 .B \-v
 prints version information to stderr, then exits.
 .TP
@@ -67,6 +97,9 @@ st executes
 instead of the shell.  If this is used it
 .B must be the last option
 on the command line, as in xterm / rxvt.
+This option is only intended for compability,
+and all the remaining arguments are used as a command
+even without it.
 .SH SHORTCUTS
 .TP
 .B Ctrl-Print Screen
@@ -110,7 +143,9 @@ See the LICENSE file for the authors.
 .SH LICENSE
 See the LICENSE file for the terms of redistribution.
 .SH SEE ALSO
-.BR tabbed (1)
+.BR tabbed (1),
+.BR utmp (1),
+.BR stty (1)
 .SH BUGS
 See the TODO file in the distribution.
 
