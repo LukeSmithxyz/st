@@ -4010,7 +4010,6 @@ usage(void) {
 
 int
 main(int argc, char *argv[]) {
-	char *titles;
 	uint cols = 80, rows = 24;
 
 	xw.l = xw.t = 0;
@@ -4028,10 +4027,8 @@ main(int argc, char *argv[]) {
 		/* eat all remaining arguments */
 		if(argc > 1) {
 			opt_cmd = &argv[1];
-			if(argv[1] != NULL && opt_title == NULL) {
-				titles = xstrdup(argv[1]);
-				opt_title = basename(titles);
-			}
+			if(argv[1] != NULL && opt_title == NULL)
+				opt_title = basename(xstrdup(argv[1]));
 		}
 		goto run;
 	case 'f':
