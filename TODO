@@ -19,7 +19,6 @@ bugs
 ----
 
 * fix shift up/down (shift selection in emacs)
-* fix -e handling
 * remove DEC test sequence when appropriate
 
 misc
