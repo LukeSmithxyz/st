@@ -1571,11 +1571,9 @@ tmoveto(int x, int y) {
 		miny = 0;
 		maxy = term.row - 1;
 	}
-	LIMIT(x, 0, term.col-1);
-	LIMIT(y, miny, maxy);
 	term.c.state &= ~CURSOR_WRAPNEXT;
-	term.c.x = x;
-	term.c.y = y;
+	term.c.x = LIMIT(x, 0, term.col-1);
+	term.c.y = LIMIT(y, miny, maxy);
 }
 
 void
