@@ -359,7 +359,7 @@ static void csidump(void);
 static void csihandle(void);
 static void csiparse(void);
 static void csireset(void);
-static int eschandle(uchar ascii);
+static int eschandle(uchar);
 static void strdump(void);
 static void strhandle(void);
 static void strparse(void);
@@ -406,8 +406,9 @@ static void ttyread(void);
 static void ttyresize(void);
 static void ttysend(char *, size_t);
 static void ttywrite(const char *, size_t);
-static void tstrsequence(uchar c);
+static void tstrsequence(uchar);
 
+static inline ushort sixd_to_16bit(int);
 static void xdraws(char *, Glyph, int, int, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
@@ -418,7 +419,6 @@ static int xsetcolorname(int, const char *);
 static int xgeommasktogravity(int);
 static int xloadfont(Font *, FcPattern *);
 static void xloadfonts(char *, double);
-static int xloadfontset(Font *);
 static void xsettitle(char *);
 static void xresettitle(void);
 static void xsetpointermotion(int);
@@ -452,6 +452,8 @@ static char *getsel(void);
 static void selcopy(void);
 static void selscroll(int, int);
 static void selsnap(int, int *, int *, int);
+static int x2col(int);
+static int y2row(int);
 static void getbuttoninfo(XEvent *);
 static void mousereport(XEvent *);
 
@@ -640,7 +642,7 @@ utf8validate(long *u, size_t i) {
 	return i;
 }
 
-static void
+void
 selinit(void) {
 	memset(&sel.tclick1, 0, sizeof(sel.tclick1));
 	memset(&sel.tclick2, 0, sizeof(sel.tclick2));
@@ -653,7 +655,7 @@ selinit(void) {
 		sel.xtarget = XA_STRING;
 }
 
-static int
+int
 x2col(int x) {
 	x -= borderpx;
 	x /= xw.cw;
@@ -661,7 +663,7 @@ x2col(int x) {
 	return LIMIT(x, 0, term.col-1);
 }
 
-static int
+int
 y2row(int y) {
 	y -= borderpx;
 	y /= xw.ch;
@@ -669,7 +671,7 @@ y2row(int y) {
 	return LIMIT(y, 0, term.row-1);
 }
 
-static int tlinelen(int y) {
+int tlinelen(int y) {
 	int i = term.col;
 
 	if(term.line[y][i - 1].mode & ATTR_WRAP)
@@ -681,7 +683,7 @@ static int tlinelen(int y) {
 	return i;
 }
 
-static void
+void
 selnormalize(void) {
 	int i;
 
@@ -708,7 +710,7 @@ selnormalize(void) {
 		sel.ne.x = term.col - 1;
 }
 
-static inline bool
+bool
 selected(int x, int y) {
 	if(sel.type == SEL_RECTANGULAR)
 		return BETWEEN(y, sel.nb.y, sel.ne.y)
@@ -2857,7 +2859,7 @@ xresize(int col, int row) {
 	xclear(0, 0, xw.w, xw.h);
 }
 
-static inline ushort
+ushort
 sixd_to_16bit(int x) {
 	return x == 0 ? 0 : 0x3737 + 0x2828 * x;
 }
@@ -3111,15 +3113,6 @@ xloadfonts(char *fontstr, double fontsize) {
 		die("st: can't open font %s\n", fontstr);
 
 	FcPatternDestroy(pattern);
-}
-
-int
-xloadfontset(Font *f) {
-	FcResult result;
-
-	if(!(f->set = FcFontSort(0, f->pattern, FcTrue, 0, &result)))
-		return 1;
-	return 0;
 }
 
 void
@@ -3469,7 +3462,8 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 		/* Nothing was found. */
 		if(i >= frclen) {
 			if(!font->set)
-				xloadfontset(font);
+				font->set = FcFontSort(0, font->pattern,
+				                       FcTrue, 0, &fcres);
 			fcsets[0] = font->set;
 
 			/*
@@ -3597,15 +3591,15 @@ xdrawcursor(void) {
 			case 4: /* Steady Underline */
 				XftDrawRect(xw.draw, &dc.col[defaultcs],
 						borderpx + curx * xw.cw,
-						borderpx + (term.c.y + 1) * xw.ch - 1,
-						xw.cw, 1);
+						borderpx + (term.c.y + 1) * xw.ch - cursorthickness,
+						xw.cw, cursorthickness);
 				break;
 			case 5: /* Blinking bar */
 			case 6: /* Steady bar */
 				XftDrawRect(xw.draw, &dc.col[defaultcs],
-								borderpx + curx * xw.cw,
-								borderpx + term.c.y * xw.ch,
-								1, xw.ch);
+						borderpx + curx * xw.cw,
+						borderpx + term.c.y * xw.ch,
+						cursorthickness, xw.ch);
 				break;
 		}
 	} else {
@@ -3772,7 +3766,7 @@ focus(XEvent *ev) {
 	}
 }
 
-static inline bool
+bool
 match(uint mask, uint state) {
 	return mask == XK_ANY_MOD || mask == (state & ~ignoremod);
 }
@@ -4078,7 +4072,7 @@ main(int argc, char *argv[]) {
 run:
 	setlocale(LC_CTYPE, "");
 	XSetLocaleModifiers("");
-	tnew(cols? cols : 1, rows? rows : 1);
+	tnew(MAX(cols, 1), MAX(rows, 1));
 	xinit();
 	selinit();
 	run();
