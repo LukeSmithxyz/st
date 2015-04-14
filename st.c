@@ -423,7 +423,7 @@ static void xsettitle(char *);
 static void xresettitle(void);
 static void xsetpointermotion(int);
 static void xseturgency(int);
-static void xsetsel(char *);
+static void xsetsel(char *, Time);
 static void xtermclear(int, int, int, int);
 static void xunloadfont(Font *);
 static void xunloadfonts(void);
@@ -449,7 +449,7 @@ static void selinit(void);
 static void selnormalize(void);
 static inline bool selected(int, int);
 static char *getsel(void);
-static void selcopy(void);
+static void selcopy(Time);
 static void selscroll(int, int);
 static void selsnap(int, int *, int *, int);
 static int x2col(int);
@@ -984,8 +984,8 @@ getsel(void) {
 }
 
 void
-selcopy(void) {
-	xsetsel(getsel());
+selcopy(Time t) {
+	xsetsel(getsel(), t);
 }
 
 void
@@ -997,7 +997,7 @@ selnotify(XEvent *e) {
 	XSelectionEvent *xsev;
 
 	ofs = 0;
-	xsev = (XSelectionEvent *)e;
+	xsev = &e->xselection;
 	if (xsev->property == None)
 	    return;
 	do {
@@ -1083,6 +1083,9 @@ selrequest(XEvent *e) {
 	xev.selection = xsre->selection;
 	xev.target = xsre->target;
 	xev.time = xsre->time;
+        if (xsre->property == None)
+            xsre->property = xsre->target;
+
 	/* reject */
 	xev.property = None;
 
@@ -1125,11 +1128,13 @@ selrequest(XEvent *e) {
 }
 
 void
-xsetsel(char *str) {
+xsetsel(char *str, Time t) {
 	free(sel.primary);
 	sel.primary = str;
 
-	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, CurrentTime);
+	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, t);
+        if (XGetSelectionOwner(xw.dpy, XA_PRIMARY) != xw.win)
+            selclear(0);
 }
 
 void
@@ -1146,7 +1151,7 @@ brelease(XEvent *e) {
 			selclear(NULL);
 		} else {
 			getbuttoninfo(e);
-			selcopy();
+			selcopy(e->xbutton.time);
 		}
 		sel.mode = 0;
 		tsetdirt(sel.nb.y, sel.ne.y);
@@ -2390,7 +2395,7 @@ tputtab(int n) {
 			for(--x; x > 0 && !term.tabs[x]; --x)
 				/* nothing */ ;
 	}
-	tmoveto(x, term.c.y);
+	term.c.x = LIMIT(x, 0, term.col-1);
 }
 
 void
