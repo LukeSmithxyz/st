@@ -2788,8 +2788,11 @@ tresize(int col, int row) {
 		free(term.line[i]);
 		free(term.alt[i]);
 	}
-	memmove(term.line, term.line + i, row * sizeof(Line));
-	memmove(term.alt, term.alt + i, row * sizeof(Line));
+	/* ensure that both src and dst are not NULL */
+	if (i > 0) {
+		memmove(term.line, term.line + i, row * sizeof(Line));
+		memmove(term.alt, term.alt + i, row * sizeof(Line));
+	}
 	for(i += row; i < term.row; i++) {
 		free(term.line[i]);
 		free(term.alt[i]);
