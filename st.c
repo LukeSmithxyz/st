@@ -2504,7 +2504,6 @@ tstrsequence(uchar c) {
 	strreset();
 	strescseq.type = c;
 	term.esc |= ESC_STR;
-	return;
 }
 
 void
@@ -2586,7 +2585,6 @@ tcontrolcode(uchar ascii) {
 	}
 	/* only CAN, SUB, \a and C1 chars interrupt a sequence */
 	term.esc &= ~(ESC_STR_END|ESC_STR);
-	return;
 }
 
 /*
