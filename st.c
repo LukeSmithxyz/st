@@ -158,8 +158,7 @@ enum escape_state {
 
 enum window_state {
 	WIN_VISIBLE = 1,
-	WIN_REDRAW  = 2,
-	WIN_FOCUSED = 4
+	WIN_FOCUSED = 2
 };
 
 enum selection_type {
@@ -3739,12 +3738,6 @@ drawregion(int x1, int y1, int x2, int y2) {
 
 void
 expose(XEvent *ev) {
-	XExposeEvent *e = &ev->xexpose;
-
-	if(xw.state & WIN_REDRAW) {
-		if(!e->count)
-			xw.state &= ~WIN_REDRAW;
-	}
 	redraw();
 }
 
@@ -3752,12 +3745,7 @@ void
 visibility(XEvent *ev) {
 	XVisibilityEvent *e = &ev->xvisibility;
 
-	if(e->state == VisibilityFullyObscured) {
-		xw.state &= ~WIN_VISIBLE;
-	} else if(!(xw.state & WIN_VISIBLE)) {
-		/* need a full redraw for next Expose, not just a buf copy */
-		xw.state |= WIN_VISIBLE | WIN_REDRAW;
-	}
+	MODBIT(xw.state, e->state != VisibilityFullyObscured, WIN_VISIBLE);
 }
 
 void
