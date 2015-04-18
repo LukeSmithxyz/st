@@ -673,7 +673,8 @@ y2row(int y) {
 	return LIMIT(y, 0, term.row-1);
 }
 
-int tlinelen(int y) {
+int
+tlinelen(int y) {
 	int i = term.col;
 
 	if(term.line[y][i - 1].mode & ATTR_WRAP)
