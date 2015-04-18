@@ -3992,7 +3992,7 @@ run(void) {
 
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		drawtimeout.tv_sec = 0;
-		drawtimeout.tv_nsec = (1000/xfps) * 1E6;
+		drawtimeout.tv_nsec =  (1000 * 1E6)/ xfps;
 		tv = &drawtimeout;
 
 		dodraw = 0;
