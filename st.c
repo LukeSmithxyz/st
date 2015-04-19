@@ -2911,7 +2911,7 @@ xloadcols(void) {
 	}
 
 	/* load colors [0-15] and [256-LEN(colorname)] (config.h) */
-	for(i = 0; i < LEN(colorname); i++) {
+	for(i = 0; i < LEN(dc.col); i++) {
 		if(!colorname[i])
 			continue;
 		if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, colorname[i], &dc.col[i])) {
@@ -2942,7 +2942,7 @@ xsetcolorname(int x, const char *name) {
 	XRenderColor color = { .alpha = 0xffff };
 	Color ncolor;
 
-	if(!BETWEEN(x, 0, LEN(colorname)))
+	if(!BETWEEN(x, 0, LEN(dc.col)))
 		return 1;
 
 	if(!name) {
