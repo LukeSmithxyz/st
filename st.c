@@ -459,7 +459,7 @@ static void mousereport(XEvent *);
 
 static size_t utf8decode(char *, long *, size_t);
 static long utf8decodebyte(char, size_t *);
-static size_t utf8encode(long, char *, size_t);
+static size_t utf8encode(long, char *);
 static char utf8encodebyte(long, size_t);
 static size_t utf8len(char *);
 static size_t utf8validate(long *, size_t);
@@ -610,11 +610,11 @@ utf8decodebyte(char c, size_t *i) {
 }
 
 size_t
-utf8encode(long u, char *c, size_t clen) {
+utf8encode(long u, char *c) {
 	size_t len, i;
 
 	len = utf8validate(&u, 0);
-	if(clen < len)
+	if(len > UTF_SIZ)
 		return 0;
 	for(i = len - 1; i != 0; --i) {
 		c[i] = utf8encodebyte(u, 0);
@@ -1351,7 +1351,7 @@ ttyread(void) {
 	buflen += ret;
 	ptr = buf;
 	while((charsize = utf8decode(ptr, &unicodep, buflen))) {
-		utf8encode(unicodep, s, UTF_SIZ);
+		utf8encode(unicodep, s);
 		tputc(s, charsize);
 		ptr += charsize;
 		buflen -= charsize;
@@ -3848,7 +3848,7 @@ kpress(XEvent *ev) {
 		if(IS_SET(MODE_8BIT)) {
 			if(*buf < 0177) {
 				c = *buf | 0x80;
-				len = utf8encode(c, buf, UTF_SIZ);
+				len = utf8encode(c, buf);
 			}
 		} else {
 			buf[1] = buf[0];
