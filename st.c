@@ -4090,7 +4090,7 @@ run:
 	if(argc > 0) {
 		/* eat all remaining arguments */
 		opt_cmd = argv;
-		if(!opt_title)
+		if(!opt_title && !opt_line)
 			opt_title = basename(xstrdup(argv[0]));
 	}
 	setlocale(LC_CTYPE, "");
