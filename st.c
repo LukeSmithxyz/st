@@ -3672,7 +3672,6 @@ drawregion(int x1, int y1, int x2, int y2) {
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
 	bool ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
-	long unicodep;
 
 	if(!(xw.state & WIN_VISIBLE))
 		return;
@@ -3701,7 +3700,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 				base = new;
 			}
 
-			sl = utf8decode(new.c, &unicodep, UTF_SIZ);
+			sl = utf8len(new.c);
 			memcpy(buf+ib, new.c, sl);
 			ib += sl;
 			ic += (new.mode & ATTR_WIDE)? 2 : 1;
