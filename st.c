@@ -72,6 +72,7 @@ char *argv0;
 #define ISCONTROLC0(c) (BETWEEN(c, 0, 0x1f) || (c) == '\177')
 #define ISCONTROLC1(c) (BETWEEN(c, 0x80, 0x9f))
 #define ISCONTROL(c) (ISCONTROLC0(c) || ISCONTROLC1(c))
+#define ISDELIM(u) (BETWEEN(u, 0, 127) && strchr(worddelimiters, u) != NULL)
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) ((term.mode & (flag)) != 0)
@@ -180,7 +181,7 @@ typedef XftDraw *Draw;
 typedef XftColor Color;
 
 typedef struct {
-	char c[UTF_SIZ]; /* character code */
+	long u;           /* character code */
 	ushort mode;      /* attribute flags */
 	uint32_t fg;      /* foreground  */
 	uint32_t bg;      /* background  */
@@ -410,6 +411,7 @@ static void tstrsequence(uchar);
 
 static inline ushort sixd_to_16bit(int);
 static void xdraws(char *, Glyph, int, int, int, int);
+static void xdrawglyph(Glyph, int, int);
 static void xhints(void);
 static void xclear(int, int, int, int);
 static void xdrawcursor(void);
@@ -461,7 +463,6 @@ static size_t utf8decode(char *, long *, size_t);
 static long utf8decodebyte(char, size_t *);
 static size_t utf8encode(long, char *);
 static char utf8encodebyte(long, size_t);
-static size_t utf8len(char *);
 static size_t utf8validate(long *, size_t);
 
 static ssize_t xwrite(int, const char *, size_t);
@@ -630,11 +631,6 @@ utf8encodebyte(long u, size_t i) {
 }
 
 size_t
-utf8len(char *c) {
-	return utf8decode(c, &(long){0}, UTF_SIZ);
-}
-
-size_t
 utf8validate(long *u, size_t i) {
 	if(!BETWEEN(*u, utfmin[i], utfmax[i]) || BETWEEN(*u, 0xD800, 0xDFFF))
 		*u = UTF_INVALID;
@@ -679,7 +675,7 @@ tlinelen(int y) {
 	if(term.line[y][i - 1].mode & ATTR_WRAP)
 		return i;
 
-	while(i > 0 && term.line[y][i - 1].c[0] == ' ')
+	while(i > 0 && term.line[y][i - 1].u == ' ')
 		--i;
 
 	return i;
@@ -736,7 +732,7 @@ selsnap(int mode, int *x, int *y, int direction) {
 		 * beginning of a line.
 		 */
 		prevgp = &term.line[*y][*x];
-		prevdelim = strchr(worddelimiters, prevgp->c[0]) != NULL;
+		prevdelim = ISDELIM(prevgp->u);
 		for(;;) {
 			newx = *x + direction;
 			newy = *y;
@@ -758,9 +754,9 @@ selsnap(int mode, int *x, int *y, int direction) {
 				break;
 
 			gp = &term.line[newy][newx];
-			delim = strchr(worddelimiters, gp->c[0]) != NULL;
+			delim = ISDELIM(gp->u);
 			if(!(gp->mode & ATTR_WDUMMY) && (delim != prevdelim
-					|| (delim && gp->c[0] != prevgp->c[0])))
+					|| (delim && gp->u != prevgp->u)))
 				break;
 
 			*x = newx;
@@ -936,7 +932,7 @@ bpress(XEvent *e) {
 char *
 getsel(void) {
 	char *str, *ptr;
-	int y, bufsize, size, lastx, linelen;
+	int y, bufsize, lastx, linelen;
 	Glyph *gp, *last;
 
 	if(sel.ob.x == -1)
@@ -957,16 +953,14 @@ getsel(void) {
 			lastx = (sel.ne.y == y) ? sel.ne.x : term.col-1;
 		}
 		last = &term.line[y][MIN(lastx, linelen-1)];
-		while(last >= gp && last->c[0] == ' ')
+		while(last >= gp && last->u == ' ')
 			--last;
 
 		for( ; gp <= last; ++gp) {
 			if(gp->mode & ATTR_WDUMMY)
 				continue;
 
-			size = utf8len(gp->c);
-			memcpy(ptr, gp->c, size);
-			ptr += size;
+			ptr += utf8encode(gp->u, ptr);
 		}
 
 		/*
@@ -1643,17 +1637,17 @@ tsetchar(char *c, Glyph *attr, int x, int y) {
 
 	if(term.line[y][x].mode & ATTR_WIDE) {
 		if(x+1 < term.col) {
-			term.line[y][x+1].c[0] = ' ';
+			term.line[y][x+1].u = ' ';
 			term.line[y][x+1].mode &= ~ATTR_WDUMMY;
 		}
 	} else if(term.line[y][x].mode & ATTR_WDUMMY) {
-		term.line[y][x-1].c[0] = ' ';
+		term.line[y][x-1].u = ' ';
 		term.line[y][x-1].mode &= ~ATTR_WIDE;
 	}
 
 	term.dirty[y] = 1;
 	term.line[y][x] = *attr;
-	memcpy(term.line[y][x].c, c, UTF_SIZ);
+	utf8decode(c, &term.line[y][x].u, UTF_SIZ);
 }
 
 void
@@ -1680,7 +1674,7 @@ tclearregion(int x1, int y1, int x2, int y2) {
 			gp->fg = term.c.attr.fg;
 			gp->bg = term.c.attr.bg;
 			gp->mode = 0;
-			memcpy(gp->c, " ", 2);
+			gp->u = ' ';
 		}
 	}
 }
@@ -2400,13 +2394,14 @@ tdumpsel(void) {
 
 void
 tdumpline(int n) {
+	char buf[UTF_SIZ];
 	Glyph *bp, *end;
 
 	bp = &term.line[n][0];
 	end = &bp[MIN(tlinelen(n), term.col) - 1];
-	if(bp != end || bp->c[0] != ' ') {
+	if(bp != end || bp->u != ' ') {
 		for( ;bp <= end; ++bp)
-			tprinter(bp->c, utf8len(bp->c));
+			tprinter(buf, utf8encode(bp->u, buf));
 	}
 	tprinter("\n", 1);
 }
@@ -2789,7 +2784,7 @@ tputc(char *c, int len) {
 	if(width == 2) {
 		gp->mode |= ATTR_WIDE;
 		if(term.c.x+1 < term.col) {
-			gp[1].c[0] = '\0';
+			gp[1].u = '\0';
 			gp[1].mode = ATTR_WDUMMY;
 		}
 	}
@@ -3553,10 +3548,19 @@ xdraws(char *s, Glyph base, int x, int y, int charlen, int bytelen) {
 }
 
 void
+xdrawglyph(Glyph g, int x, int y) {
+	static char buf[UTF_SIZ];
+	size_t len = utf8encode(g.u, buf);
+	int width = g.mode & ATTR_WIDE ? 2 : 1;
+
+	xdraws(buf, g, x, y, width, len);
+}
+
+void
 xdrawcursor(void) {
 	static int oldx = 0, oldy = 0;
-	int sl, width, curx;
-	Glyph g = {{' '}, ATTR_NULL, defaultbg, defaultcs};
+	int curx;
+	Glyph g = {' ', ATTR_NULL, defaultbg, defaultcs};
 
 	LIMIT(oldx, 0, term.col-1);
 	LIMIT(oldy, 0, term.row-1);
@@ -3569,13 +3573,10 @@ xdrawcursor(void) {
 	if(term.line[term.c.y][curx].mode & ATTR_WDUMMY)
 		curx--;
 
-	memcpy(g.c, term.line[term.c.y][term.c.x].c, UTF_SIZ);
+	g.u = term.line[term.c.y][term.c.x].u;
 
 	/* remove the old cursor */
-	sl = utf8len(term.line[oldy][oldx].c);
-	width = (term.line[oldy][oldx].mode & ATTR_WIDE)? 2 : 1;
-	xdraws(term.line[oldy][oldx].c, term.line[oldy][oldx], oldx,
-			oldy, width, sl);
+	xdrawglyph(term.line[oldy][oldx], oldx, oldy);
 
 	if(IS_SET(MODE_HIDE))
 		return;
@@ -3592,10 +3593,8 @@ xdrawcursor(void) {
 						g.bg = defaultfg;
 					}
 
-				sl = utf8len(g.c);
-				width = (term.line[term.c.y][curx].mode & ATTR_WIDE)\
-					? 2 : 1;
-				xdraws(g.c, g, term.c.x, term.c.y, width, sl);
+				g.mode |= term.line[term.c.y][curx].mode & ATTR_WIDE;
+				xdrawglyph(g, term.c.x, term.c.y);
 				break;
 			case 3: /* Blinking Underline */
 			case 4: /* Steady Underline */
@@ -3668,7 +3667,7 @@ draw(void) {
 
 void
 drawregion(int x1, int y1, int x2, int y2) {
-	int ic, ib, x, y, ox, sl;
+	int ic, ib, x, y, ox;
 	Glyph base, new;
 	char buf[DRAW_BUF_SIZ];
 	bool ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
@@ -3700,9 +3699,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 				base = new;
 			}
 
-			sl = utf8len(new.c);
-			memcpy(buf+ib, new.c, sl);
-			ib += sl;
+			ib += utf8encode(new.u, buf+ib);
 			ic += (new.mode & ATTR_WIDE)? 2 : 1;
 		}
 		if(ib > 0)
