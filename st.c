@@ -855,9 +855,9 @@ mousereport(XEvent *e) {
 	}
 
 	if(!IS_SET(MODE_MOUSEX10)) {
-		button += (state & ShiftMask   ? 4  : 0)
-			+ (state & Mod4Mask    ? 8  : 0)
-			+ (state & ControlMask ? 16 : 0);
+		button += ((state & ShiftMask  ) ? 4  : 0)
+			+ ((state & Mod4Mask   ) ? 8  : 0)
+			+ ((state & ControlMask) ? 16 : 0);
 	}
 
 	len = 0;
