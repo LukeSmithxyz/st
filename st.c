@@ -860,7 +860,6 @@ mousereport(XEvent *e) {
 			+ ((state & ControlMask) ? 16 : 0);
 	}
 
-	len = 0;
 	if(IS_SET(MODE_MOUSESGR)) {
 		len = snprintf(buf, sizeof(buf), "\033[<%d;%d;%d%c",
 				button, x+1, y+1,
