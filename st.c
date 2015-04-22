@@ -2906,7 +2906,7 @@ xloadcols(void) {
 	Color *cp;
 
 	if(loaded) {
-		for (cp = dc.col; cp < dc.col + LEN(dc.col); ++cp)
+		for (cp = dc.col; cp < &dc.col[LEN(dc.col)]; ++cp)
 			XftColorFree(xw.dpy, xw.vis, xw.cmap, cp);
 	}
 
