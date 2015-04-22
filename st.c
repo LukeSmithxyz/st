@@ -1238,9 +1238,13 @@ execsh(void) {
 void
 sigchld(int a) {
 	int stat, ret;
+	pid_t p;
 
-	if(waitpid(pid, &stat, 0) < 0)
+	if((p = waitpid(pid, &stat, WNOHANG)) < 0)
 		die("Waiting for pid %hd failed: %s\n", pid, strerror(errno));
+
+	if(pid != p)
+		return;
 
 	ret = WIFEXITED(stat) ? WEXITSTATUS(stat) : EXIT_FAILURE;
 	if (ret != EXIT_SUCCESS)
