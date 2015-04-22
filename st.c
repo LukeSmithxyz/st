@@ -1744,7 +1744,7 @@ tdefcolor(int *attr, int *npar, int l) {
 		b = attr[*npar + 4];
 		*npar += 4;
 		if(!BETWEEN(r, 0, 255) || !BETWEEN(g, 0, 255) || !BETWEEN(b, 0, 255))
-			fprintf(stderr, "erresc: bad rgb color (%d,%d,%d)\n",
+			fprintf(stderr, "erresc: bad rgb color (%u,%u,%u)\n",
 				r, g, b);
 		else
 			idx = TRUECOLOR(r, g, b);
