@@ -2897,10 +2897,31 @@ sixd_to_16bit(int x) {
 	return x == 0 ? 0 : 0x3737 + 0x2828 * x;
 }
 
+bool
+xloadcolor(int i, const char *name, Color *ncolor) {
+	XRenderColor color = { .alpha = 0xffff };
+
+	if(!name) {
+		if(BETWEEN(i, 16, 255)) { /* 256 color */
+			if(i < 6*6*6+16) { /* same colors as xterm */
+				color.red   = sixd_to_16bit( ((i-16)/36)%6 );
+				color.green = sixd_to_16bit( ((i-16)/6) %6 );
+				color.blue  = sixd_to_16bit( ((i-16)/1) %6 );
+			} else { /* greyscale */
+				color.red = 0x0808 + 0x0a0a * (i - (6*6*6+16));
+				color.green = color.blue = color.red;
+			}
+			return XftColorAllocValue(xw.dpy, xw.vis,
+			                          xw.cmap, &color, ncolor);
+		} else
+			name = colorname[i];
+	}
+	return XftColorAllocName(xw.dpy, xw.vis, xw.cmap, name, ncolor);
+}
+
 void
 xloadcols(void) {
 	int i;
-	XRenderColor color = { .alpha = 0xffff };
 	static bool loaded;
 	Color *cp;
 
@@ -2909,70 +2930,25 @@ xloadcols(void) {
 			XftColorFree(xw.dpy, xw.vis, xw.cmap, cp);
 	}
 
-	/* load colors [0-15] and [256-LEN(colorname)] (config.h) */
-	for(i = 0; i < LEN(colorname); i++) {
-		if(!colorname[i])
-			continue;
-		if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, colorname[i], &dc.col[i])) {
-			die("Could not allocate color '%s'\n", colorname[i]);
+	for(i = 0; i < LEN(dc.col); i++)
+		if(!xloadcolor(i, NULL, &dc.col[i])) {
+			if(colorname[i])
+				die("Could not allocate color '%s'\n", colorname[i]);
+			else
+				die("Could not allocate color %d\n", i);
 		}
-	}
-
-	/* load colors [16-231] ; same colors as xterm */
-	for(i = 16; i < 6*6*6+16; i++) {
-		color.red   = sixd_to_16bit( ((i-16)/36)%6 );
-		color.green = sixd_to_16bit( ((i-16)/6) %6 );
-		color.blue  = sixd_to_16bit( ((i-16)/1) %6 );
-		if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &dc.col[i]))
-			die("Could not allocate color %d\n", i);
-	}
-
-	/* load colors [232-255] ; grayscale */
-	for(; i < 256; i++) {
-		color.red = color.green = color.blue = 0x0808 + 0x0a0a * (i-(6*6*6+16));
-		if(!XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &color, &dc.col[i]))
-			die("Could not allocate color %d\n", i);
-	}
 	loaded = true;
 }
 
 int
 xsetcolorname(int x, const char *name) {
-	XRenderColor color = { .alpha = 0xffff };
 	Color ncolor;
 
-	if(!BETWEEN(x, 0, LEN(colorname)))
+	if(!BETWEEN(x, 0, LEN(dc.col)))
 		return 1;
 
-	if(!name) {
-		if(BETWEEN(x, 16, 16 + 215)) { /* 256 color */
-			color.red   = sixd_to_16bit( ((x-16)/36)%6 );
-			color.green = sixd_to_16bit( ((x-16)/6) %6 );
-			color.blue  = sixd_to_16bit( ((x-16)/1) %6 );
-			if(!XftColorAllocValue(xw.dpy, xw.vis,
-						xw.cmap, &color, &ncolor)) {
-				return 1;
-			}
 
-			XftColorFree(xw.dpy, xw.vis, xw.cmap, &dc.col[x]);
-			dc.col[x] = ncolor;
-			return 0;
-		} else if(BETWEEN(x, 16 + 216, 255)) { /* greyscale */
-			color.red = color.green = color.blue = \
-				    0x0808 + 0x0a0a * (x - (16 + 216));
-			if(!XftColorAllocValue(xw.dpy, xw.vis,
-						xw.cmap, &color, &ncolor)) {
-				return 1;
-			}
-
-			XftColorFree(xw.dpy, xw.vis, xw.cmap, &dc.col[x]);
-			dc.col[x] = ncolor;
-			return 0;
-		} else { /* system colors */
-			name = colorname[x];
-		}
-	}
-	if(!XftColorAllocName(xw.dpy, xw.vis, xw.cmap, name, &ncolor))
+	if(!xloadcolor(x, name, &ncolor))
 		return 1;
 
 	XftColorFree(xw.dpy, xw.vis, xw.cmap, &dc.col[x]);
