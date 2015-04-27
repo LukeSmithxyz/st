@@ -183,8 +183,8 @@ typedef XftColor Color;
 typedef struct {
 	long u;           /* character code */
 	ushort mode;      /* attribute flags */
-	uint32_t fg;      /* foreground  */
-	uint32_t bg;      /* background  */
+	ushort fg;        /* foreground  */
+	ushort bg;        /* background  */
 } Glyph;
 
 typedef Glyph *Line;
