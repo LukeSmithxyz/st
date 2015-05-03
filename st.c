@@ -716,6 +716,9 @@ selnormalize(void) {
 
 bool
 selected(int x, int y) {
+	if(sel.mode == SEL_EMPTY)
+		return false;
+
 	if(sel.type == SEL_RECTANGULAR)
 		return BETWEEN(y, sel.nb.y, sel.ne.y)
 		    && BETWEEN(x, sel.nb.x, sel.ne.x);
@@ -921,14 +924,9 @@ bpress(XEvent *e) {
 		}
 		selnormalize();
 
-		/*
-		 * Draw selection, unless it's regular and we don't want to
-		 * make clicks visible
-		 */
-		if(sel.snap != 0) {
+		if(sel.snap != 0)
 			sel.mode = SEL_READY;
-			tsetdirt(sel.nb.y, sel.ne.y);
-		}
+		tsetdirt(sel.nb.y, sel.ne.y);
 		sel.tclick2 = sel.tclick1;
 		sel.tclick1 = now;
 	}
