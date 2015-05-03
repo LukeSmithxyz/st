@@ -1084,8 +1084,8 @@ selrequest(XEvent *e) {
 	xev.selection = xsre->selection;
 	xev.target = xsre->target;
 	xev.time = xsre->time;
-        if (xsre->property == None)
-            xsre->property = xsre->target;
+	if (xsre->property == None)
+		xsre->property = xsre->target;
 
 	/* reject */
 	xev.property = None;
@@ -1134,8 +1134,8 @@ xsetsel(char *str, Time t) {
 	sel.primary = str;
 
 	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, t);
-        if (XGetSelectionOwner(xw.dpy, XA_PRIMARY) != xw.win)
-            selclear(0);
+	if (XGetSelectionOwner(xw.dpy, XA_PRIMARY) != xw.win)
+		selclear(0);
 }
 
 void
