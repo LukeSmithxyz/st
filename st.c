@@ -3663,7 +3663,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 		term.dirty[y] = 0;
 
 		specs = term.specbuf;
-		numspecs = xmakeglyphfontspecs(specs, &term.line[y][0], x2 - x1, x1, y);
+		numspecs = xmakeglyphfontspecs(specs, &term.line[y][x1], x2 - x1, x1, y);
 
 		i = ox = 0;
 		for(x = x1; x < x2 && i < numspecs; x++) {
