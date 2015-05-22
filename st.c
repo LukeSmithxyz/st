@@ -71,7 +71,7 @@ char *argv0;
 #define ISCONTROLC0(c) (BETWEEN(c, 0, 0x1f) || (c) == '\177')
 #define ISCONTROLC1(c) (BETWEEN(c, 0x80, 0x9f))
 #define ISCONTROL(c) (ISCONTROLC0(c) || ISCONTROLC1(c))
-#define ISDELIM(u) (BETWEEN(u, 0, 127) && strchr(worddelimiters, u) != NULL)
+#define ISDELIM(u) (utf8strchr(worddelimiters, u) != NULL)
 #define LIMIT(x, a, b)    (x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b) ((a).mode != (b).mode || (a).fg != (b).fg || (a).bg != (b).bg)
 #define IS_SET(flag) ((term.mode & (flag)) != 0)
@@ -473,6 +473,7 @@ static size_t utf8decode(char *, Rune *, size_t);
 static Rune utf8decodebyte(char, size_t *);
 static size_t utf8encode(Rune, char *);
 static char utf8encodebyte(Rune, size_t);
+static char *utf8strchr(char *s, Rune u);
 static size_t utf8validate(Rune *, size_t);
 
 static ssize_t xwrite(int, const char *, size_t);
@@ -638,6 +639,21 @@ utf8encode(Rune u, char *c) {
 char
 utf8encodebyte(Rune u, size_t i) {
 	return utfbyte[i] | (u & ~utfmask[i]);
+}
+
+char *
+utf8strchr(char *s, Rune u) {
+	Rune r;
+	size_t i, j, len;
+
+	len = strlen(s);
+	for(i = 0, j = 0; i < len; i += j) {
+		if(!(j = utf8decode(&s[i], &r, len - i)))
+			break;
+		if(r == u)
+			return &(s[i]);
+	}
+	return NULL;
 }
 
 size_t
