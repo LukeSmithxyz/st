@@ -3061,7 +3061,6 @@ xloadfont(Font *f, FcPattern *pattern) {
 void
 xloadfonts(char *fontstr, double fontsize) {
 	FcPattern *pattern;
-	FcResult r_sz, r_psz;
 	double fontval;
 	float ceilf(float);
 
@@ -3080,11 +3079,11 @@ xloadfonts(char *fontstr, double fontsize) {
 		FcPatternAddDouble(pattern, FC_PIXEL_SIZE, (double)fontsize);
 		usedfontsize = fontsize;
 	} else {
-		r_psz = FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &fontval);
-		r_sz = FcPatternGetDouble(pattern, FC_SIZE, 0, &fontval);
-		if(r_psz == FcResultMatch) {
+		if(FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &fontval) ==
+				FcResultMatch) {
 			usedfontsize = fontval;
-		} else if(r_sz == FcResultMatch) {
+		} else if(FcPatternGetDouble(pattern, FC_SIZE, 0, &fontval) ==
+				FcResultMatch) {
 			usedfontsize = -1;
 		} else {
 			/*
@@ -3157,14 +3156,14 @@ void
 xzoom(const Arg *arg) {
 	Arg larg;
 
-	larg.i = usedfontsize + arg->i;
+	larg.f = usedfontsize + arg->f;
 	xzoomabs(&larg);
 }
 
 void
 xzoomabs(const Arg *arg) {
 	xunloadfonts();
-	xloadfonts(usedfont, arg->i);
+	xloadfonts(usedfont, arg->f);
 	cresize(0, 0);
 	redraw();
 	xhints();
@@ -3175,7 +3174,7 @@ xzoomreset(const Arg *arg) {
 	Arg larg;
 
 	if(defaultfontsize > 0) {
-		larg.i = defaultfontsize;
+		larg.f = defaultfontsize;
 		xzoomabs(&larg);
 	}
 }
