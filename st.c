@@ -191,8 +191,8 @@ typedef XftColor Color;
 typedef struct {
 	Rune u;           /* character code */
 	ushort mode;      /* attribute flags */
-	ushort fg;        /* foreground  */
-	ushort bg;        /* background  */
+	uint32_t fg;      /* foreground  */
+	uint32_t bg;      /* background  */
 } Glyph;
 
 typedef Glyph *Line;
