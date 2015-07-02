@@ -3912,6 +3912,13 @@ run(void) {
 	/* Waiting for window mapping */
 	do {
 		XNextEvent(xw.dpy, &ev);
+		/*
+		 * XFilterEvent is required to be called after you using XOpenIM,
+		 * this is not unnecessary.It does not only filter the key event,
+		 * but some clientmessage for input method as well.
+		 */
+		if(XFilterEvent(&ev, None))
+			continue;
 		if(ev.type == ConfigureNotify) {
 			w = ev.xconfigure.width;
 			h = ev.xconfigure.height;
