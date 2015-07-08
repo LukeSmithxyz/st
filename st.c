@@ -6,7 +6,6 @@
 #include <locale.h>
 #include <pwd.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -231,7 +230,7 @@ typedef struct {
 	int col;      /* nb col */
 	Line *line;   /* screen */
 	Line *alt;    /* alternate screen */
-	bool *dirty;  /* dirtyness of lines */
+	int *dirty;  /* dirtyness of lines */
 	XftGlyphFontSpec *specbuf; /* font spec buffer used for rendering */
 	TCursor c;    /* cursor */
 	int top;      /* top    scroll limit */
@@ -241,8 +240,8 @@ typedef struct {
 	char trantbl[4]; /* charset table translation */
 	int charset;  /* current charset */
 	int icharset; /* selected charset for sequence */
-	bool numlock; /* lock numbers in keyboard */
-	bool *tabs;
+	int numlock; /* lock numbers in keyboard */
+	int *tabs;
 } Term;
 
 /* Purely graphic info */
@@ -258,7 +257,7 @@ typedef struct {
 	Visual *vis;
 	XSetWindowAttributes attrs;
 	int scr;
-	bool isfixed; /* is fixed geometry? */
+	int isfixed; /* is fixed geometry? */
 	int l, t; /* left and top offset */
 	int gm; /* geometry mask */
 	int tw, th; /* tty width and height */
@@ -302,7 +301,7 @@ typedef struct {
 
 	char *primary, *clipboard;
 	Atom xtarget;
-	bool alt;
+	int alt;
 	struct timespec tclick1;
 	struct timespec tclick2;
 } Selection;
@@ -403,14 +402,14 @@ static void tsetscroll(int, int);
 static void tswapscreen(void);
 static void tsetdirt(int, int);
 static void tsetdirtattr(int);
-static void tsetmode(bool, bool, int *, int);
+static void tsetmode(int, int, int *, int);
 static void tfulldirt(void);
 static void techo(Rune);
 static void tcontrolcode(uchar );
 static void tdectest(char );
 static int32_t tdefcolor(int *, int *, int);
 static void tdeftran(char);
-static inline bool match(uint, uint);
+static inline int match(uint, uint);
 static void ttynew(void);
 static void ttyread(void);
 static void ttyresize(void);
@@ -459,7 +458,7 @@ static void selrequest(XEvent *);
 
 static void selinit(void);
 static void selnormalize(void);
-static inline bool selected(int, int);
+static inline int selected(int, int);
 static char *getsel(void);
 static void selcopy(Time);
 static void selscroll(int, int);
@@ -734,10 +733,10 @@ selnormalize(void) {
 		sel.ne.x = term.col - 1;
 }
 
-bool
+int
 selected(int x, int y) {
 	if(sel.mode == SEL_EMPTY)
-		return false;
+		return 0;
 
 	if(sel.type == SEL_RECTANGULAR)
 		return BETWEEN(y, sel.nb.y, sel.ne.y)
@@ -751,7 +750,7 @@ selected(int x, int y) {
 void
 selsnap(int *x, int *y, int direction) {
 	int newx, newy, xt, yt;
-	bool delim, prevdelim;
+	int delim, prevdelim;
 	Glyph *gp, *prevgp;
 
 	switch(sel.snap) {
@@ -1143,7 +1142,7 @@ selrequest(XEvent *e) {
 	}
 
 	/* all done, send a notification to the listener */
-	if(!XSendEvent(xsre->display, xsre->requestor, True, 0, (XEvent *) &xev))
+	if(!XSendEvent(xsre->display, xsre->requestor, 1, 0, (XEvent *) &xev))
 		fprintf(stderr, "Error sending SelectionNotify event\n");
 }
 
@@ -1457,7 +1456,7 @@ tfulldirt(void) {
 void
 tcursor(int mode) {
 	static TCursor c[2];
-	bool alt = IS_SET(MODE_ALTSCREEN);
+	int alt = IS_SET(MODE_ALTSCREEN);
 
 	if(mode == CURSOR_SAVE) {
 		c[alt] = term.c;
@@ -1916,9 +1915,9 @@ tsetscroll(int t, int b) {
 }
 
 void
-tsetmode(bool priv, bool set, int *args, int narg) {
+tsetmode(int priv, int set, int *args, int narg) {
 	int *lim, mode;
-	bool alt;
+	int alt;
 
 	for(lim = args + narg; args < lim; ++args) {
 		if(priv) {
@@ -2684,7 +2683,7 @@ eschandle(uchar ascii) {
 void
 tputc(Rune u) {
 	char c[UTF_SIZ];
-	bool control;
+	int control;
 	int width, len;
 	Glyph *gp;
 
@@ -2808,7 +2807,7 @@ tresize(int col, int row) {
 	int i;
 	int minrow = MIN(row, term.row);
 	int mincol = MIN(col, term.col);
-	bool *bp;
+	int *bp;
 	TCursor c;
 
 	if(col < 1 || row < 1) {
@@ -2904,7 +2903,7 @@ sixd_to_16bit(int x) {
 	return x == 0 ? 0 : 0x3737 + 0x2828 * x;
 }
 
-bool
+int
 xloadcolor(int i, const char *name, Color *ncolor) {
 	XRenderColor color = { .alpha = 0xffff };
 
@@ -2929,7 +2928,7 @@ xloadcolor(int i, const char *name, Color *ncolor) {
 void
 xloadcols(void) {
 	int i;
-	static bool loaded;
+	static int loaded;
 	Color *cp;
 
 	if(loaded) {
@@ -2944,7 +2943,7 @@ xloadcols(void) {
 			else
 				die("Could not allocate color %d\n", i);
 		}
-	loaded = true;
+	loaded = 1;
 }
 
 int
@@ -2998,7 +2997,7 @@ xhints(void) {
 	sizeh->width_inc = xw.cw;
 	sizeh->base_height = 2 * borderpx;
 	sizeh->base_width = 2 * borderpx;
-	if(xw.isfixed == True) {
+	if(xw.isfixed) {
 		sizeh->flags |= PMaxSize | PMinSize;
 		sizeh->min_width = sizeh->max_width = xw.w;
 		sizeh->min_height = sizeh->max_height = xw.h;
@@ -3349,7 +3348,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
 		if(f >= frclen) {
 			if(!font->set)
 				font->set = FcFontSort(0, font->pattern,
-				                       FcTrue, 0, &fcres);
+				                       1, 0, &fcres);
 			fcsets[0] = font->set;
 
 			/*
@@ -3365,8 +3364,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
 			FcCharSetAddChar(fccharset, rune);
 			FcPatternAddCharSet(fcpattern, FC_CHARSET,
 					fccharset);
-			FcPatternAddBool(fcpattern, FC_SCALABLE,
-					FcTrue);
+			FcPatternAddBool(fcpattern, FC_SCALABLE, 1);
 
 			FcConfigSubstitute(0, fcpattern,
 					FcMatchPattern);
@@ -3664,7 +3662,7 @@ drawregion(int x1, int y1, int x2, int y2) {
 	int i, x, y, ox, numspecs;
 	Glyph base, new;
 	XftGlyphFontSpec* specs;
-	bool ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
+	int ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
 
 	if(!(xw.state & WIN_VISIBLE))
 		return;
@@ -3757,7 +3755,7 @@ focus(XEvent *ev) {
 	}
 }
 
-bool
+int
 match(uint mask, uint state) {
 	return mask == XK_ANY_MOD || mask == (state & ~ignoremod);
 }
@@ -4025,7 +4023,7 @@ main(int argc, char *argv[]) {
 
 	ARGBEGIN {
 	case 'a':
-		allowaltscreen = false;
+		allowaltscreen = 0;
 		break;
 	case 'c':
 		opt_class = EARGF(usage());
@@ -4042,7 +4040,7 @@ main(int argc, char *argv[]) {
 				&xw.l, &xw.t, &cols, &rows);
 		break;
 	case 'i':
-		xw.isfixed = True;
+		xw.isfixed = 1;
 		break;
 	case 'o':
 		opt_io = EARGF(usage());
