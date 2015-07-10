@@ -452,6 +452,7 @@ static void focus(XEvent *);
 static void brelease(XEvent *);
 static void bpress(XEvent *);
 static void bmotion(XEvent *);
+static void propnotify(XEvent *);
 static void selnotify(XEvent *);
 static void selclear(XEvent *);
 static void selrequest(XEvent *);
@@ -500,6 +501,11 @@ static void (*handler[LASTEvent])(XEvent *) = {
  */
 /*	[SelectionClear] = selclear, */
 	[SelectionNotify] = selnotify,
+/*
+ * PropertyNotify is only turned on when there is some INCR transfer happening
+ * for the selection retrieval.
+ */
+	[PropertyNotify] = propnotify,
 	[SelectionRequest] = selrequest,
 };
 
@@ -1029,25 +1035,74 @@ selcopy(Time t)
 }
 
 void
+propnotify(XEvent *e)
+{
+	XPropertyEvent *xpev;
+	Atom clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
+
+	xpev = &e->xproperty;
+	if (xpev->state == PropertyNewValue &&
+			(xpev->atom == XA_PRIMARY ||
+			 xpev->atom == clipboard)) {
+		slenotify(e);
+	}
+}
+
+void
 selnotify(XEvent *e)
 {
 	ulong nitems, ofs, rem;
 	int format;
 	uchar *data, *last, *repl;
-	Atom type;
-	XSelectionEvent *xsev;
+	Atom type, incratom, property;
 
 	ofs = 0;
-	xsev = &e->xselection;
-	if (xsev->property == None)
-	    return;
+	if (e->type == SelectionNotify) {
+		property = e->xselection.property;
+	} else if(e->type == PropertyNotify) {
+		property = e->xproperty.atom;
+	} else {
+		return;
+	}
+	if (property == None)
+		return;
+
 	do {
-		if (XGetWindowProperty(xw.dpy, xw.win, xsev->property, ofs,
+		if (XGetWindowProperty(xw.dpy, xw.win, property, ofs,
 					BUFSIZ/4, False, AnyPropertyType,
 					&type, &format, &nitems, &rem,
 					&data)) {
 			fprintf(stderr, "Clipboard allocation failed\n");
 			return;
+		}
+
+		if (e->type == PropertyNotify && nitems == 0 && rem == 0) {
+			/*
+			 * If there is some PropertyNotify with no data, then
+			 * this is the signal of the selection owner that all
+			 * data has been transferred. We won't need to receive
+			 * PropertyNotify events anymore.
+			 */
+			MODBIT(xw.attrs.event_mask, 0, PropertyChangeMask);
+			XChangeWindowAttributes(xw.dpy, xw.win, CWEventMask,
+					&xw.attrs);
+		}
+
+		if (type == incratom) {
+			/*
+			 * Activate the PropertyNotify events so we receive
+			 * when the selection owner does send us the next
+			 * chunk of data.
+			 */
+			MODBIT(xw.attrs.event_mask, 1, PropertyChangeMask);
+			XChangeWindowAttributes(xw.dpy, xw.win, CWEventMask,
+					&xw.attrs);
+
+			/*
+			 * Deleting the property is the transfer start signal.
+			 */
+			XDeleteProperty(xw.dpy, xw.win, (int)property);
+			continue;
 		}
 
 		/*
@@ -1072,6 +1127,13 @@ selnotify(XEvent *e)
 		/* number of 32-bit chunks returned */
 		ofs += nitems * format / 32;
 	} while (rem > 0);
+
+	/*
+	 * Deleting the property again tells the selection owner to send the
+	 * next data chunk in the property.
+	 */
+	if (e->type == PropertyNotify)
+		XDeleteProperty(xw.dpy, xw.win, (int)property);
 }
 
 void
