@@ -1044,7 +1044,7 @@ propnotify(XEvent *e)
 	if (xpev->state == PropertyNewValue &&
 			(xpev->atom == XA_PRIMARY ||
 			 xpev->atom == clipboard)) {
-		slenotify(e);
+		selnotify(e);
 	}
 }
 
@@ -1055,6 +1055,8 @@ selnotify(XEvent *e)
 	int format;
 	uchar *data, *last, *repl;
 	Atom type, incratom, property;
+
+	incratom = XInternAtom(xw.dpy, "INCR", 0);
 
 	ofs = 0;
 	if (e->type == SelectionNotify) {
