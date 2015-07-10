@@ -1478,8 +1478,57 @@ ttyread(void)
 void
 ttywrite(const char *s, size_t n)
 {
-	if (xwrite(cmdfd, s, n) == -1)
-		die("write error on tty: %s\n", strerror(errno));
+	fd_set wfd;
+	struct timespec tv;
+	ssize_t r;
+
+	/*
+	 * Remember that we are using a pty, which might be a modem line.
+	 * Writing too much will clog the line. That's why we are doing this
+	 * dance.
+	 * FIXME: Migrate the world to Plan 9.
+	 */
+	while (n > 0) {
+		FD_ZERO(&wfd);
+		FD_SET(cmdfd, &wfd);
+		tv.tv_sec = 0;
+		tv.tv_nsec = 0;
+
+		/* Check if we can write. */
+		if (pselect(cmdfd+1, NULL, &wfd, NULL, &tv, NULL) < 0) {
+			if (errno == EINTR)
+				continue;
+			die("select failed: %s\n", strerror(errno));
+		}
+		if(!FD_ISSET(cmdfd, &wfd)) {
+			/* No, then free some buffer space. */
+			ttyread();
+		} else {
+			/*
+			 * Only write 256 bytes at maximum. This seems to be a
+			 * reasonable value for a serial line. Bigger values
+			 * might clog the I/O.
+			 */
+			r = write(cmdfd, s, (n < 256)? n : 256);
+			if (r < 0) {
+				die("write error on tty: %s\n",
+						strerror(errno));
+			}
+			if (r < n) {
+				/*
+				 * We weren't able to write out everything.
+				 * This means the buffer is getting full
+				 * again. Empty it.
+				 */
+				ttyread();
+				n -= r;
+				s += r;
+			} else {
+				/* All bytes have been written. */
+				break;
+			}
+		}
+	}
 }
 
 void
