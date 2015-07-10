@@ -4160,9 +4160,9 @@ run(void)
 	do {
 		XNextEvent(xw.dpy, &ev);
 		/*
-		 * XFilterEvent is required to be called after you using XOpenIM,
-		 * this is not unnecessary.It does not only filter the key event,
-		 * but some clientmessage for input method as well.
+		 * This XFilterEvent call is required because of XOpenIM. It
+		 * does filter out the key event and some client message for
+		 * the input method too.
 		 */
 		if (XFilterEvent(&ev, None))
 			continue;
