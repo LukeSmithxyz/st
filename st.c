@@ -569,6 +569,7 @@ xwrite(int fd, const char *s, size_t len)
 		len -= r;
 		s += r;
 	}
+
 	return aux;
 }
 
@@ -622,6 +623,7 @@ utf8decode(char *c, Rune *u, size_t clen)
 		return 0;
 	*u = udecoded;
 	utf8validate(u, len);
+
 	return len;
 }
 
@@ -631,6 +633,7 @@ utf8decodebyte(char c, size_t *i)
 	for (*i = 0; *i < LEN(utfmask); ++(*i))
 		if (((uchar)c & utfmask[*i]) == utfbyte[*i])
 			return (uchar)c & ~utfmask[*i];
+
 	return 0;
 }
 
@@ -642,11 +645,13 @@ utf8encode(Rune u, char *c)
 	len = utf8validate(&u, 0);
 	if (len > UTF_SIZ)
 		return 0;
+
 	for (i = len - 1; i != 0; --i) {
 		c[i] = utf8encodebyte(u, 0);
 		u >>= 6;
 	}
 	c[0] = utf8encodebyte(u, len);
+
 	return len;
 }
 
@@ -669,6 +674,7 @@ utf8strchr(char *s, Rune u)
 		if (r == u)
 			return &(s[i]);
 	}
+
 	return NULL;
 }
 
@@ -679,6 +685,7 @@ utf8validate(Rune *u, size_t i)
 		*u = UTF_INVALID;
 	for (i = 1; *u > utfmax[i]; ++i)
 		;
+
 	return i;
 }
 
@@ -3127,6 +3134,7 @@ xloadcolor(int i, const char *name, Color *ncolor)
 		} else
 			name = colorname[i];
 	}
+
 	return XftColorAllocName(xw.dpy, xw.vis, xw.cmap, name, ncolor);
 }
 
@@ -3166,6 +3174,7 @@ xsetcolorname(int x, const char *name)
 
 	XftColorFree(xw.dpy, xw.vis, xw.cmap, &dc.col[x]);
 	dc.col[x] = ncolor;
+
 	return 0;
 }
 
@@ -3235,6 +3244,7 @@ xgeommasktogravity(int mask)
 	case YNegative:
 		return SouthWestGravity;
 	}
+
 	return SouthEastGravity;
 }
 
