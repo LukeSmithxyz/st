@@ -4302,6 +4302,7 @@ main(int argc, char *argv[])
 		opt_line = EARGF(usage());
 		break;
 	case 't':
+	case 'T':
 		opt_title = EARGF(usage());
 		break;
 	case 'w':

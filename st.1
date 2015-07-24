@@ -15,6 +15,8 @@ st \- simple terminal
 .IR file ]
 .RB [ \-t 
 .IR title ]
+.RB [ \-T
+.IR title ]
 .RB [ \-l
 .IR line ]
 .RB [ \-w 
@@ -36,6 +38,8 @@ st \- simple terminal
 .RB [ \-o
 .IR file ]
 .RB [ \-t
+.IR title ]
+.RB [ \-T
 .IR title ]
 .RB [ \-l
 .IR line ]
@@ -77,6 +81,9 @@ This feature is useful when recording st sessions. A value of "-" means
 standard output.
 .TP
 .BI \-t " title"
+defines the window title (default 'st').
+.TP
+.BI \-T " title"
 defines the window title (default 'st').
 .TP
 .BI \-w " windowid"
