@@ -560,7 +560,8 @@ static int frclen = 0;
 ssize_t
 xwrite(int fd, const char *s, size_t len)
 {
-	size_t aux = len, r;
+	size_t aux = len;
+	ssize_t r;
 
 	while (len > 0) {
 		r = write(fd, s, len);
