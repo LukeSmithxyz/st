@@ -3411,6 +3411,7 @@ xinit(void)
 	Cursor cursor;
 	Window parent;
 	pid_t thispid = getpid();
+	XColor xmousefg, xmousebg;
 
 	if (!(xw.dpy = XOpenDisplay(NULL)))
 		die("Can't open display\n");
@@ -3483,11 +3484,22 @@ xinit(void)
 		die("XCreateIC failed. Could not obtain input method.\n");
 
 	/* white cursor, black outline */
-	cursor = XCreateFontCursor(xw.dpy, XC_xterm);
+	cursor = XCreateFontCursor(xw.dpy, mouseshape);
 	XDefineCursor(xw.dpy, xw.win, cursor);
-	XRecolorCursor(xw.dpy, cursor,
-		&(XColor){.red = 0xffff, .green = 0xffff, .blue = 0xffff},
-		&(XColor){.red = 0x0000, .green = 0x0000, .blue = 0x0000});
+
+	if (XParseColor(xw.dpy, xw.cmap, colorname[mousefg], &xmousefg) == 0) {
+		xmousefg.red   = 0xffff;
+		xmousefg.green = 0xffff;
+		xmousefg.blue  = 0xffff;
+	}
+
+	if (XParseColor(xw.dpy, xw.cmap, colorname[mousebg], &xmousebg) == 0) {
+		xmousebg.red   = 0x0000;
+		xmousebg.green = 0x0000;
+		xmousebg.blue  = 0x0000;
+	}
+
+	XRecolorCursor(xw.dpy, cursor, &xmousefg, &xmousebg);
 
 	xw.xembed = XInternAtom(xw.dpy, "_XEMBED", False);
 	xw.wmdeletewin = XInternAtom(xw.dpy, "WM_DELETE_WINDOW", False);
