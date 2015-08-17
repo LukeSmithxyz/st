@@ -2895,15 +2895,15 @@ tputc(Rune u)
 	int width, len;
 	Glyph *gp;
 
+	control = ISCONTROL(u);
 	len = utf8encode(u, c);
-	if ((width = wcwidth(u)) == -1) {
+	if (!control && (width = wcwidth(u)) == -1) {
 		memcpy(c, "\357\277\275", 4); /* UTF_INVALID */
 		width = 1;
 	}
 
 	if (IS_SET(MODE_PRINT))
 		tprinter(c, len);
-	control = ISCONTROL(u);
 
 	/*
 	 * STR sequence must be checked before anything else
