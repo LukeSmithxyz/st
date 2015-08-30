@@ -1531,7 +1531,8 @@ ttywrite(const char *s, size_t n)
 				 * This means the buffer is getting full
 				 * again. Empty it.
 				 */
-				ttyread();
+				if (n < 256)
+					ttyread();
 				n -= r;
 				s += r;
 			} else {
