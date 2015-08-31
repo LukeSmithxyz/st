@@ -2774,18 +2774,37 @@ tcontrolcode(uchar ascii)
 	case '\023': /* XOFF (IGNORED) */
 	case 0177:   /* DEL (IGNORED) */
 		return;
+	case 0x80:   /* TODO: PAD */
+	case 0x81:   /* TODO: HOP */
+	case 0x82:   /* TODO: BPH */
+	case 0x83:   /* TODO: NBH */
 	case 0x84:   /* TODO: IND */
 		break;
 	case 0x85:   /* NEL -- Next line */
 		tnewline(1); /* always go to first col */
 		break;
+	case 0x86:   /* TODO: SSA */
+	case 0x87:   /* TODO: ESA */
+		break;
 	case 0x88:   /* HTS -- Horizontal tab stop */
 		term.tabs[term.c.x] = 1;
 		break;
+	case 0x89:   /* TODO: HTJ */
+	case 0x8a:   /* TODO: VTS */
+	case 0x8b:   /* TODO: PLD */
+	case 0x8c:   /* TODO: PLU */
 	case 0x8d:   /* TODO: RI */
 	case 0x8e:   /* TODO: SS2 */
 	case 0x8f:   /* TODO: SS3 */
+	case 0x91:   /* TODO: PU1 */
+	case 0x92:   /* TODO: PU2 */
+	case 0x93:   /* TODO: STS */
+	case 0x94:   /* TODO: CCH */
+	case 0x95:   /* TODO: MW */
+	case 0x96:   /* TODO: SPA */
+	case 0x97:   /* TODO: EPA */
 	case 0x98:   /* TODO: SOS */
+	case 0x99:   /* TODO: SGCI */
 		break;
 	case 0x9a:   /* DECID -- Identify Terminal */
 		ttywrite(vtiden, sizeof(vtiden) - 1);
@@ -2794,9 +2813,9 @@ tcontrolcode(uchar ascii)
 	case 0x9c:   /* TODO: ST */
 		break;
 	case 0x90:   /* DCS -- Device Control String */
-	case 0x9f:   /* APC -- Application Program Command */
-	case 0x9e:   /* PM -- Privacy Message */
 	case 0x9d:   /* OSC -- Operating System Command */
+	case 0x9e:   /* PM -- Privacy Message */
+	case 0x9f:   /* APC -- Application Program Command */
 		tstrsequence(ascii);
 		return;
 	}
