@@ -4294,7 +4294,7 @@ usage(void)
 	"          [-i] [-t title] [-T title] [-w windowid] [-e command ...]"
 	" [command ...]\n"
 	"       st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]\n"
-	"          [-i] [-t title] [-T title] [-w windowid] [-l line]"
+	"          [-i] [-t title] [-T title] [-w windowid] -l line"
 	" [stty_args ...]\n",
 	argv0);
 }

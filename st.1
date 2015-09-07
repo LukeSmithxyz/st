@@ -89,9 +89,24 @@ embeds st within the window identified by
 .I windowid
 .TP
 .BI \-l " line"
-use a tty line instead of a pseudo terminal.
-When this flag is used
-remaining arguments are used as flags for stty.
+use a tty
+.I line
+instead of a pseudo terminal.
+.I line
+should be a (pseudo-)serial device (e.g. /dev/ttySO on Linux for serial port
+0).
+When this flag is given
+remaining arguments are used as flags for
+.BR stty(1).
+By default st initializes the serial line to 8 bits, no parity, 1 stop bit
+and a 38400 baud rate. The speed is set by appending it as last argument
+(e.g. 'st -l 115200'). Arguments before the last one are
+.BR stty(1)
+flags. If you want to set odd parity on 115200 baud use for example 'st -l
+parenb parodd 115200'. Set the number of bits by using for example 'st -l cs7
+115200'. See
+.BR stty(1)
+for more arguments and cases.
 .TP
 .B \-v
 prints version information to stderr, then exits.
