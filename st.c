@@ -17,6 +17,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 #include <libgen.h>
@@ -333,6 +334,7 @@ static void xzoomreset(const Arg *);
 static void printsel(const Arg *);
 static void printscreen(const Arg *) ;
 static void toggleprinter(const Arg *);
+static void sendbreak(const Arg *);
 
 /* Config.h for applying patches and the configuration. */
 #include "config.h"
@@ -2576,6 +2578,13 @@ void
 strreset(void)
 {
 	memset(&strescseq, 0, sizeof(strescseq));
+}
+
+void
+sendbreak(const Arg *arg)
+{
+	if (tcsendbreak(cmdfd, 0))
+		perror("Error sending break");
 }
 
 void
