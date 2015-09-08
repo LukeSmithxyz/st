@@ -105,6 +105,15 @@ static unsigned int defaultfg = 7;
 static unsigned int defaultbg = 0;
 static unsigned int defaultcs = 256;
 
+/*
+ * Default shape of cursor
+ * 2: Block
+ * 4: Underline
+ * 6: IBeam
+ */
+
+static unsigned int cursorshape = 2;
+
 
 /*
  * Default colour and shape of the mouse cursor

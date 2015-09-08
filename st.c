@@ -4315,7 +4315,7 @@ main(int argc, char *argv[])
 
 	xw.l = xw.t = 0;
 	xw.isfixed = False;
-	xw.cursor = 0;
+	xw.cursor = cursorshape;
 
 	ARGBEGIN {
 	case 'a':
