@@ -1004,7 +1004,10 @@ getsel(void)
 
 	/* append every set & selected glyph to the selection */
 	for (y = sel.nb.y; y <= sel.ne.y; y++) {
-		linelen = tlinelen(y);
+		if ((linelen = tlinelen(y)) == 0) {
+			*ptr++ = '\n';
+			continue;
+		}
 
 		if (sel.type == SEL_RECTANGULAR) {
 			gp = &term.line[y][sel.nb.x];
