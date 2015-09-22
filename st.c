@@ -1430,8 +1430,7 @@ ttynew(void)
 	if (opt_line) {
 		if ((cmdfd = open(opt_line, O_RDWR)) < 0)
 			die("open line failed: %s\n", strerror(errno));
-		close(0);
-		dup(cmdfd);
+		dup2(cmdfd, 0);
 		stty();
 		return;
 	}
