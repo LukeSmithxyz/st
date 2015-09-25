@@ -1135,10 +1135,10 @@ selnotify(XEvent *e)
 			*repl++ = '\r';
 		}
 
-		if (IS_SET(MODE_BRCKTPASTE))
+		if (IS_SET(MODE_BRCKTPASTE) && ofs == 0)
 			ttywrite("\033[200~", 6);
 		ttysend((char *)data, nitems * format / 8);
-		if (IS_SET(MODE_BRCKTPASTE))
+		if (IS_SET(MODE_BRCKTPASTE) && rem == 0)
 			ttywrite("\033[201~", 6);
 		XFree(data);
 		/* number of 32-bit chunks returned */
