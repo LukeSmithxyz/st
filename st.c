@@ -3855,10 +3855,10 @@ xdrawcursor(void)
 			case 1: /* Blinking Block (Default) */
 			case 2: /* Steady Block */
 				if (IS_SET(MODE_REVERSE)) {
-						g.mode |= ATTR_REVERSE;
-						g.fg = defaultcs;
-						g.bg = defaultfg;
-					}
+					g.mode |= ATTR_REVERSE;
+					g.fg = defaultcs;
+					g.bg = defaultfg;
+				}
 
 				g.mode |= term.line[term.c.y][curx].mode & ATTR_WIDE;
 				xdrawglyph(g, term.c.x, term.c.y);
