@@ -1811,7 +1811,6 @@ tmoveto(int x, int y)
 {
 	int miny, maxy;
 
-	selclear(NULL);
 	if (term.c.state & CURSOR_ORIGIN) {
 		miny = term.top;
 		maxy = term.bot;
@@ -3819,6 +3818,7 @@ xdrawglyph(Glyph g, int x, int y)
 {
 	int numspecs;
 	XftGlyphFontSpec spec;
+
 	numspecs = xmakeglyphfontspecs(&spec, &g, 1, x, y);
 	xdrawglyphfontspecs(&spec, g, numspecs, x, y);
 }
@@ -3828,8 +3828,10 @@ xdrawcursor(void)
 {
 	static int oldx = 0, oldy = 0;
 	int curx;
-	Glyph g = {' ', ATTR_NULL, defaultbg, defaultcs};
+	Glyph g = {' ', ATTR_NULL, defaultbg, defaultcs}, og;
 	int ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
+	Color drawcol;
+	XRenderColor dccol;
 
 	LIMIT(oldx, 0, term.col-1);
 	LIMIT(oldy, 0, term.row-1);
@@ -3842,12 +3844,28 @@ xdrawcursor(void)
 	if (term.line[term.c.y][curx].mode & ATTR_WDUMMY)
 		curx--;
 
-	g.u = term.line[term.c.y][term.c.x].u;
-	if (ena_sel && selected(term.c.x, term.c.y))
-		g.mode ^= ATTR_REVERSE;
-
 	/* remove the old cursor */
-	xdrawglyph(term.line[oldy][oldx], oldx, oldy);
+	og = term.line[oldy][oldx];
+	if (ena_sel && selected(oldx, oldy))
+		og.mode ^= ATTR_REVERSE;
+	xdrawglyph(og, oldx, oldy);
+
+	g.u = term.line[term.c.y][term.c.x].u;
+	if (ena_sel && selected(term.c.x, term.c.y)) {
+		/*
+		 * Allocate the drawing color which is the reverse of
+		 * defaultcs, if we are selected.
+		 */
+		dccol.red = ~dc.col[defaultcs].color.red;
+		dccol.green = ~dc.col[defaultcs].color.green;
+		dccol.blue = ~dc.col[defaultcs].color.blue;
+		dccol.alpha = ~dc.col[defaultcs].color.alpha;
+		XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &dccol, &drawcol);
+
+		g.mode ^= ATTR_REVERSE;
+	} else {
+		drawcol = dc.col[defaultcs];
+	}
 
 	if (IS_SET(MODE_HIDE))
 		return;
@@ -3869,33 +3887,33 @@ xdrawcursor(void)
 			break;
 		case 3: /* Blinking Underline */
 		case 4: /* Steady Underline */
-			XftDrawRect(xw.draw, &dc.col[defaultcs],
+			XftDrawRect(xw.draw, &drawcol,
 					borderpx + curx * xw.cw,
 					borderpx + (term.c.y + 1) * xw.ch - cursorthickness,
 					xw.cw, cursorthickness);
 			break;
 		case 5: /* Blinking bar */
 		case 6: /* Steady bar */
-			XftDrawRect(xw.draw, &dc.col[defaultcs],
+			XftDrawRect(xw.draw, &drawcol,
 					borderpx + curx * xw.cw,
 					borderpx + term.c.y * xw.ch,
 					cursorthickness, xw.ch);
 			break;
 		}
 	} else {
-		XftDrawRect(xw.draw, &dc.col[defaultcs],
+		XftDrawRect(xw.draw, &drawcol,
 				borderpx + curx * xw.cw,
 				borderpx + term.c.y * xw.ch,
 				xw.cw - 1, 1);
-		XftDrawRect(xw.draw, &dc.col[defaultcs],
+		XftDrawRect(xw.draw, &drawcol,
 				borderpx + curx * xw.cw,
 				borderpx + term.c.y * xw.ch,
 				1, xw.ch - 1);
-		XftDrawRect(xw.draw, &dc.col[defaultcs],
+		XftDrawRect(xw.draw, &drawcol,
 				borderpx + (curx + 1) * xw.cw - 1,
 				borderpx + term.c.y * xw.ch,
 				1, xw.ch - 1);
-		XftDrawRect(xw.draw, &dc.col[defaultcs],
+		XftDrawRect(xw.draw, &drawcol,
 				borderpx + curx * xw.cw,
 				borderpx + (term.c.y + 1) * xw.ch - 1,
 				xw.cw, 1);
@@ -3945,7 +3963,7 @@ drawregion(int x1, int y1, int x2, int y2)
 {
 	int i, x, y, ox, numspecs;
 	Glyph base, new;
-	XftGlyphFontSpec* specs;
+	XftGlyphFontSpec *specs;
 	int ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
 
 	if (!(xw.state & WIN_VISIBLE))
