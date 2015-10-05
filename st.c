@@ -3850,12 +3850,29 @@ xdrawcursor(void)
 	xdrawglyph(og, oldx, oldy);
 
 	g.u = term.line[term.c.y][term.c.x].u;
-	if (ena_sel && selected(term.c.x, term.c.y)) {
-		drawcol = dc.col[defaultrcs];
-		g.fg = defaultfg;
-		g.bg = defaultrcs;
+
+	/*
+	 * Select the right color for the right mode.
+	 */
+	if (IS_SET(MODE_REVERSE)) {
+		g.mode |= ATTR_REVERSE;
+		g.bg = defaultfg;
+		if (ena_sel && selected(term.c.x, term.c.y)) {
+			drawcol = dc.col[defaultcs];
+			g.fg = defaultrcs;
+		} else {
+			drawcol = dc.col[defaultrcs];
+			g.fg = defaultcs;
+		}
 	} else {
-		drawcol = dc.col[defaultcs];
+		g.fg = defaultfg;
+		if (ena_sel && selected(term.c.x, term.c.y)) {
+			g.bg = defaultcs;
+			drawcol = dc.col[defaultrcs];
+		} else {
+			drawcol = dc.col[defaultcs];
+			g.bg = defaultrcs;
+		}
 	}
 
 	if (IS_SET(MODE_HIDE))
@@ -3869,12 +3886,6 @@ xdrawcursor(void)
 		case 0: /* Blinking Block */
 		case 1: /* Blinking Block (Default) */
 		case 2: /* Steady Block */
-			if (IS_SET(MODE_REVERSE)) {
-				g.mode |= ATTR_REVERSE;
-				g.fg = defaultcs;
-				g.bg = defaultfg;
-			}
-
 			g.mode |= term.line[term.c.y][curx].mode & ATTR_WIDE;
 			xdrawglyph(g, term.c.x, term.c.y);
 			break;
