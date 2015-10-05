@@ -3828,6 +3828,7 @@ xdrawcursor(void)
 	static int oldx = 0, oldy = 0;
 	int curx;
 	Glyph g = {' ', ATTR_NULL, defaultbg, defaultcs};
+	int ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
 
 	LIMIT(oldx, 0, term.col-1);
 	LIMIT(oldy, 0, term.row-1);
@@ -3841,6 +3842,8 @@ xdrawcursor(void)
 		curx--;
 
 	g.u = term.line[term.c.y][term.c.x].u;
+	if (ena_sel && selected(term.c.x, term.c.y))
+		g.mode ^= ATTR_REVERSE;
 
 	/* remove the old cursor */
 	xdrawglyph(term.line[oldy][oldx], oldx, oldy);
