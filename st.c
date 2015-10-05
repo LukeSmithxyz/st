@@ -3852,7 +3852,8 @@ xdrawcursor(void)
 	g.u = term.line[term.c.y][term.c.x].u;
 	if (ena_sel && selected(term.c.x, term.c.y)) {
 		drawcol = dc.col[defaultrcs];
-		g.mode ^= ATTR_REVERSE;
+		g.fg = defaultfg;
+		g.bg = defaultrcs;
 	} else {
 		drawcol = dc.col[defaultcs];
 	}
