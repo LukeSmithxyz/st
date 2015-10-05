@@ -111,6 +111,7 @@ static unsigned int defaultrcs = 257;
  * 2: Block
  * 4: Underline
  * 6: IBeam
+ * 7: Snowman
  */
 static unsigned int cursorshape = 2;
 
