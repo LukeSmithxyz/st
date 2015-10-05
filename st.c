@@ -1811,6 +1811,7 @@ tmoveto(int x, int y)
 {
 	int miny, maxy;
 
+	selclear(NULL);
 	if (term.c.state & CURSOR_ORIGIN) {
 		miny = term.top;
 		maxy = term.bot;
