@@ -2433,15 +2433,15 @@ csihandle(void)
 		break;
 	case ' ':
 		switch (csiescseq.mode[1]) {
-			case 'q': /* DECSCUSR -- Set Cursor Style */
-				DEFAULT(csiescseq.arg[0], 1);
-				if (!BETWEEN(csiescseq.arg[0], 0, 6)) {
-					goto unknown;
-				}
-				xw.cursor = csiescseq.arg[0];
-				break;
-			default:
+		case 'q': /* DECSCUSR -- Set Cursor Style */
+			DEFAULT(csiescseq.arg[0], 1);
+			if (!BETWEEN(csiescseq.arg[0], 0, 6)) {
 				goto unknown;
+			}
+			xw.cursor = csiescseq.arg[0];
+			break;
+		default:
+			goto unknown;
 		}
 		break;
 	}
@@ -3851,32 +3851,32 @@ xdrawcursor(void)
 	/* draw the new one */
 	if (xw.state & WIN_FOCUSED) {
 		switch (xw.cursor) {
-			case 0: /* Blinking Block */
-			case 1: /* Blinking Block (Default) */
-			case 2: /* Steady Block */
-				if (IS_SET(MODE_REVERSE)) {
-					g.mode |= ATTR_REVERSE;
-					g.fg = defaultcs;
-					g.bg = defaultfg;
-				}
+		case 0: /* Blinking Block */
+		case 1: /* Blinking Block (Default) */
+		case 2: /* Steady Block */
+			if (IS_SET(MODE_REVERSE)) {
+				g.mode |= ATTR_REVERSE;
+				g.fg = defaultcs;
+				g.bg = defaultfg;
+			}
 
-				g.mode |= term.line[term.c.y][curx].mode & ATTR_WIDE;
-				xdrawglyph(g, term.c.x, term.c.y);
-				break;
-			case 3: /* Blinking Underline */
-			case 4: /* Steady Underline */
-				XftDrawRect(xw.draw, &dc.col[defaultcs],
-						borderpx + curx * xw.cw,
-						borderpx + (term.c.y + 1) * xw.ch - cursorthickness,
-						xw.cw, cursorthickness);
-				break;
-			case 5: /* Blinking bar */
-			case 6: /* Steady bar */
-				XftDrawRect(xw.draw, &dc.col[defaultcs],
-						borderpx + curx * xw.cw,
-						borderpx + term.c.y * xw.ch,
-						cursorthickness, xw.ch);
-				break;
+			g.mode |= term.line[term.c.y][curx].mode & ATTR_WIDE;
+			xdrawglyph(g, term.c.x, term.c.y);
+			break;
+		case 3: /* Blinking Underline */
+		case 4: /* Steady Underline */
+			XftDrawRect(xw.draw, &dc.col[defaultcs],
+					borderpx + curx * xw.cw,
+					borderpx + (term.c.y + 1) * xw.ch - cursorthickness,
+					xw.cw, cursorthickness);
+			break;
+		case 5: /* Blinking bar */
+		case 6: /* Steady bar */
+			XftDrawRect(xw.draw, &dc.col[defaultcs],
+					borderpx + curx * xw.cw,
+					borderpx + term.c.y * xw.ch,
+					cursorthickness, xw.ch);
+			break;
 		}
 	} else {
 		XftDrawRect(xw.draw, &dc.col[defaultcs],
