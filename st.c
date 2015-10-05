@@ -3831,7 +3831,6 @@ xdrawcursor(void)
 	Glyph g = {' ', ATTR_NULL, defaultbg, defaultcs}, og;
 	int ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
 	Color drawcol;
-	XRenderColor dccol;
 
 	LIMIT(oldx, 0, term.col-1);
 	LIMIT(oldy, 0, term.row-1);
@@ -3852,16 +3851,7 @@ xdrawcursor(void)
 
 	g.u = term.line[term.c.y][term.c.x].u;
 	if (ena_sel && selected(term.c.x, term.c.y)) {
-		/*
-		 * Allocate the drawing color which is the reverse of
-		 * defaultcs, if we are selected.
-		 */
-		dccol.red = ~dc.col[defaultcs].color.red;
-		dccol.green = ~dc.col[defaultcs].color.green;
-		dccol.blue = ~dc.col[defaultcs].color.blue;
-		dccol.alpha = ~dc.col[defaultcs].color.alpha;
-		XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &dccol, &drawcol);
-
+		drawcol = dc.col[defaultrcs];
 		g.mode ^= ATTR_REVERSE;
 	} else {
 		drawcol = dc.col[defaultcs];
@@ -3889,7 +3879,8 @@ xdrawcursor(void)
 		case 4: /* Steady Underline */
 			XftDrawRect(xw.draw, &drawcol,
 					borderpx + curx * xw.cw,
-					borderpx + (term.c.y + 1) * xw.ch - cursorthickness,
+					borderpx + (term.c.y + 1) * xw.ch - \
+						cursorthickness,
 					xw.cw, cursorthickness);
 			break;
 		case 5: /* Blinking bar */
