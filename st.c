@@ -3865,13 +3865,12 @@ xdrawcursor(void)
 			g.fg = defaultcs;
 		}
 	} else {
-		g.fg = defaultfg;
 		if (ena_sel && selected(term.c.x, term.c.y)) {
-			g.bg = defaultcs;
 			drawcol = dc.col[defaultrcs];
+			g.fg = defaultfg;
+			g.bg = defaultrcs;
 		} else {
 			drawcol = dc.col[defaultcs];
-			g.bg = defaultrcs;
 		}
 	}
 
