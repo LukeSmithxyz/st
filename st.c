@@ -275,7 +275,7 @@ typedef struct {
 	uint b;
 	uint mask;
 	char *s;
-} Mousekey;
+} MouseShortcut;
 
 typedef struct {
 	KeySym k;
@@ -944,7 +944,7 @@ void
 bpress(XEvent *e)
 {
 	struct timespec now;
-	Mousekey *mk;
+	MouseShortcut *mk;
 
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
 		mousereport(e);

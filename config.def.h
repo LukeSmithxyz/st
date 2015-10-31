@@ -134,7 +134,7 @@ static unsigned int defaultunderline = 7;
  * Internal mouse shortcuts.
  * Beware that overloading Button1 will disable the selection.
  */
-static Mousekey mshortcuts[] = {
+static MouseShortcut mshortcuts[] = {
 	/* button               mask            string */
 	{ Button4,              XK_ANY_MOD,     "\031" },
 	{ Button5,              XK_ANY_MOD,     "\005" },
