@@ -944,17 +944,17 @@ void
 bpress(XEvent *e)
 {
 	struct timespec now;
-	MouseShortcut *mk;
+	MouseShortcut *ms;
 
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
 		mousereport(e);
 		return;
 	}
 
-	for (mk = mshortcuts; mk < mshortcuts + LEN(mshortcuts); mk++) {
-		if (e->xbutton.button == mk->b
-				&& match(mk->mask, e->xbutton.state)) {
-			ttysend(mk->s, strlen(mk->s));
+	for (ms = mshortcuts; ms < mshortcuts + LEN(mshortcuts); ms++) {
+		if (e->xbutton.button == ms->b
+				&& match(ms->mask, e->xbutton.state)) {
+			ttysend(ms->s, strlen(ms->s));
 			return;
 		}
 	}
