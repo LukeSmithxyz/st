@@ -415,7 +415,7 @@ static int32_t tdefcolor(int *, int *, int);
 static void tdeftran(char);
 static inline int match(uint, uint);
 static void ttynew(void);
-static void ttyread(void);
+static size_t ttyread(void);
 static void ttyresize(void);
 static void ttysend(char *, size_t);
 static void ttywrite(const char *, size_t);
@@ -1464,7 +1464,7 @@ ttynew(void)
 	}
 }
 
-void
+size_t
 ttyread(void)
 {
 	static char buf[BUFSIZ];
@@ -1489,14 +1489,16 @@ ttyread(void)
 
 	/* keep any uncomplete utf8 char for the next call */
 	memmove(buf, ptr, buflen);
+
+	return ret;
 }
 
 void
 ttywrite(const char *s, size_t n)
 {
-	fd_set wfd;
-	struct timespec tv;
+	fd_set wfd, rfd;
 	ssize_t r;
+	size_t lim = 256;
 
 	/*
 	 * Remember that we are using a pty, which might be a modem line.
@@ -1506,38 +1508,34 @@ ttywrite(const char *s, size_t n)
 	 */
 	while (n > 0) {
 		FD_ZERO(&wfd);
+		FD_ZERO(&rfd);
 		FD_SET(cmdfd, &wfd);
-		tv.tv_sec = 0;
-		tv.tv_nsec = 0;
+		FD_SET(cmdfd, &rfd);
 
 		/* Check if we can write. */
-		if (pselect(cmdfd+1, NULL, &wfd, NULL, &tv, NULL) < 0) {
+		if (pselect(cmdfd+1, &rfd, &wfd, NULL, NULL, NULL) < 0) {
 			if (errno == EINTR)
 				continue;
 			die("select failed: %s\n", strerror(errno));
 		}
-		if(!FD_ISSET(cmdfd, &wfd)) {
-			/* No, then free some buffer space. */
-			ttyread();
-		} else {
+		if (FD_ISSET(cmdfd, &rfd))
+			lim = ttyread();
+		if (FD_ISSET(cmdfd, &wfd)) {
 			/*
 			 * Only write 256 bytes at maximum. This seems to be a
 			 * reasonable value for a serial line. Bigger values
 			 * might clog the I/O.
 			 */
-			r = write(cmdfd, s, (n < 256)? n : 256);
-			if (r < 0) {
-				die("write error on tty: %s\n",
-						strerror(errno));
-			}
+			if ((r = write(cmdfd, s, (n < 256)? n : 256)) < 0)
+				goto write_error;
 			if (r < n) {
 				/*
 				 * We weren't able to write out everything.
 				 * This means the buffer is getting full
 				 * again. Empty it.
 				 */
-				if (n < 256)
-					ttyread();
+				if (n < lim)
+					lim = ttyread();
 				n -= r;
 				s += r;
 			} else {
@@ -1546,6 +1544,10 @@ ttywrite(const char *s, size_t n)
 			}
 		}
 	}
+	return;
+
+write_error:
+	die("write error on tty: %s\n", strerror(errno));
 }
 
 void
