@@ -1522,11 +1522,11 @@ ttywrite(const char *s, size_t n)
 			lim = ttyread();
 		if (FD_ISSET(cmdfd, &wfd)) {
 			/*
-			 * Only write 256 bytes at maximum. This seems to be a
-			 * reasonable value for a serial line. Bigger values
-			 * might clog the I/O.
+			 * Only write the bytes written by ttywrite() or the
+			 * default of 256. This seems to be a reasonable value
+			 * for a serial line. Bigger values might clog the I/O.
 			 */
-			if ((r = write(cmdfd, s, (n < 256)? n : 256)) < 0)
+			if ((r = write(cmdfd, s, (n < lim)? n : lim)) < 0)
 				goto write_error;
 			if (r < n) {
 				/*
