@@ -1518,8 +1518,6 @@ ttywrite(const char *s, size_t n)
 				continue;
 			die("select failed: %s\n", strerror(errno));
 		}
-		if (FD_ISSET(cmdfd, &rfd))
-			lim = ttyread();
 		if (FD_ISSET(cmdfd, &wfd)) {
 			/*
 			 * Only write the bytes written by ttywrite() or the
@@ -1543,6 +1541,8 @@ ttywrite(const char *s, size_t n)
 				break;
 			}
 		}
+		if (FD_ISSET(cmdfd, &rfd))
+			lim = ttyread();
 	}
 	return;
 
