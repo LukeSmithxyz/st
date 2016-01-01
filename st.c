@@ -4329,7 +4329,7 @@ run(void)
 void
 usage(void)
 {
-	die("%s " VERSION " (c) 2010-2015 st engineers\n"
+	die("%s " VERSION " (c) 2010-2016 st engineers\n"
 	"usage: st [-a] [-v] [-c class] [-f font] [-g geometry] [-o file]\n"
 	"          [-i] [-t title] [-T title] [-w windowid] [-e command ...]"
 	" [command ...]\n"
