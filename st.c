@@ -3469,7 +3469,7 @@ xinit(void)
 	if (xw.gm & XNegative)
 		xw.l += DisplayWidth(xw.dpy, xw.scr) - xw.w - 2;
 	if (xw.gm & YNegative)
-		xw.t += DisplayWidth(xw.dpy, xw.scr) - xw.h - 2;
+		xw.t += DisplayHeight(xw.dpy, xw.scr) - xw.h - 2;
 
 	/* Events */
 	xw.attrs.background_pixel = dc.col[defaultbg].pixel;
