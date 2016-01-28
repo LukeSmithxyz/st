@@ -1440,6 +1440,8 @@ ttynew(void)
 	if (openpty(&m, &s, NULL, NULL, &w) < 0)
 		die("openpty failed: %s\n", strerror(errno));
 
+	ttyresize();
+
 	switch (pid = fork()) {
 	case -1:
 		die("fork failed\n");
