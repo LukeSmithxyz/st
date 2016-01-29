@@ -10,6 +10,8 @@ st \- simple terminal
 .IR font ]
 .RB [ \-g
 .IR geometry ]
+.RB [ \-n
+.IR name ]
 .RB [ \-o
 .IR iofile ]
 .RB [ \-T
@@ -32,6 +34,8 @@ st \- simple terminal
 .IR font ]
 .RB [ \-g
 .IR geometry ]
+.RB [ \-n
+.IR name ]
 .RB [ \-o
 .IR iofile ]
 .RB [ \-T
@@ -67,6 +71,9 @@ for further details.
 .TP
 .B \-i
 will fixate the position given with the -g option.
+.TP
+.BI \-n " name"
+defines the window instance name (default $TERM).
 .TP
 .BI \-o " iofile"
 writes all the I/O to

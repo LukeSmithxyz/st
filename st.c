@@ -524,14 +524,15 @@ static int cmdfd;
 static pid_t pid;
 static Selection sel;
 static int iofd = 1;
-static char **opt_cmd = NULL;
-static char *opt_io = NULL;
-static char *opt_title = NULL;
-static char *opt_embed = NULL;
+static char **opt_cmd  = NULL;
 static char *opt_class = NULL;
-static char *opt_font = NULL;
-static char *opt_line = NULL;
-static int oldbutton = 3; /* button event on startup: 3 = release */
+static char *opt_embed = NULL;
+static char *opt_font  = NULL;
+static char *opt_io    = NULL;
+static char *opt_line  = NULL;
+static char *opt_name  = NULL;
+static char *opt_title = NULL;
+static int oldbutton   = 3; /* button event on startup: 3 = release */
 
 static char *usedfont = NULL;
 static double usedfontsize = 0;
@@ -3240,7 +3241,8 @@ xclear(int x1, int y1, int x2, int y2)
 void
 xhints(void)
 {
-	XClassHint class = {termname, opt_class ? opt_class : termname};
+	XClassHint class = {opt_name ? opt_name : termname,
+	                    opt_class ? opt_class : termname};
 	XWMHints wm = {.flags = InputHint, .input = 1};
 	XSizeHints *sizeh = NULL;
 
@@ -4332,13 +4334,12 @@ run(void)
 void
 usage(void)
 {
-	die("usage: %s [-aiv] [-c class] [-f font] [-g geometry]"
-	" [-o file] [-T title]\n"
-	"          [-t title] [-w windowid] [[-e] command [args ...]]\n"
-	"       %s [-aiv] [-c class] [-f font] [-g geometry]"
-	" [-o file] [-T title]\n"
-	"          [-t title] [-w windowid] -l line [stty_args ...]\n",
-	argv0, argv0);
+	die("usage: %s "
+	"[-aiv] [-c class] [-f font] [-g geometry] [-n name] [-o file]\n       "
+	"   [-T title] [-t title] [-w windowid] [[-e] command [args ...]\n     "
+	"  %s [-aiv] [-c class] [-f font] [-g geometry] [-n name] [-o file]\n  "
+	"        [-o file] [-T title] [-t title] [-w windowid] -l line"
+	" [stty_args ...]\n", argv0, argv0);
 }
 
 void
@@ -4382,6 +4383,9 @@ main(int argc, char *argv[])
 		break;
 	case 'l':
 		opt_line = EARGF(usage());
+		break;
+	case 'n':
+		opt_name = EARGF(usage());
 		break;
 	case 't':
 	case 'T':
