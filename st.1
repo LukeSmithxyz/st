@@ -3,47 +3,43 @@
 st \- simple terminal
 .SH SYNOPSIS
 .B st
-.RB [ \-a ]
+.RB [ \-aiv ]
 .RB [ \-c
 .IR class ]
 .RB [ \-f
 .IR font ]
 .RB [ \-g
 .IR geometry ]
-.RB [ \-i ]
 .RB [ \-o
-.IR file ]
-.RB [ \-t 
-.IR title ]
+.IR iofile ]
 .RB [ \-T
+.IR title ]
+.RB [ \-t
 .IR title ]
 .RB [ \-l
 .IR line ]
-.RB [ \-w 
+.RB [ \-w
 .IR windowid ]
-.RB [ \-v ]
-.RB [ \-e
-.IR command ...]
-.RI [ commands ...]
+.RB [[ \-e ]
+.IR command
+.RI [ arguments ...]]
 .PP
 .B st
-.RB [ \-a ]
+.RB [ \-aiv ]
 .RB [ \-c
 .IR class ]
 .RB [ \-f
 .IR font ]
 .RB [ \-g
 .IR geometry ]
-.RB [ \-i ]
 .RB [ \-o
-.IR file ]
-.RB [ \-t
-.IR title ]
+.IR iofile ]
 .RB [ \-T
+.IR title ]
+.RB [ \-t
 .IR title ]
 .RB [ \-w
 .IR windowid ]
-.RB [ \-v ]
 .RB \-l
 .IR line
 .RI [ stty_args ...]
@@ -78,14 +74,14 @@ writes all the I/O to
 This feature is useful when recording st sessions. A value of "-" means
 standard output.
 .TP
-.BI \-t " title"
-defines the window title (default 'st').
-.TP
 .BI \-T " title"
 defines the window title (default 'st').
 .TP
+.BI \-t " title"
+defines the window title (default 'st').
+.TP
 .BI \-w " windowid"
-embeds st within the window identified by 
+embeds st within the window identified by
 .I windowid
 .TP
 .BI \-l " line"
@@ -111,9 +107,9 @@ for more arguments and cases.
 .B \-v
 prints version information to stderr, then exits.
 .TP
-.BI \-e " program " [ " arguments " "... ]"
+.BI \-e " command " [ " arguments " "... ]"
 st executes
-.I program
+.I command
 instead of the shell.  If this is used it
 .B must be the last option
 on the command line, as in xterm / rxvt.
