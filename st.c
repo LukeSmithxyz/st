@@ -1441,8 +1441,6 @@ ttynew(void)
 	if (openpty(&m, &s, NULL, NULL, &w) < 0)
 		die("openpty failed: %s\n", strerror(errno));
 
-	ttyresize();
-
 	switch (pid = fork()) {
 	case -1:
 		die("fork failed\n");
@@ -3427,6 +3425,7 @@ xzoomabs(const Arg *arg)
 	xunloadfonts();
 	xloadfonts(usedfont, arg->f);
 	cresize(0, 0);
+	ttyresize();
 	redraw();
 	xhints();
 }
@@ -4210,7 +4209,6 @@ cresize(int width, int height)
 
 	tresize(col, row);
 	xresize(col, row);
-	ttyresize();
 }
 
 void
@@ -4220,6 +4218,7 @@ resize(XEvent *e)
 		return;
 
 	cresize(e->xconfigure.width, e->xconfigure.height);
+	ttyresize();
 }
 
 void
@@ -4248,8 +4247,9 @@ run(void)
 		}
 	} while (ev.type != MapNotify);
 
-	ttynew();
 	cresize(w, h);
+	ttynew();
+	ttyresize();
 
 	clock_gettime(CLOCK_MONOTONIC, &last);
 	lastblink = last;
