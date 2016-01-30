@@ -486,7 +486,6 @@ static void *xrealloc(void *, size_t);
 static char *xstrdup(char *);
 
 static void usage(void);
-static void version(void);
 
 static void (*handler[LASTEvent])(XEvent *) = {
 	[KeyPress] = kpress,
@@ -4342,12 +4341,6 @@ usage(void)
 	" [stty_args ...]\n", argv0, argv0);
 }
 
-void
-version(void)
-{
-	die("%s " VERSION " (c) 2010-2016 st engineers\n", argv0);
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -4395,7 +4388,7 @@ main(int argc, char *argv[])
 		opt_embed = EARGF(usage());
 		break;
 	case 'v':
-		version();
+		die("%s " VERSION " (c) 2010-2016 st engineers\n", argv0);
 		break;
 	default:
 		usage();
