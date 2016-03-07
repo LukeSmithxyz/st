@@ -3671,7 +3671,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
 		specs[numspecs].font = frc[f].font;
 		specs[numspecs].glyph = glyphidx;
 		specs[numspecs].x = (short)xp;
-		specs[numspecs].y = (short)(winy + frc[f].font->ascent);
+		specs[numspecs].y = (short)yp;
 		xp += runewidth;
 		numspecs++;
 	}
