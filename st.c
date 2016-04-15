@@ -1404,9 +1404,9 @@ stty(void)
 		if ((n = strlen(s)) > siz-1)
 			die("stty parameter length too long\n");
 		*q++ = ' ';
-		q = memcpy(q, s, n);
+		memcpy(q, s, n);
 		q += n;
-		siz-= n + 1;
+		siz -= n + 1;
 	}
 	*q = '\0';
 	if (system(cmd) != 0)
