@@ -3279,7 +3279,7 @@ xloadfont(Font *f, FcPattern *pattern)
 	FcResult result;
 	XGlyphInfo extents;
 
-	match = FcFontMatch(NULL, pattern, &result);
+	match = XftFontMatch(xw.dpy, xw.scr, pattern, &result);
 	if (!match)
 		return 1;
 
@@ -3344,9 +3344,6 @@ xloadfonts(char *fontstr, double fontsize)
 		}
 		defaultfontsize = usedfontsize;
 	}
-
-	FcConfigSubstitute(0, pattern, FcMatchPattern);
-	FcDefaultSubstitute(pattern);
 
 	if (xloadfont(&dc.font, pattern))
 		die("st: can't open font %s\n", fontstr);
