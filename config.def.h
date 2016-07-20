@@ -73,6 +73,12 @@ static char termname[] = "st-256color";
  * you use this st version.
  *
  *	it#$tabspaces,
+ *
+ * Secondly make sure your terminal is not expanding tabs. When running `stty
+ * -a` »tab0« should appear. You can tell the terminal to not expand tabs by
+ *  running following command:
+ *
+ *	stty tabs
  */
 static unsigned int tabspaces = 8;
 
