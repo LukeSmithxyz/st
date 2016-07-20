@@ -65,6 +65,15 @@ static int bellvolume = 0;
 /* default TERM value */
 static char termname[] = "st-256color";
 
+/*
+ * spaces per tab
+ *
+ * When you are changing this value, don't forget to adapt the »it« value in
+ * the st.info and appropriately install the st.info in the environment where
+ * you use this st version.
+ *
+ *	it#$tabspaces,
+ */
 static unsigned int tabspaces = 8;
 
 /* Terminal colors (16 first used in escape sequence) */
