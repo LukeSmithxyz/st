@@ -137,6 +137,7 @@ enum term_mode {
 	MODE_MOUSEMANY   = 1 << 18,
 	MODE_BRCKTPASTE  = 1 << 19,
 	MODE_PRINT       = 1 << 20,
+	MODE_UTF8        = 1 << 21,
 	MODE_MOUSE       = MODE_MOUSEBTN|MODE_MOUSEMOTION|MODE_MOUSEX10\
 	                  |MODE_MOUSEMANY,
 };
@@ -158,6 +159,7 @@ enum escape_state {
 	ESC_ALTCHARSET = 8,
 	ESC_STR_END    = 16, /* a final string was encountered */
 	ESC_TEST       = 32, /* Enter in test mode */
+	ESC_UTF8       = 64,
 };
 
 enum window_state {
@@ -412,6 +414,7 @@ static void tfulldirt(void);
 static void techo(Rune);
 static void tcontrolcode(uchar );
 static void tdectest(char );
+static void tdefutf8(char);
 static int32_t tdefcolor(int *, int *, int);
 static void tdeftran(char);
 static inline int match(uint, uint);
@@ -1478,17 +1481,29 @@ ttyread(void)
 	if ((ret = read(cmdfd, buf+buflen, LEN(buf)-buflen)) < 0)
 		die("Couldn't read from shell: %s\n", strerror(errno));
 
-	/* process every complete utf8 char */
 	buflen += ret;
 	ptr = buf;
-	while ((charsize = utf8decode(ptr, &unicodep, buflen))) {
-		tputc(unicodep);
-		ptr += charsize;
-		buflen -= charsize;
-	}
 
+	for (;;) {
+		if (IS_SET(MODE_UTF8)) {
+			/* process a complete utf8 char */
+			charsize = utf8decode(ptr, &unicodep, buflen);
+			if (charsize == 0)
+				break;
+			tputc(unicodep);
+			ptr += charsize;
+			buflen -= charsize;
+
+		} else {
+			if (buflen <= 0)
+				break;
+			tputc(*ptr++ & 0xFF);
+			buflen--;
+		}
+	}
 	/* keep any uncomplete utf8 char for the next call */
-	memmove(buf, ptr, buflen);
+	if (buflen > 0)
+		memmove(buf, ptr, buflen);
 
 	return ret;
 }
@@ -1554,15 +1569,26 @@ void
 ttysend(char *s, size_t n)
 {
 	int len;
+	char *t, *lim;
 	Rune u;
 
 	ttywrite(s, n);
-	if (IS_SET(MODE_ECHO))
-		while ((len = utf8decode(s, &u, n)) > 0) {
-			techo(u);
-			n -= len;
-			s += len;
+	if (!IS_SET(MODE_ECHO))
+		return;
+
+	lim = &s[n];
+	for (t = s; t < lim; t += len) {
+		if (IS_SET(MODE_UTF8)) {
+			len = utf8decode(t, &u, n);
+		} else {
+			u = *t & 0xFF;
+			len = 1;
 		}
+		if (len <= 0)
+			break;
+		techo(u);
+		n -= len;
+	}
 }
 
 void
@@ -1656,7 +1682,7 @@ treset(void)
 		term.tabs[i] = 1;
 	term.top = 0;
 	term.bot = term.row - 1;
-	term.mode = MODE_WRAP;
+	term.mode = MODE_WRAP|MODE_UTF8;
 	memset(term.trantbl, CS_USA, sizeof(term.trantbl));
 	term.charset = 0;
 
@@ -2690,6 +2716,15 @@ techo(Rune u)
 }
 
 void
+tdefutf8(char ascii)
+{
+	if (ascii == 'G')
+		term.mode |= MODE_UTF8;
+	else if (ascii == '@')
+		term.mode &= ~MODE_UTF8;
+}
+
+void
 tdeftran(char ascii)
 {
 	static char cs[] = "0B";
@@ -2851,6 +2886,9 @@ eschandle(uchar ascii)
 	case '#':
 		term.esc |= ESC_TEST;
 		return 0;
+	case '%':
+		term.esc |= ESC_UTF8;
+		return 0;
 	case 'P': /* DCS -- Device Control String */
 	case '_': /* APC -- Application Program Command */
 	case '^': /* PM -- Privacy Message */
@@ -2930,10 +2968,15 @@ tputc(Rune u)
 	Glyph *gp;
 
 	control = ISCONTROL(u);
-	len = utf8encode(u, c);
-	if (!control && (width = wcwidth(u)) == -1) {
-		memcpy(c, "\357\277\275", 4); /* UTF_INVALID */
-		width = 1;
+	if (!IS_SET(MODE_UTF8)) {
+		c[0] = u;
+		width = len = 1;
+	} else {
+		len = utf8encode(u, c);
+		if (!control && (width = wcwidth(u)) == -1) {
+			memcpy(c, "\357\277\275", 4); /* UTF_INVALID */
+			width = 1;
+		}
 	}
 
 	if (IS_SET(MODE_PRINT))
@@ -2994,6 +3037,8 @@ tputc(Rune u)
 				csihandle();
 			}
 			return;
+		} else if (term.esc & ESC_UTF8) {
+			tdefutf8(u);
 		} else if (term.esc & ESC_ALTCHARSET) {
 			tdeftran(u);
 		} else if (term.esc & ESC_TEST) {
