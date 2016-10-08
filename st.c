@@ -66,6 +66,7 @@ char *argv0;
 #define MIN(a, b)		((a) < (b) ? (a) : (b))
 #define MAX(a, b)		((a) < (b) ? (b) : (a))
 #define LEN(a)			(sizeof(a) / sizeof(a)[0])
+#define NUMMAXLEN(x)		((int)(sizeof(x) * 2.56 + 0.5) + 1)
 #define DEFAULT(a, b)		(a) = (a) ? (a) : (b)
 #define BETWEEN(x, a, b)	((a) <= (x) && (x) <= (b))
 #define DIVCEIL(n, d)		(((n) + ((d) - 1)) / (d))
@@ -87,6 +88,8 @@ char *argv0;
 #define TRUEGREEN(x)		(((x) & 0xff00))
 #define TRUEBLUE(x)		(((x) & 0xff) << 8)
 
+/* constants */
+#define ISO14755CMD		"dmenu -w %lu -p codepoint: </dev/null"
 
 enum glyph_attribute {
 	ATTR_NULL       = 0,
@@ -338,6 +341,7 @@ static void xzoomabs(const Arg *);
 static void xzoomreset(const Arg *);
 static void printsel(const Arg *);
 static void printscreen(const Arg *) ;
+static void iso14755(const Arg *);
 static void toggleprinter(const Arg *);
 static void sendbreak(const Arg *);
 
@@ -2630,6 +2634,30 @@ tprinter(char *s, size_t len)
 		close(iofd);
 		iofd = -1;
 	}
+}
+
+void
+iso14755(const Arg *arg)
+{
+	char cmd[sizeof(ISO14755CMD) + NUMMAXLEN(xw.win)];
+	FILE *p;
+	char *us, *e, codepoint[9], uc[UTF_SIZ];
+	unsigned long utf32;
+
+	snprintf(cmd, sizeof(cmd), ISO14755CMD, xw.win);
+	if (!(p = popen(cmd, "r")))
+		return;
+
+	us = fgets(codepoint, sizeof(codepoint), p);
+	pclose(p);
+
+	if (!us || *us == '\0' || *us == '-' || strlen(us) > 7)
+		return;
+	if ((utf32 = strtoul(us, &e, 16)) == ULONG_MAX ||
+	    (*e != '\n' && *e != '\0'))
+		return;
+
+	ttysend(uc, utf8encode(utf32, uc));
 }
 
 void
