@@ -354,6 +354,8 @@ typedef struct {
 	int width;
 	int ascent;
 	int descent;
+	int badslant;
+	int badweight;
 	short lbearing;
 	short rbearing;
 	XftFont *match;
@@ -3373,6 +3375,7 @@ xloadfont(Font *f, FcPattern *pattern)
 	FcPattern *match;
 	FcResult result;
 	XGlyphInfo extents;
+	int wantattr, haveattr;
 
 	match = XftFontMatch(xw.dpy, xw.scr, pattern, &result);
 	if (!match)
@@ -3381,6 +3384,28 @@ xloadfont(Font *f, FcPattern *pattern)
 	if (!(f->match = XftFontOpenPattern(xw.dpy, match))) {
 		FcPatternDestroy(match);
 		return 1;
+	}
+
+	if ((XftPatternGetInteger(pattern, "slant", 0, &wantattr) ==
+	    XftResultMatch)) {
+		/*
+		 * Check if xft was unable to find a font with the appropriate
+		 * slant but gave us one anyway. Try to mitigate.
+		 */
+		if ((XftPatternGetInteger(f->match->pattern, "slant", 0,
+		    &haveattr) != XftResultMatch) || haveattr < wantattr) {
+			f->badslant = 1;
+			fputs("st: font slant does not match\n", stderr);
+		}
+	}
+
+	if ((XftPatternGetInteger(pattern, "weight", 0, &wantattr) ==
+	    XftResultMatch)) {
+		if ((XftPatternGetInteger(f->match->pattern, "weight", 0,
+		    &haveattr) != XftResultMatch) || haveattr != wantattr) {
+			f->badweight = 1;
+			fputs("st: font weight does not match\n", stderr);
+		}
 	}
 
 	XftTextExtentsUtf8(xw.dpy, f->match,
@@ -3780,14 +3805,13 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 	XRenderColor colfg, colbg;
 	XRectangle r;
 
-	/* Determine foreground and background colors based on mode. */
-	if (base.fg == defaultfg) {
-		if (base.mode & ATTR_ITALIC)
-			base.fg = defaultitalic;
-		else if ((base.mode & ATTR_ITALIC) && (base.mode & ATTR_BOLD))
-			base.fg = defaultitalic;
-		else if (base.mode & ATTR_UNDERLINE)
-			base.fg = defaultunderline;
+	/* Fallback on color display for attributes not supported by the font */
+	if (base.mode & ATTR_ITALIC && base.mode & ATTR_BOLD) {
+		if (dc.ibfont.badslant || dc.ibfont.badweight)
+			base.fg = defaultattr;
+	} else if ((base.mode & ATTR_ITALIC && dc.ifont.badslant) ||
+	    (base.mode & ATTR_BOLD && dc.bfont.badweight)) {
+		base.fg = defaultattr;
 	}
 
 	if (IS_TRUECOL(base.fg)) {
