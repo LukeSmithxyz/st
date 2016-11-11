@@ -24,7 +24,7 @@ Running st
 If you did not install st with make clean install, you must compile
 the st terminfo entry with the following command:
 
-    tic -s st.info
+    tic -sx st.info
 
 See the man page for additional details.
 
