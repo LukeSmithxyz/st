@@ -2490,22 +2490,22 @@ csidump(void)
 	int i;
 	uint c;
 
-	printf("ESC[");
+	fprintf(stderr, "ESC[");
 	for (i = 0; i < csiescseq.len; i++) {
 		c = csiescseq.buf[i] & 0xff;
 		if (isprint(c)) {
-			putchar(c);
+			putc(c, stderr);
 		} else if (c == '\n') {
-			printf("(\\n)");
+			fprintf(stderr, "(\\n)");
 		} else if (c == '\r') {
-			printf("(\\r)");
+			fprintf(stderr, "(\\r)");
 		} else if (c == 0x1b) {
-			printf("(\\e)");
+			fprintf(stderr, "(\\e)");
 		} else {
-			printf("(%02x)", c);
+			fprintf(stderr, "(%02x)", c);
 		}
 	}
-	putchar('\n');
+	putc('\n', stderr);
 }
 
 void
@@ -2594,24 +2594,25 @@ strdump(void)
 	int i;
 	uint c;
 
-	printf("ESC%c", strescseq.type);
+	fprintf(stderr, "ESC%c", strescseq.type);
 	for (i = 0; i < strescseq.len; i++) {
 		c = strescseq.buf[i] & 0xff;
 		if (c == '\0') {
+			putc('\n', stderr);
 			return;
 		} else if (isprint(c)) {
-			putchar(c);
+			putc(c, stderr);
 		} else if (c == '\n') {
-			printf("(\\n)");
+			fprintf(stderr, "(\\n)");
 		} else if (c == '\r') {
-			printf("(\\r)");
+			fprintf(stderr, "(\\r)");
 		} else if (c == 0x1b) {
-			printf("(\\e)");
+			fprintf(stderr, "(\\e)");
 		} else {
-			printf("(%02x)", c);
+			fprintf(stderr, "(%02x)", c);
 		}
 	}
-	printf("ESC\\\n");
+	fprintf(stderr, "ESC\\\n");
 }
 
 void
