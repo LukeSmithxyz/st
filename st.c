@@ -3472,6 +3472,9 @@ xloadfonts(char *fontstr, double fontsize)
 	if (usedfontsize < 0) {
 		FcPatternGetDouble(dc.font.match->pattern,
 		                   FC_PIXEL_SIZE, 0, &fontval);
+		FcPatternAddDouble(pattern, FC_PIXEL_SIZE, fontval);
+		if (xloadfont(&dc.font, pattern))
+			die("st: can't open font %s\n", fontstr);
 		usedfontsize = fontval;
 		if (fontsize == 0)
 			defaultfontsize = fontval;
