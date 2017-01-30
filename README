@@ -28,6 +28,24 @@ the st terminfo entry with the following command:
 
 See the man page for additional details.
 
+Applied patches
+---------------
+The following patches have been applied, and fixed to co-exist
+
+1. clipboard support:
+    - st-clipboard-20160727-308bfbf.diff
+
+2. Scrollback support:
+    - st-scrollback-20170104-c63a87c.diff
+    - st-scrollback-mouse-20161020-6e79e83.diff
+
+3. Align line vertically:
+    - st-vertcenter-20160819-023225e.diff
+
+4. support solarized and switch with F6:
+    - st-no_bold_colors-20160727-308bfbf.diff
+    - st-solarized-both-20160727-308bfbf.diff
+
 Credits
 -------
 Based on Aurélien APTEL <aurelien dot aptel at gmail dot com> bt source code.

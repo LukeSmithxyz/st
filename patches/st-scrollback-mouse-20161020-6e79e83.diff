@@ -1,0 +1,62 @@
+diff --git a/config.def.h b/config.def.h
+index eae969e..34ebb44 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -152,8 +152,14 @@ static unsigned int defaultunderline = 7;
+  */
+ static MouseShortcut mshortcuts[] = {
+ 	/* button               mask            string */
+-	{ Button4,              XK_ANY_MOD,     "\031" },
+-	{ Button5,              XK_ANY_MOD,     "\005" },
++	{ Button4,              XK_NO_MOD,      "\031" },
++	{ Button5,              XK_NO_MOD,      "\005" },
++};
++
++static MouseKey mkeys[] = {
++	/* button               mask            function        argument */
++	{ Button4,              ShiftMask,      kscrollup,      {.i =  1} },
++	{ Button5,              ShiftMask,      kscrolldown,    {.i =  1} },
+ };
+ 
+ /* Internal keyboard shortcuts. */
+diff --git a/st.c b/st.c
+index 233d301..c71b6e7 100644
+--- a/st.c
++++ b/st.c
+@@ -299,6 +299,13 @@ typedef union {
+ 	const void *v;
+ } Arg;
+ 
++typedef struct {
++	uint b;
++	uint mask;
++	void (*func)(const Arg *);
++	const Arg arg;
++} MouseKey;
++
+ typedef struct {
+ 	uint mod;
+ 	KeySym keysym;
+@@ -953,6 +960,7 @@ bpress(XEvent *e)
+ {
+ 	struct timespec now;
+ 	MouseShortcut *ms;
++	MouseKey *mk;
+ 
+ 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
+ 		mousereport(e);
+@@ -967,6 +975,14 @@ bpress(XEvent *e)
+ 		}
+ 	}
+ 
++	for (mk = mkeys; mk < mkeys + LEN(mkeys); mk++) {
++		if (e->xbutton.button == mk->b
++				&& match(mk->mask, e->xbutton.state)) {
++			mk->func(&mk->arg);
++			return;
++		}
++	}
++
+ 	if (e->xbutton.button == Button1) {
+ 		clock_gettime(CLOCK_MONOTONIC, &now);
+ 
