@@ -2,6 +2,8 @@ st - simple terminal
 --------------------
 st is a simple terminal emulator for X which sucks less.
 
+[![Build Status](https://travis-ci.org/shiva/st.svg?branch=patched)](https://travis-ci.org/shiva/st)
+[![Join the chat at https://gitter.im/shiva/st](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/shiva/st?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Requirements
 ------------
@@ -50,5 +52,3 @@ Credits
 -------
 Based on Aurélien APTEL <aurelien dot aptel at gmail dot com> bt source code.
 
-
-Join the chat at https://gitter.im/shiva/st
