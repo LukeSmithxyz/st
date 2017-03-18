@@ -198,6 +198,8 @@ static char utf8encodebyte(Rune, size_t);
 static char *utf8strchr(char *s, Rune u);
 static size_t utf8validate(Rune *, size_t);
 
+static char *base64dec(const char *);
+
 static ssize_t xwrite(int, const char *, size_t);
 static void *xrealloc(void *, size_t);
 
@@ -367,6 +369,48 @@ utf8validate(Rune *u, size_t i)
 		;
 
 	return i;
+}
+
+static const char base64_digits[] = {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 62, 0, 0, 0,
+	63, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 0, 0, 0, -1, 0, 0, 0, 0, 1,
+	2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+	22, 23, 24, 25, 0, 0, 0, 0, 0, 0, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+	35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+char *
+base64dec(const char *src)
+{
+	size_t in_len = strlen(src);
+	char *result, *dst;
+
+	if (in_len % 4)
+		return NULL;
+	result = dst = xmalloc(in_len / 4 * 3 + 1);
+	while (*src) {
+		int a = base64_digits[(unsigned char) *src++];
+		int b = base64_digits[(unsigned char) *src++];
+		int c = base64_digits[(unsigned char) *src++];
+		int d = base64_digits[(unsigned char) *src++];
+
+		*dst++ = (a << 2) | ((b & 0x30) >> 4);
+		if (c == -1)
+			break;
+		*dst++ = ((b & 0x0f) << 4) | ((c & 0x3c) >> 2);
+		if (d == -1)
+			break;
+		*dst++ = ((c & 0x03) << 6) | d;
+	}
+	*dst = '\0';
+	return result;
 }
 
 void
@@ -1819,6 +1863,19 @@ strhandle(void)
 		case 2:
 			if (narg > 1)
 				xsettitle(strescseq.args[1]);
+			return;
+		case 52:
+			if (narg > 2) {
+				char *dec;
+
+				dec = base64dec(strescseq.args[2]);
+				if (dec) {
+					xsetsel(dec, CurrentTime);
+					clipcopy(NULL);
+				} else {
+					fprintf(stderr, "erresc: invalid base64\n");
+				}
+			}
 			return;
 		case 4: /* color set */
 			if (narg < 3)

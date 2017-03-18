@@ -88,7 +88,6 @@ static void xclear(int, int, int, int);
 static void xdrawcursor(void);
 static int xgeommasktogravity(int);
 static int xloadfont(Font *, FcPattern *);
-static void xsetsel(char *, Time);
 static void xunloadfont(Font *);
 
 static void expose(XEvent *);
