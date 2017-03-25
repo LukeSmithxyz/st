@@ -2537,7 +2537,7 @@ tresize(int col, int row)
 	}
 
 	/* allocate any new rows */
-	for (/* i == minrow */; i < row; i++) {
+	for (/* i = minrow */; i < row; i++) {
 		term.line[i] = xmalloc(col * sizeof(Glyph));
 		term.alt[i] = xmalloc(col * sizeof(Glyph));
 	}
