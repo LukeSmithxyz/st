@@ -1266,6 +1266,7 @@ xdrawcursor(void)
 	Glyph g = {' ', ATTR_NULL, defaultbg, defaultcs}, og;
 	int ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
 	Color drawcol;
+	unsigned attr;
 
 	LIMIT(oldx, 0, term.col-1);
 	LIMIT(oldy, 0, term.row-1);
@@ -1285,6 +1286,8 @@ xdrawcursor(void)
 	xdrawglyph(og, oldx, oldy);
 
 	g.u = term.line[term.c.y][term.c.x].u;
+	attr = ATTR_BOLD | ATTR_ITALIC | ATTR_UNDERLINE | ATTR_STRUCK;
+	g.mode |= term.line[term.c.y][term.c.x].mode & attr;
 
 	/*
 	 * Select the right color for the right mode.
