@@ -386,6 +386,13 @@ static const char base64_digits[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
+char
+base64dec_getc(const char **src)
+{
+	while (**src && !isprint(**src)) (*src)++;
+	return *((*src)++);
+}
+
 char *
 base64dec(const char *src)
 {
@@ -393,13 +400,13 @@ base64dec(const char *src)
 	char *result, *dst;
 
 	if (in_len % 4)
-		return NULL;
+		in_len += 4 - (in_len % 4);
 	result = dst = xmalloc(in_len / 4 * 3 + 1);
 	while (*src) {
-		int a = base64_digits[(unsigned char) *src++];
-		int b = base64_digits[(unsigned char) *src++];
-		int c = base64_digits[(unsigned char) *src++];
-		int d = base64_digits[(unsigned char) *src++];
+		int a = base64_digits[(unsigned char) base64dec_getc(&src)];
+		int b = base64_digits[(unsigned char) base64dec_getc(&src)];
+		int c = base64_digits[(unsigned char) base64dec_getc(&src)];
+		int d = base64_digits[(unsigned char) base64dec_getc(&src)];
 
 		*dst++ = (a << 2) | ((b & 0x30) >> 4);
 		if (c == -1)
