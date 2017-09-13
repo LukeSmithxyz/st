@@ -27,7 +27,7 @@ x.o: arg.h st.h win.h
 $(OBJ): config.h config.mk
 
 st: $(OBJ)
-	$(CC) -o $@ $(OBJ) $(STLDFLAGS)
+	$(CC) $(STLDFLAGS) -o $@ $(OBJ)
 
 clean:
 	rm -f st $(OBJ) st-$(VERSION).tar.gz
