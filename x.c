@@ -1092,6 +1092,9 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
 
 			frc[frclen].font = XftFontOpenPattern(xw.dpy,
 					fontpattern);
+			if (!frc[frclen].font)
+				die("XftFontOpenPattern failed seeking fallback font: %s\n",
+					strerror(errno));
 			frc[frclen].flags = frcflags;
 			frc[frclen].unicodep = rune;
 
