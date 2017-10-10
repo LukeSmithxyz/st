@@ -9,13 +9,11 @@ typedef XftGlyphFontSpec GlyphFontSpec;
 
 void draw(void);
 void drawregion(int, int, int, int);
-void run(void);
 
 void xbell(int);
 void xclipcopy(void);
 void xclippaste(void);
 void xhints(void);
-void xinit(void);
 void xloadcols(void);
 int xsetcolorname(int, const char *);
 void xloadfonts(char *, double);
