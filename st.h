@@ -92,6 +92,7 @@ typedef unsigned short ushort;
 
 typedef uint_least32_t Rune;
 
+#define Glyph Glyph_
 typedef struct {
 	Rune u;           /* character code */
 	ushort mode;      /* attribute flags */
@@ -100,7 +101,6 @@ typedef struct {
 } Glyph;
 
 typedef Glyph *Line;
-typedef XftGlyphFontSpec GlyphFontSpec;
 
 typedef struct {
 	Glyph attr; /* current char attributes */
@@ -116,7 +116,6 @@ typedef struct {
 	Line *line;   /* screen */
 	Line *alt;    /* alternate screen */
 	int *dirty;  /* dirtyness of lines */
-	GlyphFontSpec *specbuf; /* font spec buffer used for rendering */
 	TCursor c;    /* cursor */
 	int top;      /* top    scroll limit */
 	int bot;      /* bottom scroll limit */
@@ -213,6 +212,7 @@ size_t utf8decode(char *, Rune *, size_t);
 size_t utf8encode(Rune, char *);
 
 void *xmalloc(size_t);
+void *xrealloc(void *, size_t);
 char *xstrdup(char *);
 
 /* Globals */
@@ -230,10 +230,6 @@ extern char *opt_line;
 extern char *opt_name;
 extern char *opt_title;
 extern int oldbutton;
-
-extern char *usedfont;
-extern double usedfontsize;
-extern double defaultfontsize;
 
 /* config.h globals */
 extern char font[];

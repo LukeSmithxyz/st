@@ -17,10 +17,6 @@
 
 static char *argv0;
 #include "arg.h"
-
-#define Glyph Glyph_
-#define Font Font_
-
 #include "st.h"
 #include "win.h"
 
@@ -35,6 +31,7 @@ static char *argv0;
 
 typedef XftDraw *Draw;
 typedef XftColor Color;
+typedef XftGlyphFontSpec GlyphFontSpec;
 
 /* Purely graphic info */
 typedef struct {
@@ -42,6 +39,7 @@ typedef struct {
 	Colormap cmap;
 	Window win;
 	Drawable buf;
+	GlyphFontSpec *specbuf; /* font spec buffer used for rendering */
 	Atom xembed, wmdeletewin, netwmname, netwmpid;
 	XIM xim;
 	XIC xic;
@@ -59,6 +57,7 @@ typedef struct {
 } XSelection;
 
 /* Font structure */
+#define Font Font_
 typedef struct {
 	int height;
 	int width;
@@ -166,6 +165,9 @@ typedef struct {
 /* Fontcache is an array now. A new font will be appended to the array. */
 static Fontcache frc[16];
 static int frclen = 0;
+static char *usedfont = NULL;
+static double usedfontsize = 0;
+static double defaultfontsize = 0;
 
 void
 zoom(const Arg *arg)
@@ -605,6 +607,9 @@ xresize(int col, int row)
 			DefaultDepth(xw.dpy, xw.scr));
 	XftDrawChange(xw.draw, xw.buf);
 	xclear(0, 0, win.w, win.h);
+
+	/* resize to new width */
+	xw.specbuf = xrealloc(xw.specbuf, col * sizeof(GlyphFontSpec));
 }
 
 ushort
@@ -964,6 +969,9 @@ xinit(void)
 			DefaultDepth(xw.dpy, xw.scr));
 	XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
 	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
+
+	/* font spec buffer */
+	xw.specbuf = xmalloc(term.col * sizeof(GlyphFontSpec));
 
 	/* Xft rendering context */
 	xw.draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
@@ -1456,7 +1464,7 @@ drawregion(int x1, int y1, int x2, int y2)
 
 		term.dirty[y] = 0;
 
-		specs = term.specbuf;
+		specs = xw.specbuf;
 		numspecs = xmakeglyphfontspecs(specs, &term.line[y][x1], x2 - x1, x1, y);
 
 		i = ox = 0;

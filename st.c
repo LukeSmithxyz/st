@@ -28,9 +28,6 @@
 #include <X11/cursorfont.h>
 #include <X11/Xft/Xft.h>
 
-#define Glyph Glyph_
-#define Font Font_
-
 #include "st.h"
 #include "win.h"
 
@@ -196,7 +193,6 @@ static size_t utf8validate(Rune *, size_t);
 static char *base64dec(const char *);
 
 static ssize_t xwrite(int, const char *, size_t);
-static void *xrealloc(void *, size_t);
 
 /* Globals */
 TermWindow win;
@@ -217,10 +213,6 @@ int oldbutton   = 3; /* button event on startup: 3 = release */
 static CSIEscape csiescseq;
 static STREscape strescseq;
 static int iofd = 1;
-
-char *usedfont = NULL;
-double usedfontsize = 0;
-double defaultfontsize = 0;
 
 static uchar utfbyte[UTF_SIZ + 1] = {0x80,    0, 0xC0, 0xE0, 0xF0};
 static uchar utfmask[UTF_SIZ + 1] = {0xC0, 0x80, 0xE0, 0xF0, 0xF8};
@@ -2515,9 +2507,6 @@ tresize(int col, int row)
 		free(term.line[i]);
 		free(term.alt[i]);
 	}
-
-	/* resize to new width */
-	term.specbuf = xrealloc(term.specbuf, col * sizeof(GlyphFontSpec));
 
 	/* resize to new height */
 	term.line = xrealloc(term.line, row * sizeof(Line));
