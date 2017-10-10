@@ -2176,10 +2176,7 @@ tcontrolcode(uchar ascii)
 			/* backwards compatibility to xterm */
 			strhandle();
 		} else {
-			if (!(win.state & WIN_FOCUSED))
-				xseturgency(1);
-			if (bellvolume)
-				xbell(bellvolume);
+			xbell();
 		}
 		break;
 	case '\033': /* ESC */

@@ -8,7 +8,7 @@
 void draw(void);
 void drawregion(int, int, int, int);
 
-void xbell(int);
+void xbell(void);
 void xclipcopy(void);
 void xclippaste(void);
 void xhints(void);
@@ -16,7 +16,6 @@ void xloadcols(void);
 int xsetcolorname(int, const char *);
 void xsettitle(char *);
 void xsetpointermotion(int);
-void xseturgency(int);
 void xresize(int, int);
 void xselpaste(void);
 void xsetsel(char *, Time);

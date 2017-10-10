@@ -94,6 +94,7 @@ static void xloadfonts(char *, double);
 static void xunloadfont(Font *);
 static void xunloadfonts(void);
 static void xsetenv(void);
+static void xseturgency(int);
 
 static void expose(XEvent *);
 static void visibility(XEvent *);
@@ -1521,9 +1522,12 @@ xseturgency(int add)
 }
 
 void
-xbell(int vol)
+xbell(void)
 {
-	XkbBell(xw.dpy, xw.win, vol, (Atom)NULL);
+	if (!(win.state & WIN_FOCUSED))
+		xseturgency(1);
+	if (bellvolume)
+		XkbBell(xw.dpy, xw.win, bellvolume, (Atom)NULL);
 }
 
 void

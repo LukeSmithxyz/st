@@ -246,6 +246,7 @@ extern int allowaltscreen;
 extern unsigned int xfps;
 extern unsigned int actionfps;
 extern unsigned int cursorthickness;
+extern int bellvolume;
 extern unsigned int blinktimeout;
 extern char termname[];
 extern const char *colorname[];
