@@ -21,8 +21,8 @@ static char *argv0;
 #define Glyph Glyph_
 #define Font Font_
 
-#include "win.h"
 #include "st.h"
+#include "win.h"
 
 /* XEMBED messages */
 #define XEMBED_FOCUS_IN  4
@@ -90,7 +90,9 @@ static void xdrawcursor(void);
 static int xgeommasktogravity(int);
 static void xinit(void);
 static int xloadfont(Font *, FcPattern *);
+static void xloadfonts(char *, double);
 static void xunloadfont(Font *);
+static void xunloadfonts(void);
 static void xsetenv(void);
 
 static void expose(XEvent *);
@@ -163,6 +165,37 @@ typedef struct {
 /* Fontcache is an array now. A new font will be appended to the array. */
 static Fontcache frc[16];
 static int frclen = 0;
+
+void
+zoom(const Arg *arg)
+{
+	Arg larg;
+
+	larg.f = usedfontsize + arg->f;
+	zoomabs(&larg);
+}
+
+void
+zoomabs(const Arg *arg)
+{
+	xunloadfonts();
+	xloadfonts(usedfont, arg->f);
+	cresize(0, 0);
+	ttyresize();
+	redraw();
+	xhints();
+}
+
+void
+zoomreset(const Arg *arg)
+{
+	Arg larg;
+
+	if (defaultfontsize > 0) {
+		larg.f = defaultfontsize;
+		zoomabs(&larg);
+	}
+}
 
 void
 getbuttoninfo(XEvent *e)

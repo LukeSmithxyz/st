@@ -100,6 +100,7 @@ typedef struct {
 } Glyph;
 
 typedef Glyph *Line;
+typedef XftGlyphFontSpec GlyphFontSpec;
 
 typedef struct {
 	Glyph attr; /* current char attributes */

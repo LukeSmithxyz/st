@@ -31,8 +31,8 @@
 #define Glyph Glyph_
 #define Font Font_
 
-#include "win.h"
 #include "st.h"
+#include "win.h"
 
 #if   defined(__linux)
  #include <pty.h>
@@ -128,9 +128,6 @@ static void clipcopy(const Arg *);
 static void clippaste(const Arg *);
 static void numlock(const Arg *);
 static void selpaste(const Arg *);
-static void zoom(const Arg *);
-static void zoomabs(const Arg *);
-static void zoomreset(const Arg *);
 static void printsel(const Arg *);
 static void printscreen(const Arg *) ;
 static void iso14755(const Arg *);
@@ -2571,37 +2568,6 @@ tresize(int col, int row)
 		tcursor(CURSOR_LOAD);
 	}
 	term.c = c;
-}
-
-void
-zoom(const Arg *arg)
-{
-	Arg larg;
-
-	larg.f = usedfontsize + arg->f;
-	zoomabs(&larg);
-}
-
-void
-zoomabs(const Arg *arg)
-{
-	xunloadfonts();
-	xloadfonts(usedfont, arg->f);
-	cresize(0, 0);
-	ttyresize();
-	redraw();
-	xhints();
-}
-
-void
-zoomreset(const Arg *arg)
-{
-	Arg larg;
-
-	if (defaultfontsize > 0) {
-		larg.f = defaultfontsize;
-		zoomabs(&larg);
-	}
 }
 
 void
