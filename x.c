@@ -88,12 +88,16 @@ static void xclear(int, int, int, int);
 static void xdrawcursor(void);
 static int xgeommasktogravity(int);
 static void xinit(void);
+static void cresize(int, int);
+static void xresize(int, int);
 static int xloadfont(Font *, FcPattern *);
 static void xloadfonts(char *, double);
 static void xunloadfont(Font *);
 static void xunloadfonts(void);
 static void xsetenv(void);
 static void xseturgency(int);
+static int x2col(int);
+static int y2row(int);
 
 static void expose(XEvent *);
 static void visibility(XEvent *);
@@ -109,7 +113,6 @@ static void propnotify(XEvent *);
 static void selnotify(XEvent *);
 static void selclear_(XEvent *);
 static void selrequest(XEvent *);
-
 static void selcopy(Time);
 static void getbuttoninfo(XEvent *);
 static void mousereport(XEvent *);
@@ -147,6 +150,11 @@ static void (*handler[LASTEvent])(XEvent *) = {
 static DC dc;
 static XWindow xw;
 static XSelection xsel;
+
+enum window_state {
+	WIN_VISIBLE = 1,
+	WIN_FOCUSED = 2
+};
 
 /* Font Ring Cache */
 enum {
@@ -198,6 +206,24 @@ zoomreset(const Arg *arg)
 		larg.f = defaultfontsize;
 		zoomabs(&larg);
 	}
+}
+
+int
+x2col(int x)
+{
+	x -= borderpx;
+	x /= win.cw;
+
+	return LIMIT(x, 0, term.col-1);
+}
+
+int
+y2row(int y)
+{
+	y -= borderpx;
+	y /= win.ch;
+
+	return LIMIT(y, 0, term.row-1);
 }
 
 void
@@ -594,6 +620,23 @@ bmotion(XEvent *e)
 
 	if (oldey != sel.oe.y || oldex != sel.oe.x)
 		tsetdirt(MIN(sel.nb.y, oldsby), MAX(sel.ne.y, oldsey));
+}
+
+void
+cresize(int width, int height)
+{
+	int col, row;
+
+	if (width != 0)
+		win.w = width;
+	if (height != 0)
+		win.h = height;
+
+	col = (win.w - 2 * borderpx) / win.cw;
+	row = (win.h - 2 * borderpx) / win.ch;
+
+	tresize(col, row);
+	xresize(col, row);
 }
 
 void

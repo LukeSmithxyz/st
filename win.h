@@ -16,7 +16,6 @@ void xloadcols(void);
 int xsetcolorname(int, const char *);
 void xsettitle(char *);
 void xsetpointermotion(int);
-void xresize(int, int);
 void xselpaste(void);
 void xsetsel(char *, Time);
 void zoom(const Arg *);
