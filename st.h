@@ -187,7 +187,7 @@ void tsetdirtattr(int);
 int match(uint, uint);
 void ttynew(void);
 size_t ttyread(void);
-void ttyresize(void);
+void ttyresize(int, int);
 void ttysend(char *, size_t);
 void ttywrite(const char *, size_t);
 

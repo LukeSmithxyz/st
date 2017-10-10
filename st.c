@@ -905,14 +905,14 @@ ttysend(char *s, size_t n)
 }
 
 void
-ttyresize(void)
+ttyresize(int tw, int th)
 {
 	struct winsize w;
 
 	w.ws_row = term.row;
 	w.ws_col = term.col;
-	w.ws_xpixel = win.tw;
-	w.ws_ypixel = win.th;
+	w.ws_xpixel = tw;
+	w.ws_ypixel = th;
 	if (ioctl(cmdfd, TIOCSWINSZ, &w) < 0)
 		fprintf(stderr, "Couldn't set window size: %s\n", strerror(errno));
 }
