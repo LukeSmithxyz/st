@@ -89,6 +89,7 @@ static void xdrawcursor(void);
 static int xgeommasktogravity(int);
 static int xloadfont(Font *, FcPattern *);
 static void xunloadfont(Font *);
+static void xsetenv(void);
 
 static void expose(XEvent *);
 static void visibility(XEvent *);
@@ -1487,12 +1488,6 @@ xbell(int vol)
 	XkbBell(xw.dpy, xw.win, vol, (Atom)NULL);
 }
 
-unsigned long
-xwinid(void)
-{
-	return xw.win;
-}
-
 void
 focus(XEvent *ev)
 {
@@ -1765,6 +1760,7 @@ run:
 	XSetLocaleModifiers("");
 	tnew(MAX(cols, 1), MAX(rows, 1));
 	xinit();
+	xsetenv();
 	selinit();
 	run();
 
