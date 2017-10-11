@@ -110,16 +110,6 @@ typedef struct {
 	int narg;              /* nb of args */
 } STREscape;
 
-typedef struct {
-	KeySym k;
-	uint mask;
-	char *s;
-	/* three valued logic variables: 0 indifferent, 1 on, -1 off */
-	signed char appkey;    /* application keypad */
-	signed char appcursor; /* application cursor */
-	signed char crlf;      /* crlf mode          */
-} Key;
-
 /* function definitions used in config.h */
 static void clipcopy(const Arg *);
 static void clippaste(const Arg *);
@@ -223,6 +213,8 @@ size_t colornamelen = LEN(colorname);
 size_t mshortcutslen = LEN(mshortcuts);
 size_t shortcutslen = LEN(shortcuts);
 size_t selmaskslen = LEN(selmasks);
+size_t keyslen = LEN(key);
+size_t mappedkeyslen = LEN(mappedkeys);
 
 ssize_t
 xwrite(int fd, const char *s, size_t len)
@@ -2550,54 +2542,8 @@ redraw(void)
 	draw();
 }
 
-int
-match(uint mask, uint state)
-{
-	return mask == XK_ANY_MOD || mask == (state & ~ignoremod);
-}
-
 void
 numlock(const Arg *dummy)
 {
 	term.numlock ^= 1;
-}
-
-char*
-kmap(KeySym k, uint state)
-{
-	Key *kp;
-	int i;
-
-	/* Check for mapped keys out of X11 function keys. */
-	for (i = 0; i < LEN(mappedkeys); i++) {
-		if (mappedkeys[i] == k)
-			break;
-	}
-	if (i == LEN(mappedkeys)) {
-		if ((k & 0xFFFF) < 0xFD00)
-			return NULL;
-	}
-
-	for (kp = key; kp < key + LEN(key); kp++) {
-		if (kp->k != k)
-			continue;
-
-		if (!match(kp->mask, state))
-			continue;
-
-		if (IS_SET(MODE_APPKEYPAD) ? kp->appkey < 0 : kp->appkey > 0)
-			continue;
-		if (term.numlock && kp->appkey == 2)
-			continue;
-
-		if (IS_SET(MODE_APPCURSOR) ? kp->appcursor < 0 : kp->appcursor > 0)
-			continue;
-
-		if (IS_SET(MODE_CRLF) ? kp->crlf < 0 : kp->crlf > 0)
-			continue;
-
-		return kp->s;
-	}
-
-	return NULL;
 }
