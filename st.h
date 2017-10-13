@@ -9,6 +9,7 @@
 #define LEN(a)			(sizeof(a) / sizeof(a)[0])
 #define BETWEEN(x, a, b)	((a) <= (x) && (x) <= (b))
 #define DIVCEIL(n, d)		(((n) + ((d) - 1)) / (d))
+#define DEFAULT(a, b)		(a) = (a) ? (a) : (b)
 #define LIMIT(x, a, b)		(x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b)		((a).mode != (b).mode || (a).fg != (b).fg || \
 				(a).bg != (b).bg)
@@ -194,7 +195,7 @@ void tnew(int, int);
 void tresize(int, int);
 void tsetdirt(int, int);
 void tsetdirtattr(int);
-void ttynew(void);
+void ttynew(char *, char *, char **);
 size_t ttyread(void);
 void ttyresize(int, int);
 void ttysend(char *, size_t);
@@ -221,14 +222,6 @@ extern Term term;
 extern Selection sel;
 extern int cmdfd;
 extern pid_t pid;
-extern char **opt_cmd;
-extern char *opt_class;
-extern char *opt_embed;
-extern char *opt_font;
-extern char *opt_io;
-extern char *opt_line;
-extern char *opt_name;
-extern char *opt_title;
 extern int oldbutton;
 
 /* config.h globals */

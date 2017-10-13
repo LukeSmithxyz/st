@@ -179,6 +179,15 @@ static char *usedfont = NULL;
 static double usedfontsize = 0;
 static double defaultfontsize = 0;
 
+static char *opt_class = NULL;
+static char **opt_cmd  = NULL;
+static char *opt_embed = NULL;
+static char *opt_font  = NULL;
+static char *opt_io    = NULL;
+static char *opt_line  = NULL;
+static char *opt_name  = NULL;
+static char *opt_title = NULL;
+
 void
 zoom(const Arg *arg)
 {
@@ -1473,6 +1482,7 @@ void
 xsettitle(char *p)
 {
 	XTextProperty prop;
+	DEFAULT(p, "st");
 
 	Xutf8TextListToTextProperty(xw.dpy, &p, 1, XUTF8StringStyle,
 			&prop);
@@ -1757,7 +1767,7 @@ run(void)
 	} while (ev.type != MapNotify);
 
 	cresize(w, h);
-	ttynew();
+	ttynew(opt_line, opt_io, opt_cmd);
 	ttyresize(win.tw, win.th);
 
 	clock_gettime(CLOCK_MONOTONIC, &last);

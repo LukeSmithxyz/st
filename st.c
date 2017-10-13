@@ -48,7 +48,6 @@
 
 /* macros */
 #define NUMMAXLEN(x)		((int)(sizeof(x) * 2.56 + 0.5) + 1)
-#define DEFAULT(a, b)		(a) = (a) ? (a) : (b)
 #define ISCONTROLC0(c)		(BETWEEN(c, 0, 0x1f) || (c) == '\177')
 #define ISCONTROLC1(c)		(BETWEEN(c, 0x80, 0x9f))
 #define ISCONTROL(c)		(ISCONTROLC0(c) || ISCONTROLC1(c))
@@ -124,8 +123,8 @@ static void sendbreak(const Arg *);
 /* config.h for applying patches and the configuration. */
 #include "config.h"
 
-static void execsh(void);
-static void stty(void);
+static void execsh(char **);
+static void stty(char **);
 static void sigchld(int);
 
 static void csidump(void);
@@ -189,14 +188,6 @@ Term term;
 Selection sel;
 int cmdfd;
 pid_t pid;
-char **opt_cmd  = NULL;
-char *opt_class = NULL;
-char *opt_embed = NULL;
-char *opt_font  = NULL;
-char *opt_io    = NULL;
-char *opt_line  = NULL;
-char *opt_name  = NULL;
-char *opt_title = NULL;
 int oldbutton   = 3; /* button event on startup: 3 = release */
 
 static CSIEscape csiescseq;
@@ -634,9 +625,9 @@ die(const char *errstr, ...)
 }
 
 void
-execsh(void)
+execsh(char **args)
 {
-	char **args, *sh, *prog;
+	char *sh, *prog;
 	const struct passwd *pw;
 
 	errno = 0;
@@ -650,13 +641,13 @@ execsh(void)
 	if ((sh = getenv("SHELL")) == NULL)
 		sh = (pw->pw_shell[0]) ? pw->pw_shell : shell;
 
-	if (opt_cmd)
-		prog = opt_cmd[0];
+	if (args)
+		prog = args[0];
 	else if (utmp)
 		prog = utmp;
 	else
 		prog = sh;
-	args = (opt_cmd) ? opt_cmd : (char *[]) {prog, NULL};
+	DEFAULT(args, ((char *[]) {prog, NULL}));
 
 	unsetenv("COLUMNS");
 	unsetenv("LINES");
@@ -697,7 +688,7 @@ sigchld(int a)
 
 
 void
-stty(void)
+stty(char **args)
 {
 	char cmd[_POSIX_ARG_MAX], **p, *q, *s;
 	size_t n, siz;
@@ -707,7 +698,7 @@ stty(void)
 	memcpy(cmd, stty_args, n);
 	q = cmd + n;
 	siz = sizeof(cmd) - n;
-	for (p = opt_cmd; p && (s = *p); ++p) {
+	for (p = args; p && (s = *p); ++p) {
 		if ((n = strlen(s)) > siz-1)
 			die("stty parameter length too long\n");
 		*q++ = ' ';
@@ -721,26 +712,26 @@ stty(void)
 }
 
 void
-ttynew(void)
+ttynew(char *line, char *out, char **args)
 {
 	int m, s;
 	struct winsize w = {term.row, term.col, 0, 0};
 
-	if (opt_io) {
+	if (out) {
 		term.mode |= MODE_PRINT;
-		iofd = (!strcmp(opt_io, "-")) ?
-			  1 : open(opt_io, O_WRONLY | O_CREAT, 0666);
+		iofd = (!strcmp(out, "-")) ?
+			  1 : open(out, O_WRONLY | O_CREAT, 0666);
 		if (iofd < 0) {
 			fprintf(stderr, "Error opening %s:%s\n",
-				opt_io, strerror(errno));
+				out, strerror(errno));
 		}
 	}
 
-	if (opt_line) {
-		if ((cmdfd = open(opt_line, O_RDWR)) < 0)
+	if (line) {
+		if ((cmdfd = open(line, O_RDWR)) < 0)
 			die("open line failed: %s\n", strerror(errno));
 		dup2(cmdfd, 0);
-		stty();
+		stty(args);
 		return;
 	}
 
@@ -762,7 +753,7 @@ ttynew(void)
 			die("ioctl TIOCSCTTY failed: %s\n", strerror(errno));
 		close(s);
 		close(m);
-		execsh();
+		execsh(args);
 		break;
 	default:
 		close(s);
@@ -1942,8 +1933,7 @@ void
 tprinter(char *s, size_t len)
 {
 	if (iofd != -1 && xwrite(iofd, s, len) < 0) {
-		fprintf(stderr, "Error writing in %s:%s\n",
-			opt_io, strerror(errno));
+		perror("Error writing to output file");
 		close(iofd);
 		iofd = -1;
 	}
@@ -2532,7 +2522,7 @@ tresize(int col, int row)
 void
 resettitle(void)
 {
-	xsettitle(opt_title ? opt_title : "st");
+	xsettitle(NULL);
 }
 
 void
