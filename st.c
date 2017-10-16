@@ -161,8 +161,8 @@ static void tsetchar(Rune, Glyph *, int, int);
 static void tsetscroll(int, int);
 static void tswapscreen(void);
 static void tsetmode(int, int, int *, int);
+static int twrite(const char *, int, int);
 static void tfulldirt(void);
-static void techo(Rune);
 static void tcontrolcode(uchar );
 static void tdectest(char );
 static void tdefutf8(char);
@@ -254,7 +254,7 @@ xstrdup(char *s)
 }
 
 size_t
-utf8decode(char *c, Rune *u, size_t clen)
+utf8decode(const char *c, Rune *u, size_t clen)
 {
 	size_t i, j, len, type;
 	Rune udecoded;
@@ -768,38 +768,19 @@ ttyread(void)
 {
 	static char buf[BUFSIZ];
 	static int buflen = 0;
-	char *ptr;
-	int charsize; /* size of utf8 char in bytes */
-	Rune unicodep;
+	int written;
 	int ret;
 
 	/* append read bytes to unprocessed bytes */
 	if ((ret = read(cmdfd, buf+buflen, LEN(buf)-buflen)) < 0)
 		die("Couldn't read from shell: %s\n", strerror(errno));
-
 	buflen += ret;
-	ptr = buf;
 
-	for (;;) {
-		if (IS_SET(MODE_UTF8) && !IS_SET(MODE_SIXEL)) {
-			/* process a complete utf8 char */
-			charsize = utf8decode(ptr, &unicodep, buflen);
-			if (charsize == 0)
-				break;
-			tputc(unicodep);
-			ptr += charsize;
-			buflen -= charsize;
-
-		} else {
-			if (buflen <= 0)
-				break;
-			tputc(*ptr++ & 0xFF);
-			buflen--;
-		}
-	}
+	written = twrite(buf, buflen, 0);
+	buflen -= written;
 	/* keep any uncomplete utf8 char for the next call */
 	if (buflen > 0)
-		memmove(buf, ptr, buflen);
+		memmove(buf, buf + written, buflen);
 
 	return ret;
 }
@@ -864,27 +845,9 @@ write_error:
 void
 ttysend(char *s, size_t n)
 {
-	int len;
-	char *t, *lim;
-	Rune u;
-
 	ttywrite(s, n);
-	if (!IS_SET(MODE_ECHO))
-		return;
-
-	lim = &s[n];
-	for (t = s; t < lim; t += len) {
-		if (IS_SET(MODE_UTF8) && !IS_SET(MODE_SIXEL)) {
-			len = utf8decode(t, &u, n);
-		} else {
-			u = *t & 0xFF;
-			len = 1;
-		}
-		if (len <= 0)
-			break;
-		techo(u);
-		n -= len;
-	}
+	if (IS_SET(MODE_ECHO))
+		twrite(s, n, 1);
 }
 
 void
@@ -2032,22 +1995,6 @@ tputtab(int n)
 }
 
 void
-techo(Rune u)
-{
-	if (ISCONTROL(u)) { /* control code */
-		if (u & 0x80) {
-			u &= 0x7f;
-			tputc('^');
-			tputc('[');
-		} else if (u != '\n' && u != '\r' && u != '\t') {
-			u ^= 0x40;
-			tputc('^');
-		}
-	}
-	tputc(u);
-}
-
-void
 tdefutf8(char ascii)
 {
 	if (ascii == 'G')
@@ -2435,6 +2382,38 @@ check_control_code:
 	} else {
 		term.c.state |= CURSOR_WRAPNEXT;
 	}
+}
+
+int
+twrite(const char *buf, int buflen, int show_ctrl)
+{
+	int charsize;
+	Rune u;
+	int n;
+
+	for (n = 0; n < buflen; n += charsize) {
+		if (IS_SET(MODE_UTF8) && !IS_SET(MODE_SIXEL)) {
+			/* process a complete utf8 char */
+			charsize = utf8decode(buf + n, &u, buflen - n);
+			if (charsize == 0)
+				break;
+		} else {
+			u = buf[n] & 0xFF;
+			charsize = 1;
+		}
+		if (show_ctrl && ISCONTROL(u)) {
+			if (u & 0x80) {
+				u &= 0x7f;
+				tputc('^');
+				tputc('[');
+			} else if (u != '\n' && u != '\r' && u != '\t') {
+				u ^= 0x40;
+				tputc('^');
+			}
+		}
+		tputc(u);
+	}
+	return n;
 }
 
 void
