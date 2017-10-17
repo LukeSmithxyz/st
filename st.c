@@ -109,19 +109,6 @@ typedef struct {
 	int narg;              /* nb of args */
 } STREscape;
 
-/* function definitions used in config.h */
-static void clipcopy(const Arg *);
-static void clippaste(const Arg *);
-static void numlock(const Arg *);
-static void selpaste(const Arg *);
-static void printsel(const Arg *);
-static void printscreen(const Arg *) ;
-static void iso14755(const Arg *);
-static void toggleprinter(const Arg *);
-static void sendbreak(const Arg *);
-
-/* config.h for applying patches and the configuration. */
-#include "config.h"
 
 static void execsh(char **);
 static void stty(char **);
@@ -198,14 +185,6 @@ static uchar utfbyte[UTF_SIZ + 1] = {0x80,    0, 0xC0, 0xE0, 0xF0};
 static uchar utfmask[UTF_SIZ + 1] = {0xC0, 0x80, 0xE0, 0xF0, 0xF8};
 static Rune utfmin[UTF_SIZ + 1] = {       0,    0,  0x80,  0x800,  0x10000};
 static Rune utfmax[UTF_SIZ + 1] = {0x10FFFF, 0x7F, 0x7FF, 0xFFFF, 0x10FFFF};
-
-/* config.h array lengths */
-size_t colornamelen = LEN(colorname);
-size_t mshortcutslen = LEN(mshortcuts);
-size_t shortcutslen = LEN(shortcuts);
-size_t selmaskslen = LEN(selmasks);
-size_t keyslen = LEN(key);
-size_t mappedkeyslen = LEN(mappedkeys);
 
 ssize_t
 xwrite(int fd, const char *s, size_t len)
@@ -583,24 +562,6 @@ getsel(void)
 	}
 	*ptr = 0;
 	return str;
-}
-
-void
-selpaste(const Arg *dummy)
-{
-	xselpaste();
-}
-
-void
-clipcopy(const Arg *dummy)
-{
-	xclipcopy();
-}
-
-void
-clippaste(const Arg *dummy)
-{
-	xclippaste();
 }
 
 void
@@ -1572,7 +1533,7 @@ csihandle(void)
 		break;
 	case 'c': /* DA -- Device Attributes */
 		if (csiescseq.arg[0] == 0)
-			ttywrite(vtiden, sizeof(vtiden) - 1);
+			ttywrite(vtiden, strlen(vtiden));
 		break;
 	case 'C': /* CUF -- Cursor <n> Forward */
 	case 'a': /* HPR -- Cursor <n> Forward */
@@ -1791,7 +1752,7 @@ strhandle(void)
 				dec = base64dec(strescseq.args[2]);
 				if (dec) {
 					xsetsel(dec, CurrentTime);
-					clipcopy(NULL);
+					xclipcopy();
 				} else {
 					fprintf(stderr, "erresc: invalid base64\n");
 				}
@@ -2134,7 +2095,7 @@ tcontrolcode(uchar ascii)
 	case 0x99:   /* TODO: SGCI */
 		break;
 	case 0x9a:   /* DECID -- Identify Terminal */
-		ttywrite(vtiden, sizeof(vtiden) - 1);
+		ttywrite(vtiden, strlen(vtiden));
 		break;
 	case 0x9b:   /* TODO: CSI */
 	case 0x9c:   /* TODO: ST */
@@ -2206,7 +2167,7 @@ eschandle(uchar ascii)
 		}
 		break;
 	case 'Z': /* DECID -- Identify Terminal */
-		ttywrite(vtiden, sizeof(vtiden) - 1);
+		ttywrite(vtiden, strlen(vtiden));
 		break;
 	case 'c': /* RIS -- Reset to inital state */
 		treset();

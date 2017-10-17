@@ -18,6 +18,3 @@ void xsettitle(char *);
 void xsetpointermotion(int);
 void xselpaste(void);
 void xsetsel(char *, Time);
-void zoom(const Arg *);
-void zoomabs(const Arg *);
-void zoomreset(const Arg *);

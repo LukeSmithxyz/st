@@ -20,6 +20,25 @@ static char *argv0;
 #include "st.h"
 #include "win.h"
 
+/* function definitions used in config.h */
+static void clipcopy(const Arg *);
+static void clippaste(const Arg *);
+static void selpaste(const Arg *);
+static void zoom(const Arg *);
+static void zoomabs(const Arg *);
+static void zoomreset(const Arg *);
+
+/* config.h for applying patches and the configuration. */
+#include "config.h"
+
+/* config.h array lengths */
+size_t colornamelen = LEN(colorname);
+size_t mshortcutslen = LEN(mshortcuts);
+size_t shortcutslen = LEN(shortcuts);
+size_t selmaskslen = LEN(selmasks);
+size_t keyslen = LEN(key);
+size_t mappedkeyslen = LEN(mappedkeys);
+
 /* XEMBED messages */
 #define XEMBED_FOCUS_IN  4
 #define XEMBED_FOCUS_OUT 5
@@ -187,6 +206,24 @@ static char *opt_io    = NULL;
 static char *opt_line  = NULL;
 static char *opt_name  = NULL;
 static char *opt_title = NULL;
+
+void
+clipcopy(const Arg *dummy)
+{
+	xclipcopy();
+}
+
+void
+clippaste(const Arg *dummy)
+{
+	xclippaste();
+}
+
+void
+selpaste(const Arg *dummy)
+{
+	xselpaste();
+}
 
 void
 zoom(const Arg *arg)
