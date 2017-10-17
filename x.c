@@ -210,19 +210,33 @@ static char *opt_title = NULL;
 void
 clipcopy(const Arg *dummy)
 {
-	xclipcopy();
+	Atom clipboard;
+
+	if (sel.clipboard != NULL)
+		free(sel.clipboard);
+
+	if (sel.primary != NULL) {
+		sel.clipboard = xstrdup(sel.primary);
+		clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
+		XSetSelectionOwner(xw.dpy, clipboard, xw.win, CurrentTime);
+	}
 }
 
 void
 clippaste(const Arg *dummy)
 {
-	xclippaste();
+	Atom clipboard;
+
+	clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
+	XConvertSelection(xw.dpy, clipboard, xsel.xtarget, clipboard,
+			xw.win, CurrentTime);
 }
 
 void
 selpaste(const Arg *dummy)
 {
-	xselpaste();
+	XConvertSelection(xw.dpy, XA_PRIMARY, xsel.xtarget, XA_PRIMARY,
+			xw.win, CurrentTime);
 }
 
 void
@@ -519,35 +533,9 @@ selnotify(XEvent *e)
 }
 
 void
-xselpaste(void)
-{
-	XConvertSelection(xw.dpy, XA_PRIMARY, xsel.xtarget, XA_PRIMARY,
-			xw.win, CurrentTime);
-}
-
-void
 xclipcopy(void)
 {
-	Atom clipboard;
-
-	if (sel.clipboard != NULL)
-		free(sel.clipboard);
-
-	if (sel.primary != NULL) {
-		sel.clipboard = xstrdup(sel.primary);
-		clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
-		XSetSelectionOwner(xw.dpy, clipboard, xw.win, CurrentTime);
-	}
-}
-
-void
-xclippaste(void)
-{
-	Atom clipboard;
-
-	clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
-	XConvertSelection(xw.dpy, clipboard, xsel.xtarget, clipboard,
-			xw.win, CurrentTime);
+	clipcopy(NULL);
 }
 
 void
@@ -634,7 +622,7 @@ brelease(XEvent *e)
 	}
 
 	if (e->xbutton.button == Button2) {
-		xselpaste();
+		selpaste(NULL);
 	} else if (e->xbutton.button == Button1) {
 		if (sel.mode == SEL_READY) {
 			getbuttoninfo(e);
