@@ -20,6 +20,30 @@ static char *argv0;
 #include "st.h"
 #include "win.h"
 
+/* types used in config.h */
+typedef struct {
+	uint mod;
+	KeySym keysym;
+	void (*func)(const Arg *);
+	const Arg arg;
+} Shortcut;
+
+typedef struct {
+	uint b;
+	uint mask;
+	char *s;
+} MouseShortcut;
+
+typedef struct {
+	KeySym k;
+	uint mask;
+	char *s;
+	/* three valued logic variables: 0 indifferent, 1 on, -1 off */
+	signed char appkey;    /* application keypad */
+	signed char appcursor; /* application cursor */
+	signed char crlf;      /* crlf mode          */
+} Key;
+
 /* function definitions used in config.h */
 static void clipcopy(const Arg *);
 static void clippaste(const Arg *);

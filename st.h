@@ -135,12 +135,6 @@ typedef struct {
 } TermWindow;
 
 typedef struct {
-	uint b;
-	uint mask;
-	char *s;
-} MouseShortcut;
-
-typedef struct {
 	int mode;
 	int type;
 	int snap;
@@ -169,23 +163,6 @@ typedef union {
 	float f;
 	const void *v;
 } Arg;
-
-typedef struct {
-	uint mod;
-	KeySym keysym;
-	void (*func)(const Arg *);
-	const Arg arg;
-} Shortcut;
-
-typedef struct {
-	KeySym k;
-	uint mask;
-	char *s;
-	/* three valued logic variables: 0 indifferent, 1 on, -1 off */
-	signed char appkey;    /* application keypad */
-	signed char appcursor; /* application cursor */
-	signed char crlf;      /* crlf mode          */
-} Key;
 
 void die(const char *, ...);
 void redraw(void);
