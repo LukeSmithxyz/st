@@ -201,7 +201,6 @@ void *xrealloc(void *, size_t);
 char *xstrdup(char *);
 
 /* Globals */
-extern TermWindow win;
 extern Term term;
 extern Selection sel;
 extern int cmdfd;

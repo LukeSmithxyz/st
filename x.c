@@ -187,6 +187,7 @@ static void (*handler[LASTEvent])(XEvent *) = {
 static DC dc;
 static XWindow xw;
 static XSelection xsel;
+static TermWindow win;
 
 enum window_state {
 	WIN_VISIBLE = 1,
@@ -1613,6 +1614,16 @@ xsetpointermotion(int set)
 {
 	MODBIT(xw.attrs.event_mask, set, PointerMotionMask);
 	XChangeWindowAttributes(xw.dpy, xw.win, CWEventMask, &xw.attrs);
+}
+
+int
+xsetcursor(int cursor)
+{
+	DEFAULT(cursor, 1);
+	if (!BETWEEN(cursor, 0, 6))
+		return 1;
+	win.cursor = cursor;
+	return 0;
 }
 
 void

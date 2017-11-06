@@ -170,7 +170,6 @@ static char *base64dec(const char *);
 static ssize_t xwrite(int, const char *, size_t);
 
 /* Globals */
-TermWindow win;
 Term term;
 Selection sel;
 int cmdfd;
@@ -1683,11 +1682,8 @@ csihandle(void)
 	case ' ':
 		switch (csiescseq.mode[1]) {
 		case 'q': /* DECSCUSR -- Set Cursor Style */
-			DEFAULT(csiescseq.arg[0], 1);
-			if (!BETWEEN(csiescseq.arg[0], 0, 6)) {
+			if (xsetcursor(csiescseq.arg[0]))
 				goto unknown;
-			}
-			win.cursor = csiescseq.arg[0];
 			break;
 		default:
 			goto unknown;
