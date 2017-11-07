@@ -148,7 +148,7 @@ static void propnotify(XEvent *);
 static void selnotify(XEvent *);
 static void selclear_(XEvent *);
 static void selrequest(XEvent *);
-static void selcopy(Time);
+static void setsel(char *, Time);
 static void getbuttoninfo(XEvent *);
 static void mousereport(XEvent *);
 static char *kmap(KeySym, uint);
@@ -441,12 +441,6 @@ bpress(XEvent *e)
 }
 
 void
-selcopy(Time t)
-{
-	xsetsel(getsel(), t);
-}
-
-void
 propnotify(XEvent *e)
 {
 	XPropertyEvent *xpev;
@@ -620,7 +614,7 @@ selrequest(XEvent *e)
 }
 
 void
-xsetsel(char *str, Time t)
+setsel(char *str, Time t)
 {
 	free(sel.primary);
 	sel.primary = str;
@@ -628,6 +622,12 @@ xsetsel(char *str, Time t)
 	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, t);
 	if (XGetSelectionOwner(xw.dpy, XA_PRIMARY) != xw.win)
 		selclear_(NULL);
+}
+
+void
+xsetsel(char *str)
+{
+	setsel(str, CurrentTime);
 }
 
 void
@@ -643,7 +643,7 @@ brelease(XEvent *e)
 	} else if (e->xbutton.button == Button1) {
 		if (sel.mode == SEL_READY) {
 			getbuttoninfo(e);
-			selcopy(e->xbutton.time);
+			setsel(getsel(), e->xbutton.time);
 		} else
 			selclear_(NULL);
 		sel.mode = SEL_IDLE;

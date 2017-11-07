@@ -1747,7 +1747,7 @@ strhandle(void)
 
 				dec = base64dec(strescseq.args[2]);
 				if (dec) {
-					xsetsel(dec, CurrentTime);
+					xsetsel(dec);
 					xclipcopy();
 				} else {
 					fprintf(stderr, "erresc: invalid base64\n");
