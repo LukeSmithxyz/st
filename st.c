@@ -21,12 +21,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <libgen.h>
-#include <fontconfig/fontconfig.h>
 #include <wchar.h>
-
-/* X11 */
-#include <X11/cursorfont.h>
-#include <X11/Xft/Xft.h>
 
 #include "st.h"
 #include "win.h"
