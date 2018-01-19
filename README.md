@@ -10,12 +10,19 @@ Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simpl
 
 ## My additions
 
++ Default font is system "mono" at 14pt
++ Toggle light/dark mode now Alt-Tab instead of the frequently conflicting F6
++ Alt-k and Alt-j scroll back/foward in history one line at a time
++ Alt-u and Alt-d scroll back/foward in history a page at a time
+
+
 Right now, I've just made the default font the system "mono" at size 14, and I've remapped the key to toggle the light/dark color scheme to Alt-Tab. It originally was F6, which is too often mapped by some other program.
 
 ## Terminal-specific mappings
 
+(Additions before me.)
+
 + Scroll through history -- Shift+PageUp/PageDown or Shift+Mouse wheel
-+ Toggle light/dark mode -- Alt+Tab
 + Increase/decrease font size -- Shift+Alt+PageUp/PageDown
 + Return to default dont size -- Shift+Alt+Home
 + Paste -- Shift+Insert
