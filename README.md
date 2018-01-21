@@ -1,6 +1,6 @@
-# st - simple terminal
+# Luke's build of st - the simple (suckless) terminal
 
-Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simplicity's sake, which is the suckless terminal (st) with some patches added:
+Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simplicity's sake, which is the [suckless terminal (st)](https://st.suckless.org/) with some patches added:
 
 + copy to clipboard
 + solarized colors (light and dark toggleable)
@@ -8,16 +8,13 @@ Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simpl
 + scrollback with keyboard
 + scrollback with mouse
 
-## My additions
+## My own additions
 
 + Default font is system "mono" at 14pt
++ Fixed transparency patch (see below for installation)
 + Toggle light/dark mode now Alt-Tab instead of the frequently conflicting F6
 + Alt-k and Alt-j scroll back/foward in history one line at a time
 + Alt-u and Alt-d scroll back/foward in history a page at a time
-
-### Transparency
-
-I also have redone the transparency patch diff since it would fail to apply with too many of the other patches applied. See below for installation.
 
 ## Terminal-specific mappings
 
@@ -37,7 +34,7 @@ sudo make install
 
 ### Transparency
 
-If you want transparency, run the following.
+If you want transparency, run the following. (You will also need to have a composite manager, such as compton or xcompmgr running for the transparency to appear.)
 
 ```
 make clean
