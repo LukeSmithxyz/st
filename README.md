@@ -22,7 +22,7 @@ Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simpl
 
 + Scroll through history -- Shift+PageUp/PageDown or Shift+Mouse wheel
 + Increase/decrease font size -- Shift+Alt+PageUp/PageDown
-+ Return to default dont size -- Shift+Alt+Home
++ Return to default font size -- Shift+Alt+Home
 + Paste -- Shift+Insert
 
 ## Installation for newbs
