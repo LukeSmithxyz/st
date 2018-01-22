@@ -5,7 +5,7 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char font[] = "mono:pixelsize=14:antialias=true:autohint=true";
+static char font[] = "xos4 Terminess Powerline:pixelsize=10:antialias=true";
 static int borderpx = 2;
 
 /*
@@ -82,25 +82,47 @@ static char termname[] = "st-256color";
  */
 static unsigned int tabspaces = 8;
 
+/* bg opacity */
+int alpha = 0xc8;
+
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
+        /* m3llo colours */
+        "#4f4858",  /*  0: black    */
+        "#c05c47",  /*  1: red      */
+        "#428e8e",  /*  2: green    */
+        "#e4b226",  /*  3: yellow   */
+        "#4457a3",  /*  4: blue     */
+        "#903a62",  /*  5: magenta  */
+        "#7aa1dc",  /*  6: cyan     */
+        "#c4b7c5",  /*  7: white    */
+        "#141021",  /*  8: brblack  */
+        "#c16772",  /*  9: brred    */
+        "#afda6e",  /* 10: brgreen  */
+        "#ebcf1a",  /* 11: bryellow */
+        "#4880a5",  /* 12: brblue   */
+        "#9568a1",  /* 13: brmagenta*/
+        "#abbcda",  /* 14: brcyan   */
+        "#ffeefc",  /* 15: brwhite  */
+        "black",  /* 16: bg       */
 	/* solarized dark */
-	"#073642",  /*  0: black    */
-	"#dc322f",  /*  1: red      */
-	"#859900",  /*  2: green    */
-	"#b58900",  /*  3: yellow   */
-	"#268bd2",  /*  4: blue     */
-	"#d33682",  /*  5: magenta  */
-	"#2aa198",  /*  6: cyan     */
-	"#eee8d5",  /*  7: white    */
-	"#002b36",  /*  8: brblack  */
-	"#cb4b16",  /*  9: brred    */
-	"#586e75",  /* 10: brgreen  */
-	"#657b83",  /* 11: bryellow */
-	"#839496",  /* 12: brblue   */
-	"#6c71c4",  /* 13: brmagenta*/
-	"#93a1a1",  /* 14: brcyan   */
-	"#fdf6e3",  /* 15: brwhite  */
+        //"#073642",  /*  0: black    */
+        //"#dc322f",  /*  1: red      */
+        //"#859900",  /*  2: green    */
+        //"#b58900",  /*  3: yellow   */
+        //"#268bd2",  /*  4: blue     */
+        //"#d33682",  /*  5: magenta  */
+        //"#2aa198",  /*  6: cyan     */
+        //"#eee8d5",  /*  7: white    */
+        //"#002b36",  /*  8: brblack  */
+        //"#cb4b16",  /*  9: brred    */
+        //"#586e75",  /* 10: brgreen  */
+        //"#657b83",  /* 11: bryellow */
+        //"#839496",  /* 12: brblue   */
+        //"#6c71c4",  /* 13: brmagenta*/
+        //"#93a1a1",  /* 14: brcyan   */
+        //"#fdf6e3",  /* 15: brwhite  */
+        //"black",
 };
 
 /* Terminal colors for alternate (light) palette */
@@ -122,13 +144,14 @@ static const char *altcolorname[] = {
 	"#6c71c4",  /* 13: brmagenta*/
 	"#586e75",  /* 14: brcyan   */
 	"#002b36",  /* 15: brwhite  */
+	"black",
 };
 
 /*
  * Default colors (colorname index)
  * foreground, background, cursor, reverse cursor
  */
-static unsigned int defaultfg = 12;
+static unsigned int defaultfg = 15;
 static unsigned int defaultbg = 8;
 static unsigned int defaultcs = 14;
 static unsigned int defaultrcs = 15;
@@ -189,7 +212,8 @@ static Shortcut shortcuts[] = {
 	{ XK_ANY_MOD,           XK_Print,       printsel,       {.i =  0} },
 	{ MODKEY|ShiftMask,     XK_Prior,       xzoom,          {.f = +1} },
 	{ MODKEY|ShiftMask,     XK_Next,        xzoom,          {.f = -1} },
-	{ MODKEY|ShiftMask,     XK_Home,        xzoomreset,     {.f =  0} },
+	{ MODKEY|ShiftMask,     XK_Home,        xtrans,         {.f = -1} },
+	{ MODKEY|ShiftMask,     XK_End,         xtrans,         {.f = +1} },
 	{ ShiftMask,            XK_Insert,      selpaste,       {.i =  0} },
 	{ MODKEY|ShiftMask,     XK_Insert,      clippaste,      {.i =  0} },
 	{ MODKEY|ShiftMask,     XK_C,           clipcopy,       {.i =  0} },
