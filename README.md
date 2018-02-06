@@ -51,3 +51,5 @@ patch -R < patches/transparency.diff
 make
 sudo make install
 ```
+
+You can change the transparency value by changing the `alpha` variable in the `config.h` file.
