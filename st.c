@@ -167,11 +167,11 @@ static ssize_t xwrite(int, const char *, size_t);
 
 /* Globals */
 Term term;
-Selection sel;
 int cmdfd;
 pid_t pid;
 int oldbutton   = 3; /* button event on startup: 3 = release */
 
+static Selection sel;
 static CSIEscape csiescseq;
 static STREscape strescseq;
 static int iofd = 1;
@@ -402,9 +402,17 @@ selstart(int col, int row, int snap)
 }
 
 void
-selextend(int col, int row, int type)
+selextend(int col, int row, int type, int done)
 {
 	int oldey, oldex, oldsby, oldsey, oldtype;
+
+	if (!sel.mode)
+		return;
+	if (done && sel.mode == SEL_EMPTY) {
+		selclear();
+		return;
+	}
+
 	oldey = sel.oe.y;
 	oldex = sel.oe.x;
 	oldsby = sel.nb.y;
@@ -419,6 +427,8 @@ selextend(int col, int row, int type)
 
 	if (oldey != sel.oe.y || oldex != sel.oe.x || oldtype != sel.type)
 		tsetdirt(MIN(sel.nb.y, oldsby), MAX(sel.ne.y, oldsey));
+
+	sel.mode = done ? SEL_IDLE : SEL_READY;
 }
 
 void

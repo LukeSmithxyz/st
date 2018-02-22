@@ -184,7 +184,7 @@ void resettitle(void);
 void selclear(void);
 void selinit(void);
 void selstart(int, int, int);
-void selextend(int, int, int);
+void selextend(int, int, int, int);
 void selnormalize(void);
 int selected(int, int);
 char *getsel(void);
@@ -198,7 +198,6 @@ char *xstrdup(char *);
 
 /* Globals */
 extern Term term;
-extern Selection sel;
 extern int cmdfd;
 extern pid_t pid;
 extern int oldbutton;

@@ -157,7 +157,7 @@ static void selnotify(XEvent *);
 static void selclear_(XEvent *);
 static void selrequest(XEvent *);
 static void setsel(char *, Time);
-static void mousesel(XEvent *);
+static void mousesel(XEvent *, int);
 static void mousereport(XEvent *);
 static char *kmap(KeySym, uint);
 static int match(uint, uint);
@@ -313,7 +313,7 @@ y2row(int y)
 }
 
 void
-mousesel(XEvent *e)
+mousesel(XEvent *e, int done)
 {
 	int type, seltype = SEL_REGULAR;
 	uint state = e->xbutton.state & ~(Button1Mask | forceselmod);
@@ -324,8 +324,9 @@ mousesel(XEvent *e)
 			break;
 		}
 	}
-
-	selextend(x2col(e->xbutton.x), y2row(e->xbutton.y), seltype);
+	selextend(x2col(e->xbutton.x), y2row(e->xbutton.y), seltype, done);
+	if (done)
+		setsel(getsel(), e->xbutton.time);
 }
 
 void
@@ -630,16 +631,10 @@ brelease(XEvent *e)
 		return;
 	}
 
-	if (e->xbutton.button == Button2) {
+	if (e->xbutton.button == Button2)
 		selpaste(NULL);
-	} else if (e->xbutton.button == Button1) {
-		if (sel.mode == SEL_READY) {
-			mousesel(e);
-			setsel(getsel(), e->xbutton.time);
-		} else
-			selclear_(NULL);
-		sel.mode = SEL_IDLE;
-	}
+	else if (e->xbutton.button == Button1)
+		mousesel(e, 1);
 }
 
 void
@@ -650,11 +645,7 @@ bmotion(XEvent *e)
 		return;
 	}
 
-	if (!sel.mode)
-		return;
-
-	sel.mode = SEL_READY;
-	mousesel(e);
+	mousesel(e, 0);
 }
 
 void
