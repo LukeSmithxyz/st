@@ -784,11 +784,14 @@ ttyread(void)
 }
 
 void
-ttywrite(const char *s, size_t n)
+ttywrite(const char *s, size_t n, int may_echo)
 {
 	fd_set wfd, rfd;
 	ssize_t r;
 	size_t lim = 256;
+
+	if (may_echo && IS_SET(MODE_ECHO))
+		twrite(s, n, 1);
 
 	/*
 	 * Remember that we are using a pty, which might be a modem line.
@@ -838,14 +841,6 @@ ttywrite(const char *s, size_t n)
 
 write_error:
 	die("write error on tty: %s\n", strerror(errno));
-}
-
-void
-ttysend(char *s, size_t n)
-{
-	ttywrite(s, n);
-	if (IS_SET(MODE_ECHO))
-		twrite(s, n, 1);
 }
 
 void
@@ -1570,7 +1565,7 @@ csihandle(void)
 		break;
 	case 'c': /* DA -- Device Attributes */
 		if (csiescseq.arg[0] == 0)
-			ttywrite(vtiden, strlen(vtiden));
+			ttywrite(vtiden, strlen(vtiden), 0);
 		break;
 	case 'C': /* CUF -- Cursor <n> Forward */
 	case 'a': /* HPR -- Cursor <n> Forward */
@@ -1698,7 +1693,7 @@ csihandle(void)
 		if (csiescseq.arg[0] == 6) {
 			len = snprintf(buf, sizeof(buf),"\033[%i;%iR",
 					term.c.y+1, term.c.x+1);
-			ttywrite(buf, len);
+			ttywrite(buf, len, 0);
 		}
 		break;
 	case 'r': /* DECSTBM -- Set Scrolling Region */
@@ -1916,7 +1911,7 @@ iso14755(const Arg *arg)
 	    (*e != '\n' && *e != '\0'))
 		return;
 
-	ttysend(uc, utf8encode(utf32, uc));
+	ttywrite(uc, utf8encode(utf32, uc), 1);
 }
 
 void
@@ -2129,7 +2124,7 @@ tcontrolcode(uchar ascii)
 	case 0x99:   /* TODO: SGCI */
 		break;
 	case 0x9a:   /* DECID -- Identify Terminal */
-		ttywrite(vtiden, strlen(vtiden));
+		ttywrite(vtiden, strlen(vtiden), 0);
 		break;
 	case 0x9b:   /* TODO: CSI */
 	case 0x9c:   /* TODO: ST */
@@ -2201,7 +2196,7 @@ eschandle(uchar ascii)
 		}
 		break;
 	case 'Z': /* DECID -- Identify Terminal */
-		ttywrite(vtiden, strlen(vtiden));
+		ttywrite(vtiden, strlen(vtiden), 0);
 		break;
 	case 'c': /* RIS -- Reset to inital state */
 		treset();
