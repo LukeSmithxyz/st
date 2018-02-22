@@ -38,10 +38,9 @@ typedef struct {
 	KeySym k;
 	uint mask;
 	char *s;
-	/* three valued logic variables: 0 indifferent, 1 on, -1 off */
+	/* three-valued logic variables: 0 indifferent, 1 on, -1 off */
 	signed char appkey;    /* application keypad */
 	signed char appcursor; /* application cursor */
-	signed char crlf;      /* crlf mode          */
 } Key;
 
 /* X modifiers */
@@ -1678,9 +1677,6 @@ kmap(KeySym k, uint state)
 			continue;
 
 		if (IS_SET(MODE_APPCURSOR) ? kp->appcursor < 0 : kp->appcursor > 0)
-			continue;
-
-		if (IS_SET(MODE_CRLF) ? kp->crlf < 0 : kp->crlf > 0)
 			continue;
 
 		return kp->s;

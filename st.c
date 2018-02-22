@@ -108,6 +108,7 @@ typedef struct {
 static void execsh(char **);
 static void stty(char **);
 static void sigchld(int);
+static void ttywriteraw(const char *, size_t);
 
 static void csidump(void);
 static void csihandle(void);
@@ -786,12 +787,37 @@ ttyread(void)
 void
 ttywrite(const char *s, size_t n, int may_echo)
 {
-	fd_set wfd, rfd;
-	ssize_t r;
-	size_t lim = 256;
+	const char *next;
 
 	if (may_echo && IS_SET(MODE_ECHO))
 		twrite(s, n, 1);
+
+	if (!IS_SET(MODE_CRLF)) {
+		ttywriteraw(s, n);
+		return;
+	}
+
+	/* This is similar to how the kernel handles ONLCR for ttys */
+	while (n > 0) {
+		if (*s == '\r') {
+			next = s + 1;
+			ttywriteraw("\r\n", 2);
+		} else {
+			next = memchr(s, '\r', n);
+			DEFAULT(next, s + n);
+			ttywriteraw(s, next - s);
+		}
+		n -= next - s;
+		s = next;
+	}
+}
+
+void
+ttywriteraw(const char *s, size_t n)
+{
+	fd_set wfd, rfd;
+	ssize_t r;
+	size_t lim = 256;
 
 	/*
 	 * Remember that we are using a pty, which might be a modem line.
