@@ -670,7 +670,6 @@ void
 ttynew(char *line, char *out, char **args)
 {
 	int m, s;
-	struct winsize w = {term.row, term.col, 0, 0};
 
 	if (out) {
 		term.mode |= MODE_PRINT;
@@ -691,7 +690,7 @@ ttynew(char *line, char *out, char **args)
 	}
 
 	/* seems to work fine on linux, openbsd and freebsd */
-	if (openpty(&m, &s, NULL, NULL, &w) < 0)
+	if (openpty(&m, &s, NULL, NULL, NULL) < 0)
 		die("openpty failed: %s\n", strerror(errno));
 
 	switch (pid = fork()) {

@@ -276,7 +276,6 @@ zoomabs(const Arg *arg)
 	xunloadfonts();
 	xloadfonts(usedfont, arg->f);
 	cresize(0, 0);
-	ttyresize(win.tw, win.th);
 	redraw();
 	xhints();
 }
@@ -695,6 +694,7 @@ cresize(int width, int height)
 
 	tresize(col, row);
 	xresize(col, row);
+	ttyresize(win.tw, win.th);
 }
 
 void
@@ -1794,7 +1794,6 @@ resize(XEvent *e)
 		return;
 
 	cresize(e->xconfigure.width, e->xconfigure.height);
-	ttyresize(win.tw, win.th);
 }
 
 void
@@ -1823,9 +1822,8 @@ run(void)
 		}
 	} while (ev.type != MapNotify);
 
-	cresize(w, h);
 	ttynew(opt_line, opt_io, opt_cmd);
-	ttyresize(win.tw, win.th);
+	cresize(w, h);
 
 	clock_gettime(CLOCK_MONOTONIC, &last);
 	lastblink = last;
