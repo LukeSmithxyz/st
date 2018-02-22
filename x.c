@@ -1418,7 +1418,6 @@ xdrawcursor(void)
 	static int oldx = 0, oldy = 0;
 	int curx;
 	Glyph g = {' ', ATTR_NULL, defaultbg, defaultcs}, og;
-	int ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
 	Color drawcol;
 
 	LIMIT(oldx, 0, term.col-1);
@@ -1434,7 +1433,7 @@ xdrawcursor(void)
 
 	/* remove the old cursor */
 	og = term.line[oldy][oldx];
-	if (ena_sel && selected(oldx, oldy))
+	if (selected(oldx, oldy))
 		og.mode ^= ATTR_REVERSE;
 	xdrawglyph(og, oldx, oldy);
 
@@ -1448,7 +1447,7 @@ xdrawcursor(void)
 	if (IS_SET(MODE_REVERSE)) {
 		g.mode |= ATTR_REVERSE;
 		g.bg = defaultfg;
-		if (ena_sel && selected(term.c.x, term.c.y)) {
+		if (selected(term.c.x, term.c.y)) {
 			drawcol = dc.col[defaultcs];
 			g.fg = defaultrcs;
 		} else {
@@ -1456,7 +1455,7 @@ xdrawcursor(void)
 			g.fg = defaultcs;
 		}
 	} else {
-		if (ena_sel && selected(term.c.x, term.c.y)) {
+		if (selected(term.c.x, term.c.y)) {
 			drawcol = dc.col[defaultrcs];
 			g.fg = defaultfg;
 			g.bg = defaultrcs;
@@ -1555,7 +1554,6 @@ drawregion(int x1, int y1, int x2, int y2)
 	int i, x, y, ox, numspecs;
 	Glyph base, new;
 	XftGlyphFontSpec *specs;
-	int ena_sel = sel.ob.x != -1 && sel.alt == IS_SET(MODE_ALTSCREEN);
 
 	if (!(win.state & WIN_VISIBLE))
 		return;
@@ -1574,7 +1572,7 @@ drawregion(int x1, int y1, int x2, int y2)
 			new = term.line[y][x];
 			if (new.mode == ATTR_WDUMMY)
 				continue;
-			if (ena_sel && selected(x, y))
+			if (selected(x, y))
 				new.mode ^= ATTR_REVERSE;
 			if (i > 0 && ATTRCMP(base, new)) {
 				xdrawglyphfontspecs(specs, base, i, ox, y);
