@@ -94,6 +94,9 @@ typedef struct {
 
 typedef struct {
 	Atom xtarget;
+	char *primary, *clipboard;
+	struct timespec tclick1;
+	struct timespec tclick2;
 } XSelection;
 
 /* Font structure */
@@ -234,11 +237,11 @@ clipcopy(const Arg *dummy)
 {
 	Atom clipboard;
 
-	if (sel.clipboard != NULL)
-		free(sel.clipboard);
+	if (xsel.clipboard != NULL)
+		free(xsel.clipboard);
 
-	if (sel.primary != NULL) {
-		sel.clipboard = xstrdup(sel.primary);
+	if (xsel.primary != NULL) {
+		xsel.clipboard = xstrdup(xsel.primary);
 		clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
 		XSetSelectionOwner(xw.dpy, clipboard, xw.win, CurrentTime);
 	}
@@ -427,9 +430,9 @@ bpress(XEvent *e)
 		 * If the user clicks below predefined timeouts specific
 		 * snapping behaviour is exposed.
 		 */
-		if (TIMEDIFF(now, sel.tclick2) <= tripleclicktimeout) {
+		if (TIMEDIFF(now, xsel.tclick2) <= tripleclicktimeout) {
 			sel.snap = SNAP_LINE;
-		} else if (TIMEDIFF(now, sel.tclick1) <= doubleclicktimeout) {
+		} else if (TIMEDIFF(now, xsel.tclick1) <= doubleclicktimeout) {
 			sel.snap = SNAP_WORD;
 		} else {
 			sel.snap = 0;
@@ -439,8 +442,8 @@ bpress(XEvent *e)
 		if (sel.snap != 0)
 			sel.mode = SEL_READY;
 		tsetdirt(sel.nb.y, sel.ne.y);
-		sel.tclick2 = sel.tclick1;
-		sel.tclick1 = now;
+		xsel.tclick2 = xsel.tclick1;
+		xsel.tclick1 = now;
 	}
 }
 
@@ -594,9 +597,9 @@ selrequest(XEvent *e)
 		 */
 		clipboard = XInternAtom(xw.dpy, "CLIPBOARD", 0);
 		if (xsre->selection == XA_PRIMARY) {
-			seltext = sel.primary;
+			seltext = xsel.primary;
 		} else if (xsre->selection == clipboard) {
-			seltext = sel.clipboard;
+			seltext = xsel.clipboard;
 		} else {
 			fprintf(stderr,
 				"Unhandled clipboard selection 0x%lx\n",
@@ -620,8 +623,8 @@ selrequest(XEvent *e)
 void
 setsel(char *str, Time t)
 {
-	free(sel.primary);
-	sel.primary = str;
+	free(xsel.primary);
+	xsel.primary = str;
 
 	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, t);
 	if (XGetSelectionOwner(xw.dpy, XA_PRIMARY) != xw.win)
@@ -1127,6 +1130,10 @@ xinit(void)
 	xhints();
 	XSync(xw.dpy, False);
 
+	clock_gettime(CLOCK_MONOTONIC, &xsel.tclick1);
+	clock_gettime(CLOCK_MONOTONIC, &xsel.tclick2);
+	xsel.primary = NULL;
+	xsel.clipboard = NULL;
 	xsel.xtarget = XInternAtom(xw.dpy, "UTF8_STRING", 0);
 	if (xsel.xtarget == None)
 		xsel.xtarget = XA_STRING;

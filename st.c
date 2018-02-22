@@ -365,13 +365,9 @@ base64dec(const char *src)
 void
 selinit(void)
 {
-	clock_gettime(CLOCK_MONOTONIC, &sel.tclick1);
-	clock_gettime(CLOCK_MONOTONIC, &sel.tclick2);
 	sel.mode = SEL_IDLE;
 	sel.snap = 0;
 	sel.ob.x = -1;
-	sel.primary = NULL;
-	sel.clipboard = NULL;
 }
 
 int

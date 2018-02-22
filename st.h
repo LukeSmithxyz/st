@@ -149,12 +149,7 @@ typedef struct {
 		int x, y;
 	} nb, ne, ob, oe;
 
-	char *primary, *clipboard;
 	int alt;
-	struct timespec tclick1;
-	struct timespec tclick2;
-
-	//Atom xtarget;
 } Selection;
 
 typedef union {
