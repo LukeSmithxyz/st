@@ -172,7 +172,6 @@ void toggleprinter(const Arg *);
 int tattrset(int);
 void tnew(int, int);
 void tresize(int, int);
-void tsetdirt(int, int);
 void tsetdirtattr(int);
 void ttynew(char *, char *, char **);
 size_t ttyread(void);
@@ -184,6 +183,8 @@ void resettitle(void);
 
 void selclear(void);
 void selinit(void);
+void selstart(int, int, int);
+void selextend(int, int, int);
 void selnormalize(void);
 int selected(int, int);
 char *getsel(void);

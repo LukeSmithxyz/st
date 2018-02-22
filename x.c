@@ -157,7 +157,7 @@ static void selnotify(XEvent *);
 static void selclear_(XEvent *);
 static void selrequest(XEvent *);
 static void setsel(char *, Time);
-static void getbuttoninfo(XEvent *);
+static void mousesel(XEvent *);
 static void mousereport(XEvent *);
 static char *kmap(KeySym, uint);
 static int match(uint, uint);
@@ -313,24 +313,19 @@ y2row(int y)
 }
 
 void
-getbuttoninfo(XEvent *e)
+mousesel(XEvent *e)
 {
-	int type;
+	int type, seltype = SEL_REGULAR;
 	uint state = e->xbutton.state & ~(Button1Mask | forceselmod);
 
-	sel.alt = IS_SET(MODE_ALTSCREEN);
-
-	sel.oe.x = x2col(e->xbutton.x);
-	sel.oe.y = y2row(e->xbutton.y);
-	selnormalize();
-
-	sel.type = SEL_REGULAR;
 	for (type = 1; type < LEN(selmasks); ++type) {
 		if (match(selmasks[type], state)) {
-			sel.type = type;
+			seltype = type;
 			break;
 		}
 	}
+
+	selextend(x2col(e->xbutton.x), y2row(e->xbutton.y), seltype);
 }
 
 void
@@ -402,6 +397,7 @@ bpress(XEvent *e)
 {
 	struct timespec now;
 	MouseShortcut *ms;
+	int snap;
 
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
 		mousereport(e);
@@ -417,33 +413,22 @@ bpress(XEvent *e)
 	}
 
 	if (e->xbutton.button == Button1) {
-		clock_gettime(CLOCK_MONOTONIC, &now);
-
-		/* Clear previous selection, logically and visually. */
-		selclear_(NULL);
-		sel.mode = SEL_EMPTY;
-		sel.type = SEL_REGULAR;
-		sel.oe.x = sel.ob.x = x2col(e->xbutton.x);
-		sel.oe.y = sel.ob.y = y2row(e->xbutton.y);
-
 		/*
 		 * If the user clicks below predefined timeouts specific
 		 * snapping behaviour is exposed.
 		 */
+		clock_gettime(CLOCK_MONOTONIC, &now);
 		if (TIMEDIFF(now, xsel.tclick2) <= tripleclicktimeout) {
-			sel.snap = SNAP_LINE;
+			snap = SNAP_LINE;
 		} else if (TIMEDIFF(now, xsel.tclick1) <= doubleclicktimeout) {
-			sel.snap = SNAP_WORD;
+			snap = SNAP_WORD;
 		} else {
-			sel.snap = 0;
+			snap = 0;
 		}
-		selnormalize();
-
-		if (sel.snap != 0)
-			sel.mode = SEL_READY;
-		tsetdirt(sel.nb.y, sel.ne.y);
 		xsel.tclick2 = xsel.tclick1;
 		xsel.tclick1 = now;
+
+		selstart(x2col(e->xbutton.x), y2row(e->xbutton.y), snap);
 	}
 }
 
@@ -649,20 +634,17 @@ brelease(XEvent *e)
 		selpaste(NULL);
 	} else if (e->xbutton.button == Button1) {
 		if (sel.mode == SEL_READY) {
-			getbuttoninfo(e);
+			mousesel(e);
 			setsel(getsel(), e->xbutton.time);
 		} else
 			selclear_(NULL);
 		sel.mode = SEL_IDLE;
-		tsetdirt(sel.nb.y, sel.ne.y);
 	}
 }
 
 void
 bmotion(XEvent *e)
 {
-	int oldey, oldex, oldsby, oldsey;
-
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
 		mousereport(e);
 		return;
@@ -672,14 +654,7 @@ bmotion(XEvent *e)
 		return;
 
 	sel.mode = SEL_READY;
-	oldey = sel.oe.y;
-	oldex = sel.oe.x;
-	oldsby = sel.nb.y;
-	oldsey = sel.ne.y;
-	getbuttoninfo(e);
-
-	if (oldey != sel.oe.y || oldex != sel.oe.x)
-		tsetdirt(MIN(sel.nb.y, oldsby), MAX(sel.ne.y, oldsey));
+	mousesel(e);
 }
 
 void

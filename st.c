@@ -140,6 +140,7 @@ static void tscrollup(int, int);
 static void tscrolldown(int, int);
 static void tsetattr(int *, int);
 static void tsetchar(Rune, Glyph *, int, int);
+static void tsetdirt(int, int);
 static void tsetscroll(int, int);
 static void tswapscreen(void);
 static void tsetmode(int, int, int *, int);
@@ -382,6 +383,42 @@ tlinelen(int y)
 		--i;
 
 	return i;
+}
+
+void
+selstart(int col, int row, int snap)
+{
+	selclear();
+	sel.mode = SEL_EMPTY;
+	sel.type = SEL_REGULAR;
+	sel.snap = snap;
+	sel.oe.x = sel.ob.x = col;
+	sel.oe.y = sel.ob.y = row;
+	selnormalize();
+
+	if (sel.snap != 0)
+		sel.mode = SEL_READY;
+	tsetdirt(sel.nb.y, sel.ne.y);
+}
+
+void
+selextend(int col, int row, int type)
+{
+	int oldey, oldex, oldsby, oldsey, oldtype;
+	oldey = sel.oe.y;
+	oldex = sel.oe.x;
+	oldsby = sel.nb.y;
+	oldsey = sel.ne.y;
+	oldtype = sel.type;
+
+	sel.alt = IS_SET(MODE_ALTSCREEN);
+	sel.oe.x = col;
+	sel.oe.y = row;
+	selnormalize();
+	sel.type = type;
+
+	if (oldey != sel.oe.y || oldex != sel.oe.x || oldtype != sel.type)
+		tsetdirt(MIN(sel.nb.y, oldsby), MAX(sel.ne.y, oldsey));
 }
 
 void
