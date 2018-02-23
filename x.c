@@ -51,6 +51,7 @@ typedef struct {
 /* function definitions used in config.h */
 static void clipcopy(const Arg *);
 static void clippaste(const Arg *);
+static void numlock(const Arg *);
 static void selpaste(const Arg *);
 static void zoom(const Arg *);
 static void zoomabs(const Arg *);
@@ -64,6 +65,7 @@ static void zoomreset(const Arg *);
 #define XEMBED_FOCUS_OUT 5
 
 /* macros */
+#define IS_SET(flag)		((win.mode & (flag)) != 0)
 #define TRUERED(x)		(((x) & 0xff0000) >> 8)
 #define TRUEGREEN(x)		(((x) & 0xff00))
 #define TRUEBLUE(x)		(((x) & 0xff) << 8)
@@ -196,11 +198,6 @@ static XWindow xw;
 static XSelection xsel;
 static TermWindow win;
 
-enum window_state {
-	WIN_VISIBLE = 1,
-	WIN_FOCUSED = 2
-};
-
 /* Font Ring Cache */
 enum {
 	FRC_NORMAL,
@@ -261,6 +258,12 @@ selpaste(const Arg *dummy)
 {
 	XConvertSelection(xw.dpy, XA_PRIMARY, xsel.xtarget, XA_PRIMARY,
 			xw.win, CurrentTime);
+}
+
+void
+numlock(const Arg *dummy)
+{
+	win.mode ^= MODE_NUMLOCK;
 }
 
 void
@@ -1090,6 +1093,7 @@ xinit(void)
 	XChangeProperty(xw.dpy, xw.win, xw.netwmpid, XA_CARDINAL, 32,
 			PropModeReplace, (uchar *)&thispid, 1);
 
+	win.mode = MODE_NUMLOCK;
 	resettitle();
 	XMapWindow(xw.dpy, xw.win);
 	xhints();
@@ -1319,14 +1323,13 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 		fg = &revfg;
 	}
 
-
 	if (base.mode & ATTR_REVERSE) {
 		temp = fg;
 		fg = bg;
 		bg = temp;
 	}
 
-	if (base.mode & ATTR_BLINK && term.mode & MODE_BLINK)
+	if (base.mode & ATTR_BLINK && win.mode & MODE_BLINK)
 		fg = bg;
 
 	if (base.mode & ATTR_INVISIBLE)
@@ -1440,7 +1443,7 @@ xdrawcursor(void)
 		return;
 
 	/* draw the new one */
-	if (win.state & WIN_FOCUSED) {
+	if (IS_SET(MODE_FOCUSED)) {
 		switch (win.cursor) {
 		case 7: /* st extension: snowman */
 			utf8decode("☃", &g.u, UTF_SIZ);
@@ -1527,7 +1530,7 @@ drawregion(int x1, int y1, int x2, int y2)
 	Glyph base, new;
 	XftGlyphFontSpec *specs;
 
-	if (!(win.state & WIN_VISIBLE))
+	if (!(IS_SET(MODE_VISIBLE)))
 		return;
 
 	for (y = y1; y < y2; y++) {
@@ -1575,13 +1578,13 @@ visibility(XEvent *ev)
 {
 	XVisibilityEvent *e = &ev->xvisibility;
 
-	MODBIT(win.state, e->state != VisibilityFullyObscured, WIN_VISIBLE);
+	MODBIT(win.mode, e->state != VisibilityFullyObscured, MODE_VISIBLE);
 }
 
 void
 unmap(XEvent *ev)
 {
-	win.state &= ~WIN_VISIBLE;
+	win.mode &= ~MODE_VISIBLE;
 }
 
 void
@@ -1589,6 +1592,15 @@ xsetpointermotion(int set)
 {
 	MODBIT(xw.attrs.event_mask, set, PointerMotionMask);
 	XChangeWindowAttributes(xw.dpy, xw.win, CWEventMask, &xw.attrs);
+}
+
+void
+xsetmode(int set, unsigned int flags)
+{
+	int mode = win.mode;
+	MODBIT(win.mode, set, flags);
+	if ((win.mode & MODE_REVERSE) != (mode & MODE_REVERSE))
+		redraw();
 }
 
 int
@@ -1614,7 +1626,7 @@ xseturgency(int add)
 void
 xbell(void)
 {
-	if (!(win.state & WIN_FOCUSED))
+	if (!(IS_SET(MODE_FOCUSED)))
 		xseturgency(1);
 	if (bellvolume)
 		XkbBell(xw.dpy, xw.win, bellvolume, (Atom)NULL);
@@ -1630,13 +1642,13 @@ focus(XEvent *ev)
 
 	if (ev->type == FocusIn) {
 		XSetICFocus(xw.xic);
-		win.state |= WIN_FOCUSED;
+		win.mode |= MODE_FOCUSED;
 		xseturgency(0);
 		if (IS_SET(MODE_FOCUS))
 			ttywrite("\033[I", 3, 0);
 	} else {
 		XUnsetICFocus(xw.xic);
-		win.state &= ~WIN_FOCUSED;
+		win.mode &= ~MODE_FOCUSED;
 		if (IS_SET(MODE_FOCUS))
 			ttywrite("\033[O", 3, 0);
 	}
@@ -1673,7 +1685,7 @@ kmap(KeySym k, uint state)
 
 		if (IS_SET(MODE_APPKEYPAD) ? kp->appkey < 0 : kp->appkey > 0)
 			continue;
-		if (term.numlock && kp->appkey == 2)
+		if (IS_SET(MODE_NUMLOCK) && kp->appkey == 2)
 			continue;
 
 		if (IS_SET(MODE_APPCURSOR) ? kp->appcursor < 0 : kp->appcursor > 0)
@@ -1742,10 +1754,10 @@ cmessage(XEvent *e)
 	 */
 	if (e->xclient.message_type == xw.xembed && e->xclient.format == 32) {
 		if (e->xclient.data.l[1] == XEMBED_FOCUS_IN) {
-			win.state |= WIN_FOCUSED;
+			win.mode |= MODE_FOCUSED;
 			xseturgency(0);
 		} else if (e->xclient.data.l[1] == XEMBED_FOCUS_OUT) {
-			win.state &= ~WIN_FOCUSED;
+			win.mode &= ~MODE_FOCUSED;
 		}
 	} else if (e->xclient.data.l[0] == xw.wmdeletewin) {
 		/* Send SIGHUP to shell */
@@ -1810,7 +1822,7 @@ run(void)
 			if (blinktimeout) {
 				blinkset = tattrset(ATTR_BLINK);
 				if (!blinkset)
-					MODBIT(term.mode, 0, MODE_BLINK);
+					MODBIT(win.mode, 0, MODE_BLINK);
 			}
 		}
 
@@ -1825,7 +1837,7 @@ run(void)
 		dodraw = 0;
 		if (blinktimeout && TIMEDIFF(now, lastblink) > blinktimeout) {
 			tsetdirtattr(ATTR_BLINK);
-			term.mode ^= MODE_BLINK;
+			win.mode ^= MODE_BLINK;
 			lastblink = now;
 			dodraw = 1;
 		}

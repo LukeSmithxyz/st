@@ -13,7 +13,6 @@
 #define LIMIT(x, a, b)		(x) = (x) < (a) ? (a) : (x) > (b) ? (b) : (x)
 #define ATTRCMP(a, b)		((a).mode != (b).mode || (a).fg != (b).fg || \
 				(a).bg != (b).bg)
-#define IS_SET(flag)		((term.mode & (flag)) != 0)
 #define TIMEDIFF(t1, t2)	((t1.tv_sec-t2.tv_sec)*1000 + \
 				(t1.tv_nsec-t2.tv_nsec)/1E6)
 #define MODBIT(x, set, bit)	((set) ? ((x) |= (bit)) : ((x) &= ~(bit)))
@@ -35,34 +34,6 @@ enum glyph_attribute {
 	ATTR_WIDE       = 1 << 9,
 	ATTR_WDUMMY     = 1 << 10,
 	ATTR_BOLD_FAINT = ATTR_BOLD | ATTR_FAINT,
-};
-
-enum term_mode {
-	MODE_WRAP        = 1 << 0,
-	MODE_INSERT      = 1 << 1,
-	MODE_APPKEYPAD   = 1 << 2,
-	MODE_ALTSCREEN   = 1 << 3,
-	MODE_CRLF        = 1 << 4,
-	MODE_MOUSEBTN    = 1 << 5,
-	MODE_MOUSEMOTION = 1 << 6,
-	MODE_REVERSE     = 1 << 7,
-	MODE_KBDLOCK     = 1 << 8,
-	MODE_HIDE        = 1 << 9,
-	MODE_ECHO        = 1 << 10,
-	MODE_APPCURSOR   = 1 << 11,
-	MODE_MOUSESGR    = 1 << 12,
-	MODE_8BIT        = 1 << 13,
-	MODE_BLINK       = 1 << 14,
-	MODE_FBLINK      = 1 << 15,
-	MODE_FOCUS       = 1 << 16,
-	MODE_MOUSEX10    = 1 << 17,
-	MODE_MOUSEMANY   = 1 << 18,
-	MODE_BRCKTPASTE  = 1 << 19,
-	MODE_PRINT       = 1 << 20,
-	MODE_UTF8        = 1 << 21,
-	MODE_SIXEL       = 1 << 22,
-	MODE_MOUSE       = MODE_MOUSEBTN|MODE_MOUSEMOTION|MODE_MOUSEX10\
-	                  |MODE_MOUSEMANY,
 };
 
 enum selection_mode {
@@ -120,7 +91,6 @@ typedef struct {
 	char trantbl[4]; /* charset table translation */
 	int charset;  /* current charset */
 	int icharset; /* selected charset for sequence */
-	int numlock; /* lock numbers in keyboard */
 	int *tabs;
 } Term;
 
@@ -130,7 +100,7 @@ typedef struct {
 	int w, h; /* window width and height */
 	int ch; /* char height */
 	int cw; /* char width  */
-	char state; /* focus, redraw, visible */
+	int mode; /* window state/mode flags */
 	int cursor; /* cursor style */
 } TermWindow;
 
@@ -163,7 +133,6 @@ void die(const char *, ...);
 void redraw(void);
 
 void iso14755(const Arg *);
-void numlock(const Arg *);
 void printscreen(const Arg *);
 void printsel(const Arg *);
 void sendbreak(const Arg *);

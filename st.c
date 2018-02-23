@@ -42,6 +42,7 @@
 #define STR_ARG_SIZ   ESC_ARG_SIZ
 
 /* macros */
+#define IS_SET(flag)		((term.mode & (flag)) != 0)
 #define NUMMAXLEN(x)		((int)(sizeof(x) * 2.56 + 0.5) + 1)
 #define ISCONTROLC0(c)		(BETWEEN(c, 0, 0x1f) || (c) == '\177')
 #define ISCONTROLC1(c)		(BETWEEN(c, 0x80, 0x9f))
@@ -50,6 +51,17 @@
 
 /* constants */
 #define ISO14755CMD		"dmenu -w \"$WINDOWID\" -p codepoint: </dev/null"
+
+enum term_mode {
+	MODE_WRAP        = 1 << 0,
+	MODE_INSERT      = 1 << 1,
+	MODE_ALTSCREEN   = 1 << 2,
+	MODE_CRLF        = 1 << 3,
+	MODE_ECHO        = 1 << 4,
+	MODE_PRINT       = 1 << 5,
+	MODE_UTF8        = 1 << 6,
+	MODE_SIXEL       = 1 << 7,
+};
 
 enum cursor_movement {
 	CURSOR_SAVE,
@@ -977,8 +989,6 @@ tnew(int col, int row)
 {
 	term = (Term){ .c = { .attr = { .fg = defaultfg, .bg = defaultbg } } };
 	tresize(col, row);
-	term.numlock = 1;
-
 	treset();
 }
 
@@ -1414,20 +1424,16 @@ tsetscroll(int t, int b)
 void
 tsetmode(int priv, int set, int *args, int narg)
 {
-	int *lim, mode;
-	int alt;
+	int alt, *lim;
 
 	for (lim = args + narg; args < lim; ++args) {
 		if (priv) {
 			switch (*args) {
 			case 1: /* DECCKM -- Cursor key */
-				MODBIT(term.mode, set, MODE_APPCURSOR);
+				xsetmode(set, MODE_APPCURSOR);
 				break;
 			case 5: /* DECSCNM -- Reverse video */
-				mode = term.mode;
-				MODBIT(term.mode, set, MODE_REVERSE);
-				if (mode != term.mode)
-					redraw();
+				xsetmode(set, MODE_REVERSE);
 				break;
 			case 6: /* DECOM -- Origin */
 				MODBIT(term.c.state, set, CURSOR_ORIGIN);
@@ -1447,36 +1453,36 @@ tsetmode(int priv, int set, int *args, int narg)
 			case 12: /* att610 -- Start blinking cursor (IGNORED) */
 				break;
 			case 25: /* DECTCEM -- Text Cursor Enable Mode */
-				MODBIT(term.mode, !set, MODE_HIDE);
+				xsetmode(!set, MODE_HIDE);
 				break;
 			case 9:    /* X10 mouse compatibility mode */
 				xsetpointermotion(0);
-				MODBIT(term.mode, 0, MODE_MOUSE);
-				MODBIT(term.mode, set, MODE_MOUSEX10);
+				xsetmode(0, MODE_MOUSE);
+				xsetmode(set, MODE_MOUSEX10);
 				break;
 			case 1000: /* 1000: report button press */
 				xsetpointermotion(0);
-				MODBIT(term.mode, 0, MODE_MOUSE);
-				MODBIT(term.mode, set, MODE_MOUSEBTN);
+				xsetmode(0, MODE_MOUSE);
+				xsetmode(set, MODE_MOUSEBTN);
 				break;
 			case 1002: /* 1002: report motion on button press */
 				xsetpointermotion(0);
-				MODBIT(term.mode, 0, MODE_MOUSE);
-				MODBIT(term.mode, set, MODE_MOUSEMOTION);
+				xsetmode(0, MODE_MOUSE);
+				xsetmode(set, MODE_MOUSEMOTION);
 				break;
 			case 1003: /* 1003: enable all mouse motions */
 				xsetpointermotion(set);
-				MODBIT(term.mode, 0, MODE_MOUSE);
-				MODBIT(term.mode, set, MODE_MOUSEMANY);
+				xsetmode(0, MODE_MOUSE);
+				xsetmode(set, MODE_MOUSEMANY);
 				break;
 			case 1004: /* 1004: send focus events to tty */
-				MODBIT(term.mode, set, MODE_FOCUS);
+				xsetmode(set, MODE_FOCUS);
 				break;
 			case 1006: /* 1006: extended reporting mode */
-				MODBIT(term.mode, set, MODE_MOUSESGR);
+				xsetmode(set, MODE_MOUSESGR);
 				break;
 			case 1034:
-				MODBIT(term.mode, set, MODE_8BIT);
+				xsetmode(set, MODE_8BIT);
 				break;
 			case 1049: /* swap screen & set/restore cursor as xterm */
 				if (!allowaltscreen)
@@ -1501,7 +1507,7 @@ tsetmode(int priv, int set, int *args, int narg)
 				tcursor((set) ? CURSOR_SAVE : CURSOR_LOAD);
 				break;
 			case 2004: /* 2004: bracketed paste mode */
-				MODBIT(term.mode, set, MODE_BRCKTPASTE);
+				xsetmode(set, MODE_BRCKTPASTE);
 				break;
 			/* Not implemented mouse modes. See comments there. */
 			case 1001: /* mouse highlight mode; can hang the
@@ -1522,8 +1528,8 @@ tsetmode(int priv, int set, int *args, int narg)
 			switch (*args) {
 			case 0:  /* Error (IGNORED) */
 				break;
-			case 2:  /* KAM -- keyboard action */
-				MODBIT(term.mode, set, MODE_KBDLOCK);
+			case 2:
+				xsetmode(set, MODE_KBDLOCK);
 				break;
 			case 4:  /* IRM -- Insertion-replacement */
 				MODBIT(term.mode, set, MODE_INSERT);
@@ -2230,10 +2236,10 @@ eschandle(uchar ascii)
 		xloadcols();
 		break;
 	case '=': /* DECPAM -- Application keypad */
-		term.mode |= MODE_APPKEYPAD;
+		xsetmode(1, MODE_APPKEYPAD);
 		break;
 	case '>': /* DECPNM -- Normal keypad */
-		term.mode &= ~MODE_APPKEYPAD;
+		xsetmode(0, MODE_APPKEYPAD);
 		break;
 	case '7': /* DECSC -- Save Cursor */
 		tcursor(CURSOR_SAVE);
@@ -2525,10 +2531,4 @@ redraw(void)
 {
 	tfulldirt();
 	draw();
-}
-
-void
-numlock(const Arg *dummy)
-{
-	term.numlock ^= 1;
 }
