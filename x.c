@@ -149,8 +149,8 @@ static void xunloadfont(Font *);
 static void xunloadfonts(void);
 static void xsetenv(void);
 static void xseturgency(int);
-static int x2col(int);
-static int y2row(int);
+static int evcol(XEvent *);
+static int evrow(XEvent *);
 
 static void expose(XEvent *);
 static void visibility(XEvent *);
@@ -308,17 +308,17 @@ zoomreset(const Arg *arg)
 }
 
 int
-x2col(int x)
+evcol(XEvent *e)
 {
-	x -= borderpx;
+	int x = e->xbutton.x - borderpx;
 	LIMIT(x, 0, win.tw - 1);
 	return x / win.cw;
 }
 
 int
-y2row(int y)
+evrow(XEvent *e)
 {
-	y -= borderpx;
+	int y = e->xbutton.y - borderpx;
 	LIMIT(y, 0, win.th - 1);
 	return y / win.ch;
 }
@@ -335,7 +335,7 @@ mousesel(XEvent *e, int done)
 			break;
 		}
 	}
-	selextend(x2col(e->xbutton.x), y2row(e->xbutton.y), seltype, done);
+	selextend(evcol(e), evrow(e), seltype, done);
 	if (done)
 		setsel(getsel(), e->xbutton.time);
 }
@@ -343,9 +343,8 @@ mousesel(XEvent *e, int done)
 void
 mousereport(XEvent *e)
 {
-	int x = x2col(e->xbutton.x), y = y2row(e->xbutton.y),
-	    button = e->xbutton.button, state = e->xbutton.state,
-	    len;
+	int len, x = evcol(e), y = evrow(e),
+	    button = e->xbutton.button, state = e->xbutton.state;
 	char buf[40];
 	static int ox, oy;
 
@@ -440,7 +439,7 @@ bpress(XEvent *e)
 		xsel.tclick2 = xsel.tclick1;
 		xsel.tclick1 = now;
 
-		selstart(x2col(e->xbutton.x), y2row(e->xbutton.y), snap);
+		selstart(evcol(e), evrow(e), snap);
 	}
 }
 
@@ -464,18 +463,16 @@ selnotify(XEvent *e)
 	ulong nitems, ofs, rem;
 	int format;
 	uchar *data, *last, *repl;
-	Atom type, incratom, property;
+	Atom type, incratom, property = None;
 
 	incratom = XInternAtom(xw.dpy, "INCR", 0);
 
 	ofs = 0;
-	if (e->type == SelectionNotify) {
+	if (e->type == SelectionNotify)
 		property = e->xselection.property;
-	} else if(e->type == PropertyNotify) {
+	else if (e->type == PropertyNotify)
 		property = e->xproperty.atom;
-	} else {
-		return;
-	}
+
 	if (property == None)
 		return;
 
@@ -625,7 +622,7 @@ setsel(char *str, Time t)
 
 	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, t);
 	if (XGetSelectionOwner(xw.dpy, XA_PRIMARY) != xw.win)
-		selclear_(NULL);
+		selclear();
 }
 
 void
@@ -1407,12 +1404,13 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 		og.mode ^= ATTR_REVERSE;
 	xdrawglyph(og, ox, oy);
 
+	if (IS_SET(MODE_HIDE))
+		return;
+
 	/*
 	 * Select the right color for the right mode.
 	 */
 	g.mode &= ATTR_BOLD|ATTR_ITALIC|ATTR_UNDERLINE|ATTR_STRUCK|ATTR_WIDE;
-	g.fg = defaultbg;
-	g.bg = defaultcs;
 
 	if (IS_SET(MODE_REVERSE)) {
 		g.mode |= ATTR_REVERSE;
@@ -1426,16 +1424,14 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 		}
 	} else {
 		if (selected(cx, cy)) {
-			drawcol = dc.col[defaultrcs];
 			g.fg = defaultfg;
 			g.bg = defaultrcs;
 		} else {
-			drawcol = dc.col[defaultcs];
+			g.fg = defaultbg;
+			g.bg = defaultcs;
 		}
+		drawcol = dc.col[g.bg];
 	}
-
-	if (IS_SET(MODE_HIDE))
-		return;
 
 	/* draw the new one */
 	if (IS_SET(MODE_FOCUSED)) {
