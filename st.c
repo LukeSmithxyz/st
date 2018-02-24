@@ -95,6 +95,26 @@ enum escape_state {
 	ESC_DCS        =128,
 };
 
+/* Internal representation of the screen */
+typedef struct {
+	int row;      /* nb row */
+	int col;      /* nb col */
+	Line *line;   /* screen */
+	Line *alt;    /* alternate screen */
+	int *dirty;   /* dirtyness of lines */
+	TCursor c;    /* cursor */
+	int ocx;      /* old cursor col */
+	int ocy;      /* old cursor row */
+	int top;      /* top    scroll limit */
+	int bot;      /* bottom scroll limit */
+	int mode;     /* terminal mode flags */
+	int esc;      /* escape state flags */
+	char trantbl[4]; /* charset table translation */
+	int charset;  /* current charset */
+	int icharset; /* selected charset for sequence */
+	int *tabs;
+} Term;
+
 /* CSI Escape sequence structs */
 /* ESC '[' [[ [<priv>] <arg> [;]] <mode> [<mode>]] */
 typedef struct {
@@ -181,11 +201,11 @@ static char *base64dec(const char *);
 static ssize_t xwrite(int, const char *, size_t);
 
 /* Globals */
-Term term;
 int cmdfd;
 pid_t pid;
 int oldbutton   = 3; /* button event on startup: 3 = release */
 
+static Term term;
 static Selection sel;
 static CSIEscape csiescseq;
 static STREscape strescseq;

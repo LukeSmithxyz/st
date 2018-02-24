@@ -130,7 +130,7 @@ static void xdrawglyphfontspecs(const XftGlyphFontSpec *, Glyph, int, int, int);
 static void xdrawglyph(Glyph, int, int);
 static void xclear(int, int, int, int);
 static int xgeommasktogravity(int);
-static void xinit(void);
+static void xinit(int, int);
 static void cresize(int, int);
 static void xresize(int, int);
 static int xloadfont(Font *, FcPattern *);
@@ -299,18 +299,16 @@ int
 x2col(int x)
 {
 	x -= borderpx;
-	x /= win.cw;
-
-	return LIMIT(x, 0, term.col-1);
+	LIMIT(x, 0, win.tw - 1);
+	return x / win.cw;
 }
 
 int
 y2row(int y)
 {
 	y -= borderpx;
-	y /= win.ch;
-
-	return LIMIT(y, 0, term.row-1);
+	LIMIT(y, 0, win.th - 1);
+	return y / win.ch;
 }
 
 void
@@ -984,7 +982,7 @@ xunloadfonts(void)
 }
 
 void
-xinit(void)
+xinit(int cols, int rows)
 {
 	XGCValues gcvalues;
 	Cursor cursor;
@@ -1009,8 +1007,8 @@ xinit(void)
 	xloadcols();
 
 	/* adjust fixed window geometry */
-	win.w = 2 * borderpx + term.col * win.cw;
-	win.h = 2 * borderpx + term.row * win.ch;
+	win.w = 2 * borderpx + cols * win.cw;
+	win.h = 2 * borderpx + rows * win.ch;
 	if (xw.gm & XNegative)
 		xw.l += DisplayWidth(xw.dpy, xw.scr) - win.w - 2;
 	if (xw.gm & YNegative)
@@ -1042,7 +1040,7 @@ xinit(void)
 	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
 
 	/* font spec buffer */
-	xw.specbuf = xmalloc(term.col * sizeof(GlyphFontSpec));
+	xw.specbuf = xmalloc(cols * sizeof(GlyphFontSpec));
 
 	/* Xft rendering context */
 	xw.draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
@@ -1337,15 +1335,16 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 	/* Intelligent cleaning up of the borders. */
 	if (x == 0) {
 		xclear(0, (y == 0)? 0 : winy, borderpx,
-			winy + win.ch + ((y >= term.row-1)? win.h : 0));
+			winy + win.ch +
+			((winy + win.ch >= borderpx + win.th)? win.h : 0));
 	}
-	if (x + charlen >= term.col) {
+	if (winx + width >= borderpx + win.tw) {
 		xclear(winx + width, (y == 0)? 0 : winy, win.w,
-			((y >= term.row-1)? win.h : (winy + win.ch)));
+			((winy + win.ch >= borderpx + win.th)? win.h : (winy + win.ch)));
 	}
 	if (y == 0)
 		xclear(winx, 0, winx + width, borderpx);
-	if (y == term.row-1)
+	if (winy + win.ch >= borderpx + win.th)
 		xclear(winx, winy + win.ch, winx + width, win.h);
 
 	/* Clean up the region we want to draw to. */
@@ -1930,8 +1929,10 @@ run:
 	}
 	setlocale(LC_CTYPE, "");
 	XSetLocaleModifiers("");
-	tnew(MAX(cols, 1), MAX(rows, 1));
-	xinit();
+	cols = MAX(cols, 1);
+	rows = MAX(rows, 1);
+	tnew(cols, rows);
+	xinit(cols, rows);
 	xsetenv();
 	selinit();
 	run();
