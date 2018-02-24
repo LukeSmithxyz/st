@@ -1,15 +1,14 @@
 /* See LICENSE for license details. */
 #include <errno.h>
+#include <limits.h>
 #include <locale.h>
 #include <signal.h>
-#include <stdint.h>
 #include <sys/select.h>
 #include <time.h>
 #include <unistd.h>
 #include <libgen.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
-#include <X11/Xutil.h>
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <X11/Xft/Xft.h>

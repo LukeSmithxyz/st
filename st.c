@@ -3,24 +3,17 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <locale.h>
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
-#include <stdint.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <termios.h>
-#include <time.h>
 #include <unistd.h>
-#include <libgen.h>
 #include <wchar.h>
 
 #include "st.h"
