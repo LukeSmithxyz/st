@@ -1,8 +1,5 @@
 /* See LICENSE for license details. */
 
-/* Arbitrary sizes */
-#define UTF_SIZ       4
-
 /* macros */
 #define MIN(a, b)		((a) < (b) ? (a) : (b))
 #define MAX(a, b)		((a) < (b) ? (b) : (a))
@@ -69,41 +66,6 @@ typedef struct {
 
 typedef Glyph *Line;
 
-typedef struct {
-	Glyph attr; /* current char attributes */
-	int x;
-	int y;
-	char state;
-} TCursor;
-
-/* Purely graphic info */
-typedef struct {
-	int tw, th; /* tty width and height */
-	int w, h; /* window width and height */
-	int ch; /* char height */
-	int cw; /* char width  */
-	int mode; /* window state/mode flags */
-	int cursor; /* cursor style */
-} TermWindow;
-
-typedef struct {
-	int mode;
-	int type;
-	int snap;
-	/*
-	 * Selection variables:
-	 * nb – normalized coordinates of the beginning of the selection
-	 * ne – normalized coordinates of the end of the selection
-	 * ob – original coordinates of the beginning of the selection
-	 * oe – original coordinates of the end of the selection
-	 */
-	struct {
-		int x, y;
-	} nb, ne, ob, oe;
-
-	int alt;
-} Selection;
-
 typedef union {
 	int i;
 	uint ui;
@@ -137,11 +99,9 @@ void selclear(void);
 void selinit(void);
 void selstart(int, int, int);
 void selextend(int, int, int, int);
-void selnormalize(void);
 int selected(int, int);
 char *getsel(void);
 
-size_t utf8decode(const char *, Rune *, size_t);
 size_t utf8encode(Rune, char *);
 
 void *xmalloc(size_t);

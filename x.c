@@ -76,6 +76,15 @@ typedef XftGlyphFontSpec GlyphFontSpec;
 
 /* Purely graphic info */
 typedef struct {
+	int tw, th; /* tty width and height */
+	int w, h; /* window width and height */
+	int ch; /* char height */
+	int cw; /* char width  */
+	int mode; /* window state/mode flags */
+	int cursor; /* cursor style */
+} TermWindow;
+
+typedef struct {
 	Display *dpy;
 	Colormap cmap;
 	Window win;
@@ -133,6 +142,8 @@ static int xgeommasktogravity(int);
 static void xinit(int, int);
 static void cresize(int, int);
 static void xresize(int, int);
+static void xhints(void);
+static int xloadcolor(int, const char *, Color *);
 static int xloadfont(Font *, FcPattern *);
 static void xloadfonts(char *, double);
 static void xunloadfont(Font *);
@@ -1430,8 +1441,8 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 	/* draw the new one */
 	if (IS_SET(MODE_FOCUSED)) {
 		switch (win.cursor) {
-		case 7: /* st extension: snowman */
-			utf8decode("☃", &g.u, UTF_SIZ);
+		case 7: /* st extension: snowman (U+2603) */
+			g.u = 0x2603;
 		case 0: /* Blinking Block */
 		case 1: /* Blinking Block (Default) */
 		case 2: /* Steady Block */

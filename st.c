@@ -36,6 +36,7 @@
 
 /* Arbitrary sizes */
 #define UTF_INVALID   0xFFFD
+#define UTF_SIZ       4
 #define ESC_BUF_SIZ   (128*UTF_SIZ)
 #define ESC_ARG_SIZ   16
 #define STR_BUF_SIZ   ESC_BUF_SIZ
@@ -94,6 +95,31 @@ enum escape_state {
 	ESC_UTF8       = 64,
 	ESC_DCS        =128,
 };
+
+typedef struct {
+	Glyph attr; /* current char attributes */
+	int x;
+	int y;
+	char state;
+} TCursor;
+
+typedef struct {
+	int mode;
+	int type;
+	int snap;
+	/*
+	 * Selection variables:
+	 * nb – normalized coordinates of the beginning of the selection
+	 * ne – normalized coordinates of the end of the selection
+	 * ob – original coordinates of the beginning of the selection
+	 * oe – original coordinates of the end of the selection
+	 */
+	struct {
+		int x, y;
+	} nb, ne, ob, oe;
+
+	int alt;
+} Selection;
 
 /* Internal representation of the screen */
 typedef struct {
@@ -187,15 +213,18 @@ static void tstrsequence(uchar);
 
 static void drawregion(int, int, int, int);
 
+static void selnormalize(void);
 static void selscroll(int, int);
 static void selsnap(int *, int *, int);
 
+static size_t utf8decode(const char *, Rune *, size_t);
 static Rune utf8decodebyte(char, size_t *);
 static char utf8encodebyte(Rune, size_t);
-static char *utf8strchr(char *s, Rune u);
+static char *utf8strchr(char *, Rune);
 static size_t utf8validate(Rune *, size_t);
 
 static char *base64dec(const char *);
+static char base64dec_getc(const char **);
 
 static ssize_t xwrite(int, const char *, size_t);
 
