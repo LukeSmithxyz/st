@@ -136,8 +136,7 @@ typedef struct {
 	int narg;              /* nb of args */
 } STREscape;
 
-
-static void execsh(char **);
+static void execsh(char *, char **);
 static void stty(char **);
 static void sigchld(int);
 static void ttywriteraw(const char *, size_t);
@@ -201,15 +200,13 @@ static char *base64dec(const char *);
 static ssize_t xwrite(int, const char *, size_t);
 
 /* Globals */
-int cmdfd;
-pid_t pid;
-int oldbutton   = 3; /* button event on startup: 3 = release */
-
 static Term term;
 static Selection sel;
 static CSIEscape csiescseq;
 static STREscape strescseq;
 static int iofd = 1;
+static int cmdfd;
+static pid_t pid;
 
 static uchar utfbyte[UTF_SIZ + 1] = {0x80,    0, 0xC0, 0xE0, 0xF0};
 static uchar utfmask[UTF_SIZ + 1] = {0xC0, 0x80, 0xE0, 0xF0, 0xF8};
@@ -659,7 +656,7 @@ die(const char *errstr, ...)
 }
 
 void
-execsh(char **args)
+execsh(char *cmd, char **args)
 {
 	char *sh, *prog;
 	const struct passwd *pw;
@@ -673,7 +670,7 @@ execsh(char **args)
 	}
 
 	if ((sh = getenv("SHELL")) == NULL)
-		sh = (pw->pw_shell[0]) ? pw->pw_shell : shell;
+		sh = (pw->pw_shell[0]) ? pw->pw_shell : cmd;
 
 	if (args)
 		prog = args[0];
@@ -745,8 +742,8 @@ stty(char **args)
 	    perror("Couldn't call stty");
 }
 
-void
-ttynew(char *line, char *out, char **args)
+int
+ttynew(char *line, char *cmd, char *out, char **args)
 {
 	int m, s;
 
@@ -765,7 +762,7 @@ ttynew(char *line, char *out, char **args)
 			die("open line failed: %s\n", strerror(errno));
 		dup2(cmdfd, 0);
 		stty(args);
-		return;
+		return cmdfd;
 	}
 
 	/* seems to work fine on linux, openbsd and freebsd */
@@ -786,7 +783,7 @@ ttynew(char *line, char *out, char **args)
 			die("ioctl TIOCSCTTY failed: %s\n", strerror(errno));
 		close(s);
 		close(m);
-		execsh(args);
+		execsh(cmd, args);
 		break;
 	default:
 		close(s);
@@ -794,6 +791,7 @@ ttynew(char *line, char *out, char **args)
 		signal(SIGCHLD, sigchld);
 		break;
 	}
+	return cmdfd;
 }
 
 size_t
@@ -914,6 +912,13 @@ ttyresize(int tw, int th)
 	w.ws_ypixel = th;
 	if (ioctl(cmdfd, TIOCSWINSZ, &w) < 0)
 		fprintf(stderr, "Couldn't set window size: %s\n", strerror(errno));
+}
+
+void
+ttyhangup()
+{
+	/* Send SIGHUP to shell */
+	kill(pid, SIGHUP);
 }
 
 int

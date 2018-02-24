@@ -227,6 +227,8 @@ static char *opt_line  = NULL;
 static char *opt_name  = NULL;
 static char *opt_title = NULL;
 
+static int oldbutton = 3; /* button event on startup: 3 = release */
+
 void
 clipcopy(const Arg *dummy)
 {
@@ -1733,8 +1735,7 @@ cmessage(XEvent *e)
 			win.mode &= ~MODE_FOCUSED;
 		}
 	} else if (e->xclient.data.l[0] == xw.wmdeletewin) {
-		/* Send SIGHUP to shell */
-		kill(pid, SIGHUP);
+		ttyhangup();
 		exit(0);
 	}
 }
@@ -1755,6 +1756,7 @@ run(void)
 	int w = win.w, h = win.h;
 	fd_set rfd;
 	int xfd = XConnectionNumber(xw.dpy), xev, blinkset = 0, dodraw = 0;
+	int ttyfd;
 	struct timespec drawtimeout, *tv = NULL, now, last, lastblink;
 	long deltatime;
 
@@ -1774,7 +1776,7 @@ run(void)
 		}
 	} while (ev.type != MapNotify);
 
-	ttynew(opt_line, opt_io, opt_cmd);
+	ttyfd = ttynew(opt_line, shell, opt_io, opt_cmd);
 	cresize(w, h);
 
 	clock_gettime(CLOCK_MONOTONIC, &last);
@@ -1782,15 +1784,15 @@ run(void)
 
 	for (xev = actionfps;;) {
 		FD_ZERO(&rfd);
-		FD_SET(cmdfd, &rfd);
+		FD_SET(ttyfd, &rfd);
 		FD_SET(xfd, &rfd);
 
-		if (pselect(MAX(xfd, cmdfd)+1, &rfd, NULL, NULL, tv, NULL) < 0) {
+		if (pselect(MAX(xfd, ttyfd)+1, &rfd, NULL, NULL, tv, NULL) < 0) {
 			if (errno == EINTR)
 				continue;
 			die("select failed: %s\n", strerror(errno));
 		}
-		if (FD_ISSET(cmdfd, &rfd)) {
+		if (FD_ISSET(ttyfd, &rfd)) {
 			ttyread();
 			if (blinktimeout) {
 				blinkset = tattrset(ATTR_BLINK);
@@ -1834,7 +1836,7 @@ run(void)
 
 			if (xev && !FD_ISSET(xfd, &rfd))
 				xev--;
-			if (!FD_ISSET(cmdfd, &rfd) && !FD_ISSET(xfd, &rfd)) {
+			if (!FD_ISSET(ttyfd, &rfd) && !FD_ISSET(xfd, &rfd)) {
 				if (blinkset) {
 					if (TIMEDIFF(now, lastblink) \
 							> blinktimeout) {

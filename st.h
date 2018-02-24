@@ -125,7 +125,8 @@ int tattrset(int);
 void tnew(int, int);
 void tresize(int, int);
 void tsetdirtattr(int);
-void ttynew(char *, char *, char **);
+void ttyhangup(void);
+int ttynew(char *, char *, char *, char **);
 size_t ttyread(void);
 void ttyresize(int, int);
 void ttywrite(const char *, size_t, int);
@@ -147,13 +148,7 @@ void *xmalloc(size_t);
 void *xrealloc(void *, size_t);
 char *xstrdup(char *);
 
-/* Globals */
-extern int cmdfd;
-extern pid_t pid;
-extern int oldbutton;
-
 /* config.h globals */
-extern char *shell;
 extern char *utmp;
 extern char *stty_args;
 extern char *vtiden;
