@@ -1387,41 +1387,26 @@ xdrawglyph(Glyph g, int x, int y)
 }
 
 void
-xdrawcursor(void)
+xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 {
-	static int oldx = 0, oldy = 0;
-	int curx;
-	Glyph g = {' ', ATTR_NULL, defaultbg, defaultcs}, og;
 	Color drawcol;
 
-	LIMIT(oldx, 0, term.col-1);
-	LIMIT(oldy, 0, term.row-1);
-
-	curx = term.c.x;
-
-	/* adjust position if in dummy */
-	if (term.line[oldy][oldx].mode & ATTR_WDUMMY)
-		oldx--;
-	if (term.line[term.c.y][curx].mode & ATTR_WDUMMY)
-		curx--;
-
 	/* remove the old cursor */
-	og = term.line[oldy][oldx];
-	if (selected(oldx, oldy))
+	if (selected(ox, oy))
 		og.mode ^= ATTR_REVERSE;
-	xdrawglyph(og, oldx, oldy);
-
-	g.u = term.line[term.c.y][term.c.x].u;
-	g.mode |= term.line[term.c.y][term.c.x].mode &
-	          (ATTR_BOLD | ATTR_ITALIC | ATTR_UNDERLINE | ATTR_STRUCK);
+	xdrawglyph(og, ox, oy);
 
 	/*
 	 * Select the right color for the right mode.
 	 */
+	g.mode &= ATTR_BOLD|ATTR_ITALIC|ATTR_UNDERLINE|ATTR_STRUCK|ATTR_WIDE;
+	g.fg = defaultbg;
+	g.bg = defaultcs;
+
 	if (IS_SET(MODE_REVERSE)) {
 		g.mode |= ATTR_REVERSE;
 		g.bg = defaultfg;
-		if (selected(term.c.x, term.c.y)) {
+		if (selected(cx, cy)) {
 			drawcol = dc.col[defaultcs];
 			g.fg = defaultrcs;
 		} else {
@@ -1429,7 +1414,7 @@ xdrawcursor(void)
 			g.fg = defaultcs;
 		}
 	} else {
-		if (selected(term.c.x, term.c.y)) {
+		if (selected(cx, cy)) {
 			drawcol = dc.col[defaultrcs];
 			g.fg = defaultfg;
 			g.bg = defaultrcs;
@@ -1449,44 +1434,42 @@ xdrawcursor(void)
 		case 0: /* Blinking Block */
 		case 1: /* Blinking Block (Default) */
 		case 2: /* Steady Block */
-			g.mode |= term.line[term.c.y][curx].mode & ATTR_WIDE;
-			xdrawglyph(g, term.c.x, term.c.y);
+			xdrawglyph(g, cx, cy);
 			break;
 		case 3: /* Blinking Underline */
 		case 4: /* Steady Underline */
 			XftDrawRect(xw.draw, &drawcol,
-					borderpx + curx * win.cw,
-					borderpx + (term.c.y + 1) * win.ch - \
+					borderpx + cx * win.cw,
+					borderpx + (cy + 1) * win.ch - \
 						cursorthickness,
 					win.cw, cursorthickness);
 			break;
 		case 5: /* Blinking bar */
 		case 6: /* Steady bar */
 			XftDrawRect(xw.draw, &drawcol,
-					borderpx + curx * win.cw,
-					borderpx + term.c.y * win.ch,
+					borderpx + cx * win.cw,
+					borderpx + cy * win.ch,
 					cursorthickness, win.ch);
 			break;
 		}
 	} else {
 		XftDrawRect(xw.draw, &drawcol,
-				borderpx + curx * win.cw,
-				borderpx + term.c.y * win.ch,
+				borderpx + cx * win.cw,
+				borderpx + cy * win.ch,
 				win.cw - 1, 1);
 		XftDrawRect(xw.draw, &drawcol,
-				borderpx + curx * win.cw,
-				borderpx + term.c.y * win.ch,
+				borderpx + cx * win.cw,
+				borderpx + cy * win.ch,
 				1, win.ch - 1);
 		XftDrawRect(xw.draw, &drawcol,
-				borderpx + (curx + 1) * win.cw - 1,
-				borderpx + term.c.y * win.ch,
+				borderpx + (cx + 1) * win.cw - 1,
+				borderpx + cy * win.ch,
 				1, win.ch - 1);
 		XftDrawRect(xw.draw, &drawcol,
-				borderpx + curx * win.cw,
-				borderpx + (term.c.y + 1) * win.ch - 1,
+				borderpx + cx * win.cw,
+				borderpx + (cy + 1) * win.ch - 1,
 				win.cw, 1);
 	}
-	oldx = curx, oldy = term.c.y;
 }
 
 void

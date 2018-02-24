@@ -2544,10 +2544,23 @@ drawregion(int x1, int y1, int x2, int y2)
 void
 draw(void)
 {
+	int cx = term.c.x;
+
 	if (!xstartdraw())
 		return;
+
+	/* adjust cursor position */
+	LIMIT(term.ocx, 0, term.col-1);
+	LIMIT(term.ocy, 0, term.row-1);
+	if (term.line[term.ocy][term.ocx].mode & ATTR_WDUMMY)
+		term.ocx--;
+	if (term.line[term.c.y][cx].mode & ATTR_WDUMMY)
+		cx--;
+
 	drawregion(0, 0, term.col, term.row);
-	xdrawcursor();
+	xdrawcursor(cx, term.c.y, term.line[term.c.y][cx],
+			term.ocx, term.ocy, term.line[term.ocy][term.ocx]);
+	term.ocx = cx, term.ocy = term.c.y;
 	xfinishdraw();
 }
 
