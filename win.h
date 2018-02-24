@@ -23,12 +23,12 @@ enum win_mode {
 	                  |MODE_MOUSEMANY,
 };
 
-void draw(void);
-void drawregion(int, int, int, int);
-
 void xbell(void);
 void xclipcopy(void);
+void xdrawcursor(void);
+void xdrawline(Line, int, int, int);
 void xhints(void);
+void xfinishdraw(void);
 void xloadcols(void);
 int xsetcolorname(int, const char *);
 void xsettitle(char *);
@@ -36,3 +36,4 @@ int xsetcursor(int);
 void xsetmode(int, unsigned int);
 void xsetpointermotion(int);
 void xsetsel(char *);
+int xstartdraw(void);

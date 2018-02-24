@@ -166,6 +166,8 @@ static int32_t tdefcolor(int *, int *, int);
 static void tdeftran(char);
 static void tstrsequence(uchar);
 
+static void drawregion(int, int, int, int);
+
 static void selscroll(int, int);
 static void selsnap(int *, int *, int);
 
@@ -2524,6 +2526,29 @@ void
 resettitle(void)
 {
 	xsettitle(NULL);
+}
+
+void
+drawregion(int x1, int y1, int x2, int y2)
+{
+	int y;
+	for (y = y1; y < y2; y++) {
+		if (!term.dirty[y])
+			continue;
+
+		term.dirty[y] = 0;
+		xdrawline(term.line[y], x1, y, x2);
+	}
+}
+
+void
+draw(void)
+{
+	if (!xstartdraw())
+		return;
+	drawregion(0, 0, term.col, term.row);
+	xdrawcursor();
+	xfinishdraw();
 }
 
 void

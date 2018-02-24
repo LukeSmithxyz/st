@@ -129,7 +129,6 @@ static int xmakeglyphfontspecs(XftGlyphFontSpec *, const Glyph *, int, int, int)
 static void xdrawglyphfontspecs(const XftGlyphFontSpec *, Glyph, int, int, int);
 static void xdrawglyph(Glyph, int, int);
 static void xclear(int, int, int, int);
-static void xdrawcursor(void);
 static int xgeommasktogravity(int);
 static void xinit(void);
 static void cresize(int, int);
@@ -1512,59 +1511,51 @@ xsettitle(char *p)
 	XFree(prop.value);
 }
 
-void
-draw(void)
+int
+xstartdraw(void)
 {
-	drawregion(0, 0, term.col, term.row);
+	return IS_SET(MODE_VISIBLE);
+}
+
+void
+xdrawline(Line line, int x1, int y1, int x2)
+{
+	int i, x, ox, numspecs;
+	Glyph base, new;
+	XftGlyphFontSpec *specs = xw.specbuf;
+
+	numspecs = xmakeglyphfontspecs(specs, &line[x1], x2 - x1, x1, y1);
+	i = ox = 0;
+	for (x = x1; x < x2 && i < numspecs; x++) {
+		new = line[x];
+		if (new.mode == ATTR_WDUMMY)
+			continue;
+		if (selected(x, y1))
+			new.mode ^= ATTR_REVERSE;
+		if (i > 0 && ATTRCMP(base, new)) {
+			xdrawglyphfontspecs(specs, base, i, ox, y1);
+			specs += i;
+			numspecs -= i;
+			i = 0;
+		}
+		if (i == 0) {
+			ox = x;
+			base = new;
+		}
+		i++;
+	}
+	if (i > 0)
+		xdrawglyphfontspecs(specs, base, i, ox, y1);
+}
+
+void
+xfinishdraw(void)
+{
 	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, win.w,
 			win.h, 0, 0);
 	XSetForeground(xw.dpy, dc.gc,
 			dc.col[IS_SET(MODE_REVERSE)?
 				defaultfg : defaultbg].pixel);
-}
-
-void
-drawregion(int x1, int y1, int x2, int y2)
-{
-	int i, x, y, ox, numspecs;
-	Glyph base, new;
-	XftGlyphFontSpec *specs;
-
-	if (!(IS_SET(MODE_VISIBLE)))
-		return;
-
-	for (y = y1; y < y2; y++) {
-		if (!term.dirty[y])
-			continue;
-
-		term.dirty[y] = 0;
-
-		specs = xw.specbuf;
-		numspecs = xmakeglyphfontspecs(specs, &term.line[y][x1], x2 - x1, x1, y);
-
-		i = ox = 0;
-		for (x = x1; x < x2 && i < numspecs; x++) {
-			new = term.line[y][x];
-			if (new.mode == ATTR_WDUMMY)
-				continue;
-			if (selected(x, y))
-				new.mode ^= ATTR_REVERSE;
-			if (i > 0 && ATTRCMP(base, new)) {
-				xdrawglyphfontspecs(specs, base, i, ox, y);
-				specs += i;
-				numspecs -= i;
-				i = 0;
-			}
-			if (i == 0) {
-				ox = x;
-				base = new;
-			}
-			i++;
-		}
-		if (i > 0)
-			xdrawglyphfontspecs(specs, base, i, ox, y);
-	}
-	xdrawcursor();
 }
 
 void
