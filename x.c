@@ -1,5 +1,6 @@
 /* See LICENSE for license details. */
 #include <errno.h>
+#include <math.h>
 #include <limits.h>
 #include <locale.h>
 #include <signal.h>
@@ -901,7 +902,6 @@ xloadfonts(char *fontstr, double fontsize)
 {
 	FcPattern *pattern;
 	double fontval;
-	float ceilf(float);
 
 	if (fontstr[0] == '-') {
 		pattern = XftXlfdParse(fontstr, False, False);
