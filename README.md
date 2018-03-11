@@ -2,6 +2,7 @@
 
 Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simplicity's sake, which is the [suckless terminal (st)](https://st.suckless.org/) with some patches added:
 
++ transparency
 + copy to clipboard
 + solarized colors (light and dark toggleable)
 + vertcenter
@@ -32,18 +33,9 @@ make
 sudo make install
 ```
 
-### Transparency
+### Solarized mode
 
-If you want transparency, run the following. (You will also need to have a composite manager, such as compton or xcompmgr running for the transparency to appear.)
-
-```
-make clean
-patch < patches/transparency.diff
-make
-sudo make install
-```
-
-And to remove transparency, just unapply the diff patch and reinstall.
+The terminal is now transparent by default, if you want non-transparent solarized colors, run the following:
 
 ```
 make clean

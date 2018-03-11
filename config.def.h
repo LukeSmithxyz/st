@@ -82,6 +82,9 @@ static char termname[] = "st-256color";
  */
 static unsigned int tabspaces = 8;
 
+/* bg opacity */
+static const int alpha = 0xaa;
+
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
 	/* solarized dark */
@@ -101,6 +104,7 @@ static const char *colorname[] = {
 	"#6c71c4",  /* 13: brmagenta*/
 	"#93a1a1",  /* 14: brcyan   */
 	"#fdf6e3",  /* 15: brwhite  */
+	"black",
 };
 
 /* Terminal colors for alternate (light) palette */
@@ -122,6 +126,7 @@ static const char *altcolorname[] = {
 	"#6c71c4",  /* 13: brmagenta*/
 	"#586e75",  /* 14: brcyan   */
 	"#002b36",  /* 15: brwhite  */
+	"black",
 };
 
 /*
@@ -129,7 +134,7 @@ static const char *altcolorname[] = {
  * foreground, background, cursor, reverse cursor
  */
 static unsigned int defaultfg = 12;
-static unsigned int defaultbg = 8;
+static unsigned int defaultbg = 257;
 static unsigned int defaultcs = 14;
 static unsigned int defaultrcs = 15;
 
