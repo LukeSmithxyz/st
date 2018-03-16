@@ -740,7 +740,6 @@ sigchld(int a)
 	exit(0);
 }
 
-
 void
 stty(char **args)
 {
@@ -762,7 +761,7 @@ stty(char **args)
 	}
 	*q = '\0';
 	if (system(cmd) != 0)
-	    perror("Couldn't call stty");
+		perror("Couldn't call stty");
 }
 
 int
