@@ -1929,12 +1929,12 @@ main(int argc, char *argv[])
 	} ARGEND;
 
 run:
-	if (argc > 0) {
-		/* eat all remaining arguments */
+	if (argc > 0) /* eat all remaining arguments */
 		opt_cmd = argv;
-		if (!opt_title && !opt_line)
-			opt_title = basename(xstrdup(argv[0]));
-	}
+
+	if (!opt_title)
+		opt_title = (opt_line || !opt_cmd) ? "st" : opt_cmd[0];
+
 	setlocale(LC_CTYPE, "");
 	XSetLocaleModifiers("");
 	cols = MAX(cols, 1);
