@@ -245,8 +245,8 @@ clipcopy(const Arg *dummy)
 {
 	Atom clipboard;
 
-	if (xsel.clipboard != NULL)
-		free(xsel.clipboard);
+	free(xsel.clipboard);
+	xsel.clipboard = NULL;
 
 	if (xsel.primary != NULL) {
 		xsel.clipboard = xstrdup(xsel.primary);
