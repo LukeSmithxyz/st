@@ -461,7 +461,7 @@ selextend(int col, int row, int type, int done)
 {
 	int oldey, oldex, oldsby, oldsey, oldtype;
 
-	if (!sel.mode)
+	if (sel.mode == SEL_IDLE)
 		return;
 	if (done && sel.mode == SEL_EMPTY) {
 		selclear();
