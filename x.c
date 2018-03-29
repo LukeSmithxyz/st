@@ -1925,7 +1925,7 @@ main(int argc, char *argv[])
 		opt_embed = EARGF(usage());
 		break;
 	case 'v':
-		die("%s " VERSION " (c) 2010-2016 st engineers\n", argv0);
+		die("%s " VERSION "\n", argv0);
 		break;
 	default:
 		usage();
