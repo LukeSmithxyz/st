@@ -31,7 +31,7 @@ makepkg -si
 + Forked from [https://github.com/LukeSmithxyz/st](https://github.com/LukeSmithxyz/st)
 * When modifying [config.h](https://github.com/alrayyes/st/blob/master/config.h) be sure to run ```updpkgsums``` to update checksums before running ```makepkg -si```
 
-# License
+## License
 
 This theme is released under the MIT License. For more information read the [license][license].
 
