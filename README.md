@@ -7,7 +7,6 @@
 + [solarized](https://st.suckless.org/patches/solarized/)
 + [vertcenter](https://st.suckless.org/patches/vertcenter/)
 + [scrollback](https://st.suckless.org/patches/scrollback/)
-+ [hidecursor](https://st.suckless.org/patches/hidecursor/])
 
 ## Terminal-specific mappings
 
