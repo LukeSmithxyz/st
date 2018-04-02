@@ -1,47 +1,31 @@
-# Luke's build of st - the simple (suckless) terminal
+# My Suckless Terminal Build
 
-Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simplicity's sake, which is the [suckless terminal (st)](https://st.suckless.org/) with some patches added:
+[Suckless Terminal](https://st.suckless.org) [Arch](https://www.archlinux.org/) package with a few patches installed to keep things nice:
 
-+ transparency
-+ copy to clipboard
-+ solarized colors (light and dark toggleable)
-+ vertcenter
-+ scrollback with keyboard
-+ scrollback with mouse
-
-## My own additions
-
-+ Default font is system "mono" at 14pt
-+ Fixed transparency patch (see below for installation)
-+ Toggle light/dark mode now Alt-Tab instead of the frequently conflicting F6
-+ Alt-k and Alt-j scroll back/foward in history one line at a time
-+ Alt-u and Alt-d scroll back/foward in history a page at a time
++ [alpha](https://st.suckless.org/patches/alpha/)
++ [clipboard](https://st.suckless.org/patches/clipboard/)
++ [solarized](https://st.suckless.org/patches/solarized/)
++ [vertcenter](https://st.suckless.org/patches/vertcenter/)
++ [scrollback](https://st.suckless.org/patches/scrollback/)
++ [hidecursor](https://st.suckless.org/patches/hidecursor/])
 
 ## Terminal-specific mappings
 
-(Additions before me.)
-
 + Scroll through history -- Shift+PageUp/PageDown or Shift+Mouse wheel
++ Alt-k and Alt-j scroll back/foward in history one line at a time
++ Alt-u and Alt-d scroll back/foward in history a page at a time
 + Increase/decrease font size -- Shift+Alt+PageUp/PageDown
-+ Return to default font size -- Shift+Alt+Home
++ Return to default font size -- Shift+Alt+Home]
 + Paste -- Shift+Insert
 
-## Installation for newbs
+## Installation
 
 ```
-make
-sudo make install
+makepg -si
 ```
 
-### Solarized mode
+## Further Notes
 
-The terminal is now transparent by default, if you want non-transparent solarized colors, run the following:
-
-```
-make clean
-patch -R < patches/transparency.diff
-make
-sudo make install
-```
-
-You can change the transparency value by changing the `alpha` variable in the `config.h` file.
++ You can change the transparency value by changing the `alpha` variable in the `config.h` file.
++ Default font is system "mono" at 14pt
++ Forked from [https://github.com/LukeSmithxyz/st](https://github.com/LukeSmithxyz/st)
