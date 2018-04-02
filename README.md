@@ -29,3 +29,9 @@ makepg -si
 + You can change the transparency value by changing the `alpha` variable in the `config.h` file.
 + Default font is system "mono" at 14pt
 + Forked from [https://github.com/LukeSmithxyz/st](https://github.com/LukeSmithxyz/st)
+
+# License
+​
+This theme is released under the MIT License. For more information read the [license][license].
+​
+[license]: https://github.com/alrayyes/st/blob/master/LICENSE.
