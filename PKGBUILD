@@ -24,7 +24,7 @@ source=("http://dl.suckless.org/st/$pkgname-$pkgver.tar.gz"
         "${_patches[@]}")
 
 sha256sums=('c4fb0fe2b8d2d3bd5e72763e80a8ae05b7d44dbac8f8e3bb18ef0161c7266926'
-            '184f506fdf24ed7e3c8445e8176580476e4a641522625573c9fad9a3e80fdc1e'
+            'a0934b9822b3c8a9922c4274c6f532c8aeb3081d812e42c2dcedcbd66ab808d9'
             '4989c03de5165234303d3929e3b60d662828972203561651aa6dc6b8f67feeb8'
             '8279d347c70bc9b36f450ba15e1fd9ff62eedf49ce9258c35d7f1cfe38cca226'
             '3fb38940cc3bad3f9cd1e2a0796ebd0e48950a07860ecf8523a5afd0cd1b5a44'
