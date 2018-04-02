@@ -21,7 +21,7 @@
 ## Installation
 
 ```
-makepg -si
+makepkg -si
 ```
 
 ## Further Notes
