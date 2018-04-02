@@ -1,4 +1,5 @@
-MIT/X Consortium License
+The MIT License (MIT)
+=====================
 
 © 2009-2012 Aurélien APTEL <aurelien dot aptel at gmail dot com>
 © 2009 Anselm R Garbe <garbeam at gmail dot com>
@@ -11,6 +12,7 @@ MIT/X Consortium License
 © 2013 Michael Forney <mforney at mforney dot org>
 © 2013-2014 Markus Teich <markus dot teich at stusta dot mhn dot de>
 © 2014-2015 Laslo Hunhold <dev at frign dot de>
+© 2018 Ryan Kes <alrayyes at gmail dot com>
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
