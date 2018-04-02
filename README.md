@@ -35,4 +35,4 @@ makepkg -si
 
 This theme is released under the MIT License. For more information read the [license][license].
 
-[license]: https://github.com/alrayyes/st/blob/master/LICENSE.
+[license]: https://github.com/alrayyes/st/blob/master/LICENSE.md
