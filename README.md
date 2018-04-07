@@ -14,7 +14,7 @@
 + Alt-k and Alt-j scroll back/foward in history one line at a time
 + Alt-u and Alt-d scroll back/foward in history a page at a time
 + Increase/decrease font size -- Shift+Alt+PageUp/PageDown
-+ Return to default font size -- Shift+Alt+Home]
++ Return to default font size -- Shift+Alt+Home
 + Paste -- Shift+Insert
 
 ## Installation
