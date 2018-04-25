@@ -28,7 +28,7 @@ Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simpl
 
 ## Installation for newbs
 
-## Requirements for build
+### Requirements for build
 
 Install `base-devel` - compiler and stuff (most distros have).
 
@@ -39,7 +39,7 @@ Install code depndencies (voidlinux - most distro should have something similar)
 + `libXft-devel`
 
 
-Then make and install:
+### Make & install
 
 ```
 make
@@ -58,6 +58,6 @@ sudo make install
 
 + Change `colorname[]` array values (88 LOC), default colours inspired by colors used in Pop! OS.
 + Numbers of 0 - 15 are usual terminal colors. Changed them to your liking.
-+ Change `bg` to your desired terminal background color..
++ Change `bg` to your desired terminal background color.
 + Change `fg` to your desired terminal foreground color.
 + Change `cursor` to your desired terminal cursor color.
