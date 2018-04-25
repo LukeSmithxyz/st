@@ -1,0 +1,25 @@
+From e0a92b498278e42e33f8007fd7b622a05e5310eb Mon Sep 17 00:00:00 2001
+From: Linh Nguyen <linhvng.2212@gmail.com>
+Date: Wed, 28 Mar 2018 12:23:45 -0400
+Subject: [PATCH] port st-no_bold_colors patch to 0.8.1
+
+---
+ x.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/x.c b/x.c
+index c343ba2..42e7e9f 100644
+--- a/x.c
++++ b/x.c
+@@ -1295,7 +1295,7 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
+ 
+ 	/* Change basic system colors [0-7] to bright system colors [8-15] */
+ 	if ((base.mode & ATTR_BOLD_FAINT) == ATTR_BOLD && BETWEEN(base.fg, 0, 7))
+-		fg = &dc.col[base.fg + 8];
++		fg = &dc.col[base.fg];
+ 
+ 	if (IS_SET(MODE_REVERSE)) {
+ 		if (fg == &dc.col[defaultfg]) {
+-- 
+2.16.3
+

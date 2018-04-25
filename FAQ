@@ -6,7 +6,7 @@ Use the excellent tool of [utmp](http://git.suckless.org/utmp/) for this task.
 
 It means that st doesn’t have any terminfo entry on your system. Chances are
 you did not `make install`. If you just want to test it without installing it,
-you can manualy run `tic -sx st.info`.
+you can manually run `tic -sx st.info`.
 
 ## Nothing works, and nothing is said about an unknown terminal!
 

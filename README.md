@@ -4,18 +4,18 @@ Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simpl
 
 + transparency
 + copy to clipboard
-+ solarized colors (light and dark toggleable)
++ ~~Solarized colors (light and dark toggleable)~~ (Change to your own colors, see no value of toggle)
 + vertcenter
 + scrollback with keyboard
 + scrollback with mouse
++ updated to latest version 0.8.1
 
 ## My own additions
 
 + Default font is system "mono" at 14pt
-+ Fixed transparency patch (see below for installation)
-+ Toggle light/dark mode now Alt-Tab instead of the frequently conflicting F6
 + Alt-k and Alt-j scroll back/foward in history one line at a time
 + Alt-u and Alt-d scroll back/foward in history a page at a time
++ Applied colors, insipred by Pop! OS colors.
 
 ## Terminal-specific mappings
 
@@ -28,20 +28,23 @@ Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simpl
 
 ## Installation for newbs
 
+## Requirements for build
+
+Install `base-devel` - compiler and stuff (most distros have).
+
+Install code depndencies (voidlinux - most distro should have something similar) 
+
++ `fontconfig-devel` 
++ `libX11-devel` 
++ `libXft-devel`
+
+
 ```
 make
 sudo make install
 ```
 
-### Solarized mode
+## Custom changes (`config.def.h` or `config.h`)
 
-The terminal is now transparent by default, if you want non-transparent solarized colors, run the following:
-
-```
-make clean
-patch -R < patches/transparency.diff
-make
-sudo make install
-```
-
-You can change the transparency value by changing the `alpha` variable in the `config.h` file.
++ change `alpha`
++ chnage colors in `colorname` added comments with numbers `0`-`15` colors and also `bg`, `fg` and `cursor` color. 
