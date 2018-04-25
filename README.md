@@ -39,6 +39,8 @@ Install code depndencies (voidlinux - most distro should have something similar)
 + `libXft-devel`
 
 
+Then make and install:
+
 ```
 make
 sudo make install
@@ -54,9 +56,8 @@ sudo make install
 
 ### Colorname
 
-+ Change `colorname[]` array, default colours inspired by colors used in Pop! OS.
++ Change `colorname[]` array values (88 LOC), default colours inspired by colors used in Pop! OS.
 + Numbers of 0 - 15 are usual terminal colors. Changed them to your liking.
 + Change `bg` to your desired terminal background color..
 + Change `fg` to your desired terminal foreground color.
 + Change `cursor` to your desired terminal cursor color.
-+ chnage colors in `colorname` added comments with numbers `0`-`15` colors and also `bg`, `fg` and `cursor` color. 
