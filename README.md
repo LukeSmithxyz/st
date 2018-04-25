@@ -46,5 +46,17 @@ sudo make install
 
 ## Custom changes (`config.def.h` or `config.h`)
 
-+ change `alpha`
+### Alpha
+
++ Change `alpha` value (86 LOC), be default set `0xcd`.
++ Less transparent set to `0xdd` or `0xee`.
++ For non transparent terminal set to `0xff`.
+
+### Colorname
+
++ Change `colorname[]` array, default colours inspired by colors used in Pop! OS.
++ Numbers of 0 - 15 are usual terminal colors. Changed them to your liking.
++ Change `bg` to your desired terminal background color..
++ Change `fg` to your desired terminal foreground color.
++ Change `cursor` to your desired terminal cursor color.
 + chnage colors in `colorname` added comments with numbers `0`-`15` colors and also `bg`, `fg` and `cursor` color. 

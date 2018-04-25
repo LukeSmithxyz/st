@@ -5,7 +5,7 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
+static char *font = "Liberation Mono:pixelsize=14:antialias=true:autohint=true";
 static int borderpx = 2;
 
 /*
@@ -85,33 +85,33 @@ unsigned int tabspaces = 8;
 /* bg opacity */
 unsigned int alpha = 0xcd;
 
-/* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
 	/* 8 normal colors */
-	"black",
-	"red3",
-	"green3",
-	"yellow3",
-	"blue2",
-	"magenta3",
-	"cyan3",
-	"gray90",
-
+    "#666666", /*  0 */
+    "#cc0000", /*  1 */
+    "#4e9a06", /*  2 */
+    "#c4a000", /*  3 */
+    "#3465a4", /*  4 */
+    "#75507b", /*  5 */
+    "#06989a", /*  6 */
+    "#d3d7cf", /*  7 */
+    
 	/* 8 bright colors */
-	"gray50",
-	"red",
-	"green",
-	"yellow",
-	"#5c5cff",
-	"magenta",
-	"cyan",
-	"white",
+    "#88807c", /*  8 */
+    "#f15d22", /*  9 */
+    "#73c48f", /* 10 */
+    "#ffce51", /* 11 */
+    "#48b9c7", /* 12 */
+    "#ad7fa8", /* 13 */
+    "#34e2e2", /* 14 */
+    "#eeeeec", /* 15 */
 
 	[255] = 0,
 
 	/* more colors can be added after 255 to use with DefaultXX */
-	"#cccccc",
-	"#555555",
+	"black",   /* 256 -> bg */
+	"#00cc00", /* 257 -> fg */
+    "magenta"  /* 258 -> cursor */
 };
 
 
@@ -119,9 +119,9 @@ static const char *colorname[] = {
  * Default colors (colorname index)
  * foreground, background, cursor, reverse cursor
  */
-unsigned int defaultfg = 7;
-unsigned int defaultbg = 0;
-static unsigned int defaultcs = 256;
+unsigned int defaultfg = 257;
+unsigned int defaultbg = 256;
+static unsigned int defaultcs = 258;
 static unsigned int defaultrcs = 257;
 
 /*
@@ -179,16 +179,21 @@ static Shortcut shortcuts[] = {
 	{ ControlMask,          XK_Print,       toggleprinter,  {.i =  0} },
 	{ ShiftMask,            XK_Print,       printscreen,    {.i =  0} },
 	{ XK_ANY_MOD,           XK_Print,       printsel,       {.i =  0} },
-	{ TERMMOD,              XK_Prior,       zoom,           {.f = +1} },
-	{ TERMMOD,              XK_Next,        zoom,           {.f = -1} },
-	{ TERMMOD,              XK_Home,        zoomreset,      {.f =  0} },
-	{ TERMMOD,              XK_C,           clipcopy,       {.i =  0} },
-	{ TERMMOD,              XK_V,           clippaste,      {.i =  0} },
-	{ TERMMOD,              XK_Y,           selpaste,       {.i =  0} },
+	{ MODKEY|ShiftMask,     XK_Prior,       zoom,           {.f = +1} },
+	{ MODKEY|ShiftMask,     XK_Next,        zoom,           {.f = -1} },
+	{ MODKEY|ShiftMask,     XK_Home,        zoomreset,      {.f =  0} },
+	{ ShiftMask,            XK_Insert,      selpaste,       {.i =  0} },
+	{ MODKEY|ShiftMask,     XK_Insert,      clippaste,      {.i =  0} },
+	{ MODKEY|ShiftMask,     XK_C,           clipcopy,       {.i =  0} },
+	{ MODKEY|ShiftMask,     XK_V,           clippaste,      {.i =  0} },
 	{ TERMMOD,              XK_Num_Lock,    numlock,        {.i =  0} },
-	{ TERMMOD,              XK_I,           iso14755,       {.i =  0} },
+	{ MODKEY,               XK_Control_L,   iso14755,       {.i =  0} },
 	{ ShiftMask,            XK_Page_Up,     kscrollup,      {.i = -1} },
 	{ ShiftMask,            XK_Page_Down,   kscrolldown,    {.i = -1} },
+	{ MODKEY,            	XK_k,  		    kscrollup,      {.i =  1} },
+	{ MODKEY,            	XK_j,   	    kscrolldown,    {.i =  1} },
+	{ MODKEY,	        	XK_u,		    kscrollup,      {.i = -1} },
+	{ MODKEY,		        XK_d,		    kscrolldown,    {.i = -1} },
 };
 
 /*
