@@ -16,6 +16,7 @@ Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simpl
 + Alt-u and Alt-d scroll back/foward in history a page at a time.
 + Alt-PageUp and Alt-PageDown scroll back/foward in history a page at a time.
 + Transparency with solarized colors by default.
++ Zoom in/out with Alt+Shift+k/j or u/d for larger intervals.
 
 ## Terminal-specific mappings
 
