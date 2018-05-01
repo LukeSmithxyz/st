@@ -1,10 +1,9 @@
 # Luke's build of st - the simple (suckless) terminal
-
 Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simplicity's sake, which is the [suckless terminal (st)](https://st.suckless.org/) with some patches added:
 
 + transparency
-+ copy to clipboard
-+ ~~Solarized colors (light and dark toggleable)~~ (Change to your own colors, see no value of toggle)
++ copy to clipboard (alt-shift-c)
++ Solarized colors (light and dark toggleable)
 + vertcenter
 + scrollback with keyboard
 + scrollback with mouse
@@ -12,10 +11,11 @@ Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simpl
 
 ## My own additions
 
-+ Default font is system "mono" at 14pt
-+ Alt-k and Alt-j scroll back/foward in history one line at a time
-+ Alt-u and Alt-d scroll back/foward in history a page at a time
-+ Applied colors, insipred by Pop! OS colors.
++ Default font is system "mono" at 14pt, meaning the font will match your system font.
++ Hold alt and press either ↑/↓ or the vim keys k/j to move up/down in the terminal.
++ Alt-u and Alt-d scroll back/foward in history a page at a time.
++ Alt-PageUp and Alt-PageDown scroll back/foward in history a page at a time.
++ Transparency with solarized colors by default.
 
 ## Terminal-specific mappings
 
@@ -28,36 +28,27 @@ Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simpl
 
 ## Installation for newbs
 
-### Requirements for build
-
-Install `base-devel` - compiler and stuff (most distros have).
-
-Install code depndencies (voidlinux - most distro should have something similar) 
-
-+ `fontconfig-devel` 
-+ `libX11-devel` 
-+ `libXft-devel`
-
-
-### Make & install
-
 ```
 make
 sudo make install
 ```
 
+Obviously, `make` is required to build. `fontconfig` is required for the default build, since it asks `fontconfig` for your system monospace font.  It might be obvious, but `libX11` and `libXft` are required as well. Chances are, you have all of this installed already.
+
 ## Custom changes (`config.def.h` or `config.h`)
 
-### Alpha
+By default, the terminal is transparent with a blackish background. There's a patch file `solarized-alpha-toggle.patch` which you can use to remove the transparency and give it a typical deep, dark blue solarized background. Just run:
 
-+ Change `alpha` value (86 LOC), be default set `0xcd`.
-+ Less transparent set to `0xdd` or `0xee`.
-+ For non transparent terminal set to `0xff`.
+```
+patch < solarized-alpha-toggle.patch
+```
 
-### Colorname
+Then, run `make` & `sudo make install` again to install the new build. You make reverse the solarized background by running the same command as above, but giving `patch` the `-R` option as well.
 
-+ Change `colorname[]` array values (88 LOC), default colours inspired by colors used in Pop! OS.
-+ Numbers of 0 - 15 are usual terminal colors. Changed them to your liking.
+## Explore `config.h`
+
++ Change `colorname[]` array values (88 LOC), default colours are solarized.
++ Numbers of 0 - 15 are usual terminal colors. Change them to your liking.
 + Change `bg` to your desired terminal background color.
 + Change `fg` to your desired terminal foreground color.
 + Change `cursor` to your desired terminal cursor color.

@@ -1,0 +1,20 @@
+--- config.h	2018-05-01 14:09:36.752813283 -0700
++++ config.sol.h	2018-05-01 14:10:20.132810913 -0700
+@@ -83,7 +83,7 @@
+ unsigned int tabspaces = 8;
+ 
+ /* bg opacity */
+-unsigned int alpha = 0xcd;
++unsigned int alpha = 0xff;
+ 
+ static const char *colorname[] = {
+ 	"#073642",  /*  0: black    */
+@@ -114,7 +114,7 @@
+  * foreground, background, cursor, reverse cursor
+  */
+ unsigned int defaultfg = 12;
+-unsigned int defaultbg = 256;
++unsigned int defaultbg = 0;
+ static unsigned int defaultcs = 14;
+ static unsigned int defaultrcs = 15;
+ 

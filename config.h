@@ -5,7 +5,7 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char *font = "Liberation Mono:pixelsize=14:antialias=true:autohint=true";
+static char *font = "mono:pixelsize=14:antialias=true:autohint=true";
 static int borderpx = 2;
 
 /*
@@ -86,28 +86,22 @@ unsigned int tabspaces = 8;
 unsigned int alpha = 0xcd;
 
 static const char *colorname[] = {
-	/* 8 normal colors */
-    "#666666", /*  0 */
-    "#cc0000", /*  1 */
-    "#4e9a06", /*  2 */
-    "#c4a000", /*  3 */
-    "#3465a4", /*  4 */
-    "#75507b", /*  5 */
-    "#06989a", /*  6 */
-    "#d3d7cf", /*  7 */
-    
-	/* 8 bright colors */
-    "#88807c", /*  8 */
-    "#f15d22", /*  9 */
-    "#73c48f", /* 10 */
-    "#ffce51", /* 11 */
-    "#48b9c7", /* 12 */
-    "#ad7fa8", /* 13 */
-    "#34e2e2", /* 14 */
-    "#eeeeec", /* 15 */
-
-	[255] = 0,
-
+	"#073642",  /*  0: black    */
+	"#dc322f",  /*  1: red      */
+	"#859900",  /*  2: green    */
+	"#b58900",  /*  3: yellow   */
+	"#268bd2",  /*  4: blue     */
+	"#d33682",  /*  5: magenta  */
+	"#2aa198",  /*  6: cyan     */
+	"#eee8d5",  /*  7: white    */
+	"#002b36",  /*  8: brblack  */
+	"#cb4b16",  /*  9: brred    */
+	"#586e75",  /* 10: brgreen  */
+	"#657b83",  /* 11: bryellow */
+	"#839496",  /* 12: brblue   */
+	"#6c71c4",  /* 13: brmagenta*/
+	"#93a1a1",  /* 14: brcyan   */
+	"#fdf6e3",  /* 15: brwhite  */
 	/* more colors can be added after 255 to use with DefaultXX */
 	"black",   /* 256 -> bg */
 	"#00cc00", /* 257 -> fg */
@@ -119,10 +113,10 @@ static const char *colorname[] = {
  * Default colors (colorname index)
  * foreground, background, cursor, reverse cursor
  */
-unsigned int defaultfg = 257;
+unsigned int defaultfg = 12;
 unsigned int defaultbg = 256;
-static unsigned int defaultcs = 258;
-static unsigned int defaultrcs = 257;
+static unsigned int defaultcs = 14;
+static unsigned int defaultrcs = 15;
 
 /*
  * Default shape of cursor
@@ -190,10 +184,14 @@ static Shortcut shortcuts[] = {
 	{ MODKEY,               XK_Control_L,   iso14755,       {.i =  0} },
 	{ ShiftMask,            XK_Page_Up,     kscrollup,      {.i = -1} },
 	{ ShiftMask,            XK_Page_Down,   kscrolldown,    {.i = -1} },
-	{ MODKEY,            	XK_k,  		    kscrollup,      {.i =  1} },
-	{ MODKEY,            	XK_j,   	    kscrolldown,    {.i =  1} },
-	{ MODKEY,	        	XK_u,		    kscrollup,      {.i = -1} },
-	{ MODKEY,		        XK_d,		    kscrolldown,    {.i = -1} },
+	{ MODKEY,               XK_Page_Up,     kscrollup,      {.i = -1} },
+	{ MODKEY,               XK_Page_Down,   kscrolldown,    {.i = -1} },
+	{ MODKEY,            	XK_k,  		kscrollup,      {.i =  1} },
+	{ MODKEY,            	XK_j,   	kscrolldown,    {.i =  1} },
+	{ MODKEY,            	XK_Up,  	kscrollup,      {.i =  1} },
+	{ MODKEY,            	XK_Down,   	kscrolldown,    {.i =  1} },
+	{ MODKEY,	        XK_u,		kscrollup,      {.i = -1} },
+	{ MODKEY,  		XK_d,		kscrolldown,   	{.i = -1} },
 };
 
 /*
