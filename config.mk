@@ -23,6 +23,12 @@ CPPFLAGS = -DVERSION=\"$(VERSION)\" -D_XOPEN_SOURCE=600
 STCFLAGS = $(INCS) $(CPPFLAGS) $(CFLAGS)
 STLDFLAGS = $(LIBS) $(LDFLAGS)
 
+# OpenBSD:
+#CPPFLAGS = -DVERSION=\"$(VERSION)\" -D_XOPEN_SOURCE=600 -D_BSD_SOURCE
+#LIBS = -L$(X11LIB) -lm -lX11 -lutil -lXft \
+#       `pkg-config --libs fontconfig` \
+#       `pkg-config --libs freetype2`
+
 # compiler and linker
 # CC = c99
 

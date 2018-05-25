@@ -28,6 +28,10 @@
  #include <libutil.h>
 #endif
 
+#ifndef __OpenBSD__
+#define pledge(a,b) 0
+#endif
+
 /* Arbitrary sizes */
 #define UTF_INVALID   0xFFFD
 #define UTF_SIZ       4
@@ -806,9 +810,13 @@ ttynew(char *line, char *cmd, char *out, char **args)
 			die("ioctl TIOCSCTTY failed: %s\n", strerror(errno));
 		close(s);
 		close(m);
+		if (pledge("stdio getpw proc exec", NULL) == -1)
+			die("pledge\n");
 		execsh(cmd, args);
 		break;
 	default:
+		if (pledge("stdio rpath tty proc", NULL) == -1)
+			die("pledge\n");
 		close(s);
 		cmdfd = m;
 		signal(SIGCHLD, sigchld);
