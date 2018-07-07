@@ -1,27 +1,21 @@
 # Luke's build of st - the simple (suckless) terminal
-Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simplicity's sake, which is the [suckless terminal (st)](https://st.suckless.org/) with some patches added:
 
-+ transparency
-+ copy to clipboard (alt-shift-c)
-+ Optional compatibility with `Xresources` and `pywal` for dynamic colors
-+ Solarized colors (light and dark toggleable)
-+ vertcenter
-+ scrollback with keyboard
-+ scrollback with mouse
-+ updated to latest version 0.8.1
+Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simplicity's sake, which is the [suckless terminal (st)](https://st.suckless.org/) with some additional features:
 
-## My own additions
-
++ Adjustable transparency/alpha
++ Compatibility with `Xresources` and `pywal` for dynamic colors
++ Copy to clipboard (alt-shift-c)
 + Default font is system "mono" at 14pt, meaning the font will match your system font.
 + Hold alt and press either ↑/↓ or the vim keys k/j to move up/down in the terminal.
++ Shift+Mouse wheel will as well.
 + Alt-u and Alt-d scroll back/forward in history a page at a time.
-+ Alt-PageUp and Alt-PageDown scroll back/forward in history a page at a time.
-+ Transparency with solarized colors by default.
++ Alt-PageUp and Alt-PageDown will do the same.
 + Zoom in/out with Alt+Shift+k/j or u/d for larger intervals.
++ Vertcenter
++ Optional solarized colors (light and dark toggleable)
++ updated to latest version 0.8.1
 
-## Terminal-specific mappings
-
-(Additions before me.)
+The following additional bindings were added before I forked this:
 
 + Scroll through history -- Shift+PageUp/PageDown or Shift+Mouse wheel
 + Increase/decrease font size -- Shift+Alt+PageUp/PageDown
@@ -39,29 +33,17 @@ Obviously, `make` is required to build. `fontconfig` is required for the default
 
 ## Custom changes (`config.def.h` or `config.h`)
 
-### Solarized
+Now by default, the terminal is transparent and uses an Xresources patch that
+looks for your Xresources colors for the colors of st. You can disable the
+Xresources patch by reversing it as below:
 
-By default, the terminal is transparent with a blackish background. There's a patch file `solarized-alpha-toggle.patch` which you can use to remove the transparency and give it a typical deep, dark blue solarized background. Just run:
+```
+patch -R < xresources.patch
+```
+
+On top of that, you can disable alpha and enable fully solarized colors by
+running the following:
 
 ```
 patch < solarized-alpha-toggle.patch
 ```
-
-Then, run `make` & `sudo make install` again to install the new build. You make reverse the solarized background by running the same command as above, but giving `patch` the `-R` option as well.
-
-### `Xresources` and `pywal`/`wal` compatibility
-
-If you use `wal` to maintain color schemes across your programs, you can use the `xresources.patch`.
-
-```
-patch < xresources.patch
-make && sudo make install
-```
-
-## Explore `config.h`
-
-+ Change `colorname[]` array values (88 LOC), default colours are solarized.
-+ Numbers of 0 - 15 are usual terminal colors. Change them to your liking.
-+ Change `bg` to your desired terminal background color.
-+ Change `fg` to your desired terminal foreground color.
-+ Change `cursor` to your desired terminal cursor color.
