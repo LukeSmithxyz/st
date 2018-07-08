@@ -1,6 +1,6 @@
 .TH ST 1 st\-VERSION
 .SH NAME
-st \- simple terminal
+st \- simple terminal (Luke Smith's build)
 .SH SYNOPSIS
 .B st
 .RB [ \-aiv ]
@@ -125,6 +125,15 @@ and all the remaining arguments are used as a command
 even without it.
 .SH SHORTCUTS
 .TP
+.B Alt-j/k or Alt-Up/Down
+Scroll up/down one line at a time.
+.TP
+.B Alt-u/d
+Scroll up/down one screen at a time.
+.TP
+.B Alt-Shift-j/k
+Increase or decrease font size.
+.TP
 .B Break
 Send a break in the serial line.
 Break key is obtained in PC keyboards
@@ -151,7 +160,7 @@ Decrease font size.
 .B Ctrl-Shift-Home
 Reset to default font size.
 .TP
-.B Ctrl-Shift-y
+.B Shift-Insert or Ctrl-Shift-y
 Paste from primary selection (middle mouse button).
 .TP
 .B Ctrl-Shift-c
