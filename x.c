@@ -1418,19 +1418,25 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 	 */
 	g.mode &= ATTR_BOLD|ATTR_ITALIC|ATTR_UNDERLINE|ATTR_STRUCK|ATTR_WIDE;
 
-	if (selected(cx, cy)) {
-		g.bg = defaultrcs;
-		g.fg = defaultfg;
-	} else {
-		g.bg = defaultcs;
-		g.fg = defaultbg;
-	}
-	drawcol = dc.col[g.bg];
-
 	if (IS_SET(MODE_REVERSE)) {
-		drawcol.color.red = ~drawcol.color.red;
-		drawcol.color.green = ~drawcol.color.green;
-		drawcol.color.blue = ~drawcol.color.blue;
+		g.mode |= ATTR_REVERSE;
+		g.bg = defaultfg;
+		if (selected(cx, cy)) {
+			drawcol = dc.col[defaultcs];
+			g.fg = defaultrcs;
+		} else {
+			drawcol = dc.col[defaultrcs];
+			g.fg = defaultcs;
+		}
+	} else {
+		if (selected(cx, cy)) {
+			g.fg = defaultfg;
+			g.bg = defaultrcs;
+		} else {
+			g.fg = defaultbg;
+			g.bg = defaultcs;
+		}
+		drawcol = dc.col[g.bg];
 	}
 
 	/* draw the new one */
