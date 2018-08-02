@@ -30,20 +30,3 @@ sudo make install
 ```
 
 Obviously, `make` is required to build. `fontconfig` is required for the default build, since it asks `fontconfig` for your system monospace font.  It might be obvious, but `libX11` and `libXft` are required as well. Chances are, you have all of this installed already.
-
-## Custom changes (`config.def.h` or `config.h`)
-
-Now by default, the terminal is transparent and uses an Xresources patch that
-looks for your Xresources colors for the colors of st. You can disable the
-Xresources patch by reversing it as below:
-
-```
-patch -R < xresources.patch
-```
-
-On top of that, you can disable alpha and enable fully solarized colors by
-running the following:
-
-```
-patch < solarized-alpha-toggle.patch
-```
