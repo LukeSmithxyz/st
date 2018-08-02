@@ -1,6 +1,6 @@
 # Luke's build of st - the simple (suckless) terminal
 
-Forked from [https://github.com/shiva/st](https://github.com/shiva/st) for simplicity's sake, which is the [suckless terminal (st)](https://st.suckless.org/) with some additional features:
+The [suckless terminal (st)](https://st.suckless.org/) with some additional features:
 
 + Adjustable transparency/alpha
 + Compatibility with `Xresources` and `pywal` for dynamic colors
