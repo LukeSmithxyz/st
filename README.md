@@ -4,7 +4,7 @@ The [suckless terminal (st)](https://st.suckless.org/) with some additional feat
 
 + Adjustable transparency/alpha
 + Compatibility with `Xresources` and `pywal` for dynamic colors
-+ Copy to clipboard (alt-shift-c)
++ Copy is alt-c, paste is alt-v or alt-p pastes from primary selection
 + Default font is system "mono" at 14pt, meaning the font will match your system font.
 + Hold alt and press either ↑/↓ or the vim keys k/j to move up/down in the terminal.
 + Shift+Mouse wheel will as well.
