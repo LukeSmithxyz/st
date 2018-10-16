@@ -1,6 +1,6 @@
 .TH ST 1 st\-VERSION
 .SH NAME
-st \- simple terminal (Luke Smith's build)
+st \- simple terminal (Luke Smith (https://lukesmith.xyz)'s build)
 .SH SYNOPSIS
 .B st
 .RB [ \-aiv ]
@@ -128,11 +128,23 @@ even without it.
 .B Alt-j/k or Alt-Up/Down
 Scroll up/down one line at a time.
 .TP
-.B Alt-u/d
+.B Alt-u/d or Alt-Page Up/Page Down
 Scroll up/down one screen at a time.
 .TP
-.B Alt-Shift-j/k
+.B Alt-Shift-k/j Alt-Shift-Page Up/Page Down
 Increase or decrease font size.
+.TP
+.B Alt-Shift-Home
+Reset to default font size.
+.TP
+.B Shift-Insert or Alt-v
+Paste from clipboard.
+.TP
+.B Alt-c
+Copy to clipboard.
+.TP
+.B Alt-p
+Paste/input primary selection.
 .TP
 .B Break
 Send a break in the serial line.
@@ -150,24 +162,6 @@ Print the full screen to the
 .B Print Screen
 Print the selection to the
 .I iofile.
-.TP
-.B Ctrl-Shift-Page Up
-Increase font size.
-.TP
-.B Ctrl-Shift-Page Down
-Decrease font size.
-.TP
-.B Ctrl-Shift-Home
-Reset to default font size.
-.TP
-.B Shift-Insert or Alt-v
-Paste from clipboard.
-.TP
-.B Alt-c
-Copy to clipboard.
-.TP
-.B Alt-p
-Paste/input primary selection.
 .TP
 .B Ctrl-Shift-i
 Launch dmenu to enter a unicode codepoint and send the corresponding glyph
