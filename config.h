@@ -180,6 +180,7 @@ ResourcePref resources[] = {
 		{ "tabspaces",    INTEGER, &tabspaces },
 		{ "cwscale",      FLOAT,   &cwscale },
 		{ "chscale",      FLOAT,   &chscale },
+		{ "alpha",      INTEGER,   &alpha },
 };
 
 /*
