@@ -36,6 +36,9 @@ default build, since it asks `fontconfig` for your system monospace font.  It
 might be obvious, but `libX11` and `libXft` are required as well. Chances are,
 you have all of this installed already.
 
+On OpenBSD, be sure to edit `config.mk` first and remove `-lrt` from the
+`$LIBS` before compiling.
+
 ## How to configure dynamically with Xresrouces
 
 For many key variables, this build of `st` will look for X settings set in
