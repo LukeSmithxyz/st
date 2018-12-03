@@ -3,9 +3,9 @@
 The [suckless terminal (st)](https://st.suckless.org/) with some additional features:
 
 + Compatibility with `Xresources` and `pywal` for dynamic colors.
-+ Default solarized colors otherwize.
++ Default [gruvbox](https://github.com/morhetz/gruvbox) colors otherwise.
 + Transparency/alpha, which is also adjustable from `~/.Xresources`.
-+ Default font is system "mono" at 14pt, meaning the font will match your system font.
++ Default font is system "mono" at 16pt, meaning the font will match your system font.
 + Very useful keybinds including:
 	+ Copy is alt-c, paste is alt-v or alt-p pastes from primary selection
 	+ Zoom in/out or increase font size with Alt+Shift+k/j or u/d for larger intervals.
