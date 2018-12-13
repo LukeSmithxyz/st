@@ -8,6 +8,8 @@ The [suckless terminal (st)](https://st.suckless.org/) with some additional feat
 + Default font is system "mono" at 16pt, meaning the font will match your system font.
 + Very useful keybinds including:
 	+ Copy is alt-c, paste is alt-v or alt-p pastes from primary selection
+	+ Alt-l feeds all urls on screen to dmenu, so they user can choose and
+	  follow one (requires xurls and dmenu installed).
 	+ Zoom in/out or increase font size with Alt+Shift+k/j or u/d for larger intervals.
 	+ Hold alt and press either ↑/↓ or the vim keys k/j to move up/down in the terminal.
 	+ Shift+Mouse wheel do the same.
@@ -61,7 +63,7 @@ The `alpha` value (for transparency) goes from `0` (transparent) to `255`
 
 To be clear about the color settings:
 
-- This build will use colorized colors by default and as a fallback.
+- This build will use gruvbox colors by default and as a fallback.
 - If there are Xresources colors defined, those will take priority.
 - But if `wal` has run in your session, its colors will take priority.
 

@@ -207,6 +207,9 @@ MouseKey mkeys[] = {
 	{ Button5,              MODKEY|ShiftMask,         zoom,    {.f =  -1} },
 };
 
+static char *openurlcmd[] = { "/bin/sh", "-c",
+    "xurls | dmenu -l 10 | xargs -r xdg-open",
+    "externalpipe", NULL };
 
 static Shortcut shortcuts[] = {
 	/* mask                 keysym          function        argument */
@@ -239,6 +242,7 @@ static Shortcut shortcuts[] = {
 	{ MODKEY|ShiftMask,     XK_J,           zoom,           {.f = -1} },
 	{ MODKEY|ShiftMask,     XK_U,           zoom,           {.f = +2} },
 	{ MODKEY|ShiftMask,     XK_D,           zoom,           {.f = -2} },
+    	{ MODKEY,		XK_l,		externalpipe,	{ .v = openurlcmd } },
 };
 
 /*
