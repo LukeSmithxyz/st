@@ -207,7 +207,7 @@ MouseKey mkeys[] = {
 };
 
 static char *openurlcmd[] = { "/bin/sh", "-c",
-    "xurls | dmenu -l 10 | xargs -r xdg-open",
+    "xurls | uniq | dmenu -l 10 | xargs -r linkhandler",
     "externalpipe", NULL };
 
 static Shortcut shortcuts[] = {
