@@ -738,8 +738,10 @@ sigchld(int a)
 	if (pid != p)
 		return;
 
-	if (!WIFEXITED(stat) || WEXITSTATUS(stat))
-		die("child finished with error '%d'\n", stat);
+	if (WIFEXITED(stat) && WEXITSTATUS(stat))
+		die("child exited with status %d\n", WEXITSTATUS(stat));
+	else if (WIFSIGNALED(stat))
+		die("child terminated due to signal %d\n", WTERMSIG(stat));
 	exit(0);
 }
 
@@ -1504,7 +1506,8 @@ tsetattr(int *attr, int l)
 			} else {
 				fprintf(stderr,
 					"erresc(default): gfx attr %d unknown\n",
-					attr[i]), csidump();
+					attr[i]);
+				csidump();
 			}
 			break;
 		}
@@ -2388,7 +2391,7 @@ eschandle(uchar ascii)
 	case 'Z': /* DECID -- Identify Terminal */
 		ttywrite(vtiden, strlen(vtiden), 0);
 		break;
-	case 'c': /* RIS -- Reset to inital state */
+	case 'c': /* RIS -- Reset to initial state */
 		treset();
 		resettitle();
 		xloadcols();
