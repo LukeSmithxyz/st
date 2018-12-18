@@ -23,7 +23,7 @@ The following additional bindings were added before I forked this:
 
 + Scroll through history -- Shift+PageUp/PageDown or Shift+Mouse wheel
 + Increase/decrease font size -- Shift+Alt+PageUp/PageDown
-+ Return to default font size -- Shift+Alt+Home
++ Return to default font size -- Alt+Home
 + Paste -- Shift+Insert
 
 ## Installation for newbs
