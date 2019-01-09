@@ -41,7 +41,7 @@ you have all of this installed already.
 On OpenBSD, be sure to edit `config.mk` first and remove `-lrt` from the
 `$LIBS` before compiling.
 
-## How to configure dynamically with Xresrouces
+## How to configure dynamically with Xresources
 
 For many key variables, this build of `st` will look for X settings set in
 either `~/.Xdefaults` or `~/.Xresources`. You must run `xrdb` on one of these
