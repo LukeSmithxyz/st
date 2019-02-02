@@ -33,19 +33,15 @@ make
 sudo make install
 ```
 
-Obviously, `make` is required to build. `fontconfig` is required for the
-default build, since it asks `fontconfig` for your system monospace font.  It
-might be obvious, but `libX11` and `libXft` are required as well. Chances are,
-you have all of this installed already.
+Obviously, `make` is required to build. `fontconfig` is required for the default build, since it asks `fontconfig` for your system monospace font.  It might be obvious, but `libX11` and `libXft` are required as well. Chances are, you have all of this installed already.
 
-On OpenBSD, be sure to edit `config.mk` first and remove `-lrt` from the
-`$LIBS` before compiling.
+On OpenBSD, be sure to edit `config.mk` first and remove `-lrt` from the `$LIBS` before compiling.
+
+Be sure to have a composite manager (`xcompmgr`, `compton`, etc.) running if you want transparency.
 
 ## How to configure dynamically with Xresources
 
-For many key variables, this build of `st` will look for X settings set in
-either `~/.Xdefaults` or `~/.Xresources`. You must run `xrdb` on one of these
-files to load the settings.
+For many key variables, this build of `st` will look for X settings set in either `~/.Xdefaults` or `~/.Xresources`. You must run `xrdb` on one of these files to load the settings.
 
 For example, you can define your desired fonts, transparency or colors:
 
@@ -67,9 +63,7 @@ To be clear about the color settings:
 - If there are Xresources colors defined, those will take priority.
 - But if `wal` has run in your session, its colors will take priority.
 
-Note that when you run `wal`, it will negate the transparency of existing
-windows, but new windows will continue with the previously defined
-transparency.
+Note that when you run `wal`, it will negate the transparency of existing windows, but new windows will continue with the previously defined transparency.
 
 ## Contact
 
