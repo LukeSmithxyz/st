@@ -2335,7 +2335,6 @@ tputc(Rune u)
 			goto check_control_code;
 		}
 
-
 		if (IS_SET(MODE_SIXEL)) {
 			/* TODO: implement sixel mode */
 			return;
