@@ -16,6 +16,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <wctype.h>
 
 #include "st.h"
 #include "win.h"
@@ -41,7 +42,7 @@
 #define ISCONTROLC0(c)		(BETWEEN(c, 0, 0x1f) || (c) == '\177')
 #define ISCONTROLC1(c)		(BETWEEN(c, 0x80, 0x9f))
 #define ISCONTROL(c)		(ISCONTROLC0(c) || ISCONTROLC1(c))
-#define ISDELIM(u)		(u != 0 && wcschr(worddelimiters, u) != NULL)
+#define ISDELIM(u)		((iswspace(u) || iswpunct(u)) && wcschr(extrawordchars, u) == NULL)
 
 enum term_mode {
 	MODE_WRAP        = 1 << 0,
