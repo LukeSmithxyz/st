@@ -28,12 +28,11 @@ static float cwscale = 1.0;
 static float chscale = 1.0;
 
 /*
- * all space and punctuation characters are considered word delimiters, unless
- * listed here.
+ * word delimiter string
  *
- * More advanced example: L"#$%&+,-./:=?_~"
+ * More advanced example: L" `'\"()[]{}"
  */
-wchar_t *extrawordchars = L"";
+wchar_t *worddelimiters = L" ";
 
 /* selection timeouts (in milliseconds) */
 static unsigned int doubleclicktimeout = 300;
