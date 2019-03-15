@@ -33,7 +33,7 @@ static float chscale = 1.0;
  *
  * More advanced example: L"#$%&+,-./:=?_~"
  */
-wchar_t *extrawordchars = L"./:";
+wchar_t *extrawordchars = L"";
 
 /* selection timeouts (in milliseconds) */
 static unsigned int doubleclicktimeout = 300;
