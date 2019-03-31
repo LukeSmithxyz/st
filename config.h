@@ -5,8 +5,9 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char *font = "mono:pixelsize=16:antialias=true:autohint=true";
-static int borderpx = 2;
+//static char *font = "monospace:pixelsize=28:antialias=true:autohint=true:dpi=168";
+static char *font = "mono:pixelsize=28:antialias=true:autohint=false:hinting=false:hintstyle=2:dpi=168";
+static int borderpx = 4;
 
 /*
  * What program is execed by st depends of these precedence rules:
@@ -113,8 +114,8 @@ static const char *colorname[] = {
  * Default colors (colorname index)
  * foreground, background, cursor, reverse cursor
  */
-unsigned int defaultfg = 15;
-unsigned int defaultbg = 0;
+unsigned int defaultfg = 257;
+unsigned int defaultbg = 256;
 static unsigned int defaultcs = 15;
 static unsigned int defaultrcs = 0;
 
