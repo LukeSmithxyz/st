@@ -2,7 +2,7 @@
 
 The [suckless terminal (st)](https://st.suckless.org/) with some additional features:
 
-+ Compatibility with `Xresources` and `pywal` for dynamic colors.
++ Compatibility with `Xresources` and `pywal` for dynamic colors. The `Xdefaults` file shows a usage example.
 + Default [gruvbox](https://github.com/morhetz/gruvbox) colors otherwise.
 + Transparency/alpha, which is also adjustable from `~/.Xresources`.
 + Default font is system "mono" at 16pt, meaning the font will match your system font.
