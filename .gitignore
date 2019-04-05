@@ -2,4 +2,4 @@ st
 st.o
 x.o
 pkg/
-*.pkg.tar.gz
+*.pkg.tar.xz
