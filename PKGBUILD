@@ -3,9 +3,9 @@
 pkgname=st-luke-git
 _pkgname=st
 _pkgver=0.8.1
-pkgver=0.8.1.r1044.7af0421
+pkgver=0.8.1.r1046.1cd0b79
 pkgrel=1
-pkgdesc="Luke's build of st - the simple (suckless) terminal"
+pkgdesc="Luke's simple (suckless) terminal with vim-bindings, transparency, xresources, etc. "
 url='https://github.com/LukeSmithxyz/st'
 arch=('i686' 'x86_64')
 license=('MIT')
