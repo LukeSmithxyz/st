@@ -2,14 +2,14 @@
 
 The [suckless terminal (st)](https://st.suckless.org/) with some additional features:
 
-+ Compatibility with `Xresources` and `pywal` for dynamic colors.
++ Compatibility with `Xresources` and `pywal` for dynamic colors. The `Xdefaults` file shows a usage example.
 + Default [gruvbox](https://github.com/morhetz/gruvbox) colors otherwise.
 + Transparency/alpha, which is also adjustable from `~/.Xresources`.
 + Default font is system "mono" at 16pt, meaning the font will match your system font.
 + Very useful keybinds including:
 	+ Copy is alt-c, paste is alt-v or alt-p pastes from primary selection
 	+ Alt-l feeds all urls on screen to dmenu, so they user can choose and
-	  follow one (requires xurls and dmenu installed).
+	  follow one (requires dmenu installed).
 	+ Zoom in/out or increase font size with Alt+Shift+k/j or u/d for larger intervals.
 	+ Hold alt and press either ↑/↓ or the vim keys k/j to move up/down in the terminal.
 	+ Shift+Mouse wheel do the same.

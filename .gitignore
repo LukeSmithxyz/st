@@ -1,3 +1,5 @@
 st
 st.o
 x.o
+pkg/
+*.pkg.tar.xz
