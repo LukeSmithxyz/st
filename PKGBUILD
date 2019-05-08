@@ -2,8 +2,7 @@
 
 pkgname=st-luke-git
 _pkgname=st
-_pkgver=0.8.2
-pkgver=0.8.2.r1059.51ac1b9
+pkgver=0.8.2.r1062.2087ab9
 pkgrel=1
 epoch=1
 pkgdesc="Luke's simple (suckless) terminal with vim-bindings, transparency, xresources, etc. "
@@ -22,7 +21,8 @@ conflicts=("${_pkgname}")
 
 pkgver() {
 	cd "${_pkgname}"
-	printf "%s.r%s.%s" "${_pkgver}" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+	printf "%s.r%s.%s" "$(awk '/^VERSION =/ {print $3}' config.mk)" \
+		"$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 prepare() {
