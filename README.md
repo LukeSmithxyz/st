@@ -18,7 +18,7 @@ The [suckless terminal (st)](https://st.suckless.org/) with some additional feat
 	+ Alt-PageUp and Alt-PageDown will do the same.
 + Vertcenter
 + Scrollback
-+ updated to latest version 0.8.1
++ updated to latest version 0.8.2
 
 The following additional bindings were added before I forked this:
 
@@ -51,12 +51,12 @@ For example, you can define your desired fonts, transparency or colors:
 
 ```
 *.font:	Liberation Mono:pixelsize=12:antialias=true:autohint=true;
-*.alpha: 150
+*.alpha: 0.9
 *.color0: #111
 ...
 ```
 
-The `alpha` value (for transparency) goes from `0` (transparent) to `255`
+The `alpha` value (for transparency) goes from `0` (transparent) to `1`
 (opaque).
 
 ### Colors
