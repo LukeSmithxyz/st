@@ -2,9 +2,9 @@
 
 pkgname=st-luke-git
 _pkgname=st
-_pkgver=0.8.1
-pkgver=0.8.1.r1046.1cd0b79
+pkgver=0.8.2.r1062.2087ab9
 pkgrel=1
+epoch=1
 pkgdesc="Luke's simple (suckless) terminal with vim-bindings, transparency, xresources, etc. "
 url='https://github.com/LukeSmithxyz/st'
 arch=('i686' 'x86_64')
@@ -21,12 +21,13 @@ conflicts=("${_pkgname}")
 
 pkgver() {
 	cd "${_pkgname}"
-	printf "${_pkgver}.r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+	printf "%s.r%s.%s" "$(awk '/^VERSION =/ {print $3}' config.mk)" \
+		"$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 prepare() {
 	cd $srcdir/${_pkgname}
- 	# skip terminfo which conflicts with nsurses
+	# skip terminfo which conflicts with ncurses
 	sed -i '/tic /d' Makefile
 }
 
@@ -40,4 +41,5 @@ package() {
 	make PREFIX=/usr DESTDIR="${pkgdir}" install
 	install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
 	install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+	install -Dm644 .Xdefaults "${pkgdir}/usr/share/doc/${pkgname}/Xdefaults.example"
 }

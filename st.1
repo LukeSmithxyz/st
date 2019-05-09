@@ -149,6 +149,14 @@ Paste/input primary selection.
 .B Alt-l
 Show dmenu menu of all URLs on screen and choose one to open.
 .TP
+.B Alt-y
+Show dmenu menu of all URLs on screen and choose one to copy.
+.TP
+.B Alt-o
+Show dmenu menu of all recently run commands and copy the output of the chosen command to the clipboard.
+.I xclip
+required.
+.TP
 .B Break
 Send a break in the serial line.
 Break key is obtained in PC keyboards
@@ -166,7 +174,7 @@ Print the full screen to the
 Print the selection to the
 .I iofile.
 .TP
-.B Ctrl-Shift-i
+.B Alt-Ctrl
 Launch dmenu to enter a unicode codepoint and send the corresponding glyph
 to st.
 .SH CUSTOMIZATION
