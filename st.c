@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 #include <wchar.h>
 
@@ -142,6 +143,7 @@ typedef struct {
 	int charset;  /* current charset */
 	int icharset; /* selected charset for sequence */
 	int *tabs;
+	struct timespec last_ximspot_update;
 } Term;
 
 /* CSI Escape sequence structs */
@@ -1056,6 +1058,7 @@ void
 tnew(int col, int row)
 {
 	term = (Term){ .c = { .attr = { .fg = defaultfg, .bg = defaultbg } } };
+	clock_gettime(CLOCK_MONOTONIC, &term.last_ximspot_update);
 	tresize(col, row);
 	treset();
 }
@@ -2744,7 +2747,13 @@ draw(void)
 				term.ocx, term.ocy, term.line[term.ocy][term.ocx]);
 	term.ocx = cx, term.ocy = term.c.y;
 	xfinishdraw();
-	xximspot(term.ocx, term.ocy);
+
+	struct timespec now;
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	if (ximspot_update_interval && TIMEDIFF(now, term.last_ximspot_update) > ximspot_update_interval) {
+		xximspot(term.ocx, term.ocy);
+		term.last_ximspot_update = now;
+	}
 }
 
 void
