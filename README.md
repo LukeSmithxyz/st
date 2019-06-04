@@ -26,6 +26,7 @@ The [suckless terminal (st)](https://st.suckless.org/) with some additional feat
 
 + Vertcenter
 + Scrollback
++ font2
 + updated to latest version 0.8.2
 
 ## Installation for newbs
