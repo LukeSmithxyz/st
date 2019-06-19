@@ -1,0 +1,18 @@
+#!/bin/sh
+# Using external pipe with st, give a dmenu prompt of recent commands,
+# allowing the user to copy the output of one.
+# xclip required for this script.
+# By Jaywalker and Luke
+tmpfile=$(mktemp /tmp/st-cmd-output.XXXXXX)
+tmpfile2=$(mktemp /tmp/st-cmd-output.XXXXXX)
+trap 'rm "$tmpfile"' 0 1 15
+trap 'rm "$tmpfile2"' 0 1 15
+sed -n "w $tmpfile"
+ps1="$(grep "\S" "$tmpfile" | tail -n 1 | cut -d' ' -f1)"
+eps1="$(echo "$ps1" | sed 's/[^^]/[&]/g; s/\^/\\^/g')"
+sed -i '$ d' "$tmpfile"
+awk "/^$eps1/{t=1;p=1}
+	t{a[p]=\$0; p=p+1}
+	END{for (i=1; i<p; ++i) print a[i];}" "$tmpfile" >> $tmpfile2
+# awk "/^$chosen$/{p=1;print;next} p&&/^$eps1/{p=0};p" "$tmpfile" >> $tmpfile2
+st -e "$EDITOR" "$tmpfile2"
