@@ -7,6 +7,11 @@ st.font: Monospace-11;
 ! st.termname: st-256color
 ! st.borderpx: 2
 
+!! Set the background, foreground and cursor colors as below:
+*.background: #282828
+*.foreground: white
+*.cursorColor: white
+
 /* !! gruvbox: */
 /* *.color0: #1d2021 */
 /* *.color1: #cc241d */
