@@ -1,0 +1,319 @@
+diff --git a/config.def.h b/config.def.h
+index 0e01717..021bcdd 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -178,6 +178,7 @@ static Shortcut shortcuts[] = {
+ 	{ TERMMOD,              XK_Y,           selpaste,       {.i =  0} },
+ 	{ ShiftMask,            XK_Insert,      selpaste,       {.i =  0} },
+ 	{ TERMMOD,              XK_Num_Lock,    numlock,        {.i =  0} },
++	{ TERMMOD,              XK_Escape,      keyboard_select,{ 0 } },
+ };
+ 
+ /*
+diff --git a/st.c b/st.c
+index b8e6077..1ad0f22 100644
+--- a/st.c
++++ b/st.c
+@@ -16,6 +16,8 @@
+ #include <termios.h>
+ #include <unistd.h>
+ #include <wchar.h>
++#include <X11/keysym.h>
++#include <X11/X.h>
+ 
+ #include "st.h"
+ #include "win.h"
+@@ -2481,6 +2483,9 @@ tresize(int col, int row)
+ 	int *bp;
+ 	TCursor c;
+ 
++	if ( row < term.row  || col < term.col )
++        toggle_winmode(trt_kbdselect(XK_Escape, NULL, 0));
++
+ 	if (col < 1 || row < 1) {
+ 		fprintf(stderr,
+ 		        "tresize: error resizing to %dx%d\n", col, row);
+@@ -2602,3 +2607,220 @@ redraw(void)
+ 	tfulldirt();
+ 	draw();
+ }
++
++void set_notifmode(int type, KeySym ksym) {
++    static char *lib[] = { " MOVE ", " SEL  "};
++    static Glyph *g, *deb, *fin;
++    static int col, bot;
++
++    if ( ksym == -1 ) {
++        free(g);
++        col = term.col, bot = term.bot;
++        g = xmalloc(col * sizeof(Glyph));
++        memcpy(g, term.line[bot], col * sizeof(Glyph));
++    
++    }
++    else if ( ksym == -2 )
++        memcpy(term.line[bot], g, col * sizeof(Glyph));
++
++    if ( type < 2 ) {
++        char *z = lib[type];
++        for (deb = &term.line[bot][col - 6], fin = &term.line[bot][col]; deb < fin; z++, deb++)
++            deb->mode = ATTR_REVERSE,
++            deb->u = *z,
++            deb->fg = defaultfg, deb->bg = defaultbg;
++    }
++    else if ( type < 5 )
++        memcpy(term.line[bot], g, col * sizeof(Glyph));
++    else {
++        for (deb = &term.line[bot][0], fin = &term.line[bot][col]; deb < fin; deb++)
++            deb->mode = ATTR_REVERSE,
++            deb->u = ' ',
++            deb->fg = defaultfg, deb->bg = defaultbg;
++        term.line[bot][0].u = ksym;
++    }
++
++    term.dirty[bot] = 1;
++    drawregion(0, bot, col, bot + 1);
++}
++
++void select_or_drawcursor(int selectsearch_mode, int type) {
++    int done = 0;
++
++    if ( selectsearch_mode & 1 ) {
++        selextend(term.c.x, term.c.y, type, done);
++        xsetsel(getsel());
++    }
++    else
++        xdrawcursor(term.c.x, term.c.y, term.line[term.c.y][term.c.x],
++                    term.ocx, term.ocy, term.line[term.ocy][term.ocx]);
++}
++
++void search(int selectsearch_mode, Rune *target, int ptarget, int incr, int type, TCursor *cu) {
++    Rune *r;
++    int i, bound = (term.col * cu->y + cu->x) * (incr > 0) + incr;
++
++    for (i = term.col * term.c.y + term.c.x + incr; i != bound; i += incr) {
++        for (r = target; r - target < ptarget; r++) {
++            if ( *r == term.line[(i + r - target) / term.col][(i + r - target) % term.col].u ) {
++                if ( r - target == ptarget - 1 )     break;
++            } else {
++                r = NULL;
++                break;
++            }
++        }
++        if ( r != NULL )    break;
++    }
++        
++    if ( i != bound ) {
++        term.c.y = i / term.col, term.c.x = i % term.col;
++        select_or_drawcursor(selectsearch_mode, type);
++    }
++}
++
++int trt_kbdselect(KeySym ksym, char *buf, int len) {
++    static TCursor cu;
++    static Rune target[64];
++    static int type = 1, ptarget, in_use;
++    static int sens, quant;
++    static char selectsearch_mode;
++    int i, bound, *xy;
++    
++    
++    if ( selectsearch_mode & 2 ) {
++		if ( ksym == XK_Return ) {
++			selectsearch_mode ^= 2;
++			set_notifmode(selectsearch_mode, -2);
++            if ( ksym == XK_Escape )    ptarget = 0;
++			return 0;
++		}
++        else if ( ksym == XK_BackSpace ) {
++            if ( !ptarget )     return 0;
++            term.line[term.bot][ptarget--].u = ' ';
++		}
++        else if ( len < 1 ) {
++			return 0;
++		}
++        else if ( ptarget == term.col  || ksym == XK_Escape ) {
++            return 0;
++        }
++		else {
++            utf8decode(buf, &target[ptarget++], len);
++            term.line[term.bot][ptarget].u = target[ptarget - 1];
++		}
++
++        if ( ksym != XK_BackSpace )
++            search(selectsearch_mode, &target[0], ptarget, sens, type, &cu);
++
++        term.dirty[term.bot] = 1; 
++        drawregion(0, term.bot, term.col, term.bot + 1);
++        return 0;
++    }
++
++    switch ( ksym ) {
++    case -1 :
++        in_use = 1;
++        cu.x = term.c.x, cu.y = term.c.y;
++        set_notifmode(0, ksym);
++        return MODE_KBDSELECT;
++    case XK_s :
++        if ( selectsearch_mode & 1 )
++            selclear();
++        else
++            selstart(term.c.x, term.c.y, 0);
++        set_notifmode(selectsearch_mode ^= 1, ksym);
++        break;
++    case XK_t :
++        selextend(term.c.x, term.c.y, type ^= 3, i = 0);  /* 2 fois */
++        selextend(term.c.x, term.c.y, type, i = 0);
++        break;
++    case XK_slash :
++    case XK_KP_Divide :
++    case XK_question :
++        ksym &= XK_question;                /* Divide to slash */
++        sens = (ksym == XK_slash) ? -1 : 1;
++        ptarget = 0;
++        set_notifmode(15, ksym);
++        selectsearch_mode ^= 2;
++        break;
++    case XK_Escape :
++        if ( !in_use )  break;
++        selclear();
++    case XK_Return :
++        set_notifmode(4, ksym);
++        term.c.x = cu.x, term.c.y = cu.y;
++        select_or_drawcursor(selectsearch_mode = 0, type);
++        in_use = quant = 0;
++        return MODE_KBDSELECT;
++    case XK_n :
++    case XK_N :
++        if ( ptarget )
++            search(selectsearch_mode, &target[0], ptarget, (ksym == XK_n) ? -1 : 1, type, &cu);
++        break;
++    case XK_BackSpace :
++        term.c.x = 0;
++        select_or_drawcursor(selectsearch_mode, type);
++        break;
++    case XK_dollar :
++        term.c.x = term.col - 1;
++        select_or_drawcursor(selectsearch_mode, type);
++        break;
++    case XK_Home :
++        term.c.x = 0, term.c.y = 0;
++        select_or_drawcursor(selectsearch_mode, type);
++        break;
++    case XK_End :
++        term.c.x = cu.x, term.c.y = cu.y;
++        select_or_drawcursor(selectsearch_mode, type);
++        break;
++    case XK_Page_Up :
++    case XK_Page_Down :
++        term.c.y = (ksym == XK_Prior ) ? 0 : cu.y;
++        select_or_drawcursor(selectsearch_mode, type);
++        break;
++    case XK_exclam :
++        term.c.x = term.col >> 1;
++        select_or_drawcursor(selectsearch_mode, type);
++        break;
++    case XK_asterisk :
++    case XK_KP_Multiply :
++        term.c.x = term.col >> 1;
++    case XK_underscore :
++        term.c.y = cu.y >> 1;
++        select_or_drawcursor(selectsearch_mode, type);
++        break;
++    default :
++        if ( ksym >= XK_0 && ksym <= XK_9 ) {               /* 0-9 keyboard */
++            quant = (quant * 10) + (ksym ^ XK_0);
++            return 0;
++        }
++        else if ( ksym >= XK_KP_0 && ksym <= XK_KP_9 ) {    /* 0-9 numpad */
++            quant = (quant * 10) + (ksym ^ XK_KP_0);
++            return 0;
++        }
++        else if ( ksym == XK_k || ksym == XK_h )
++            i = ksym & 1;
++        else if ( ksym == XK_l || ksym == XK_j )
++            i = ((ksym & 6) | 4) >> 1;
++        else if ( (XK_Home & ksym) != XK_Home || (i = (ksym ^ XK_Home) - 1) > 3 )
++            break;
++
++        xy = (i & 1) ? &term.c.y : &term.c.x;
++        sens = (i & 2) ? 1 : -1;
++        bound = (i >> 1 ^ 1) ? 0 : (i ^ 3) ? term.col - 1 : term.bot;
++
++        if ( quant == 0 )
++            quant++;
++
++        if ( *xy == bound && ((sens < 0 && bound == 0) || (sens > 0 && bound > 0)) )
++            break;
++
++        *xy += quant * sens;
++        if ( *xy < 0 || ( bound > 0 && *xy > bound) )
++            *xy = bound;
++
++        select_or_drawcursor(selectsearch_mode, type);
++    }
++    quant = 0;
++    return 0;
++}
+diff --git a/st.h b/st.h
+index 38c61c4..a76419e 100644
+--- a/st.h
++++ b/st.h
+@@ -109,6 +109,7 @@ size_t utf8encode(Rune, char *);
+ void *xmalloc(size_t);
+ void *xrealloc(void *, size_t);
+ char *xstrdup(char *);
++int trt_kbdselect(KeySym, char *, int);
+ 
+ /* config.h globals */
+ extern char *utmp;
+diff --git a/win.h b/win.h
+index 31f327d..75a2756 100644
+--- a/win.h
++++ b/win.h
+@@ -21,6 +21,7 @@ enum win_mode {
+ 	MODE_NUMLOCK     = 1 << 17,
+ 	MODE_MOUSE       = MODE_MOUSEBTN|MODE_MOUSEMOTION|MODE_MOUSEX10\
+ 	                  |MODE_MOUSEMANY,
++	MODE_KBDSELECT   = 1 << 18,
+ };
+ 
+ void xbell(void);
+@@ -36,3 +37,5 @@ void xsetmode(int, unsigned int);
+ void xsetpointermotion(int);
+ void xsetsel(char *);
+ int xstartdraw(void);
++void toggle_winmode(int);
++void keyboard_select(const Arg *);
+diff --git a/x.c b/x.c
+index 0422421..f5fa3e2 100644
+--- a/x.c
++++ b/x.c
+@@ -1699,6 +1699,13 @@ kpress(XEvent *ev)
+ 		return;
+ 
+ 	len = XmbLookupString(xw.xic, e, buf, sizeof buf, &ksym, &status);
++    if ( IS_SET(MODE_KBDSELECT) ) {
++		if ( match(XK_NO_MOD, e->state) ||
++            (XK_Shift_L | XK_Shift_R) & e->state )
++            win.mode ^= trt_kbdselect(ksym, buf, len);
++		return;
++    }
++
+ 	/* 1. shortcuts */
+ 	for (bp = shortcuts; bp < shortcuts + LEN(shortcuts); bp++) {
+ 		if (ksym == bp->keysym && match(bp->mod, e->state)) {
+@@ -1883,6 +1890,14 @@ usage(void)
+ 	    " [stty_args ...]\n", argv0, argv0);
+ }
+ 
++void toggle_winmode(int flag) {
++        win.mode ^= flag;
++}
++
++void keyboard_select(const Arg *dummy) {
++    win.mode ^= trt_kbdselect(-1, NULL, 0);
++}
++
+ int
+ main(int argc, char *argv[])
+ {
