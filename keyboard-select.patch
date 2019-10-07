@@ -2,14 +2,11 @@ diff --git a/config.h b/config.h
 index 0e01717..021bcdd 100644
 --- a/config.h
 +++ b/config.h
-@@ -178,6 +178,7 @@ static Shortcut shortcuts[] = {
- 	{ TERMMOD,              XK_Y,           selpaste,       {.i =  0} },
- 	{ ShiftMask,            XK_Insert,      selpaste,       {.i =  0} },
- 	{ TERMMOD,              XK_Num_Lock,    numlock,        {.i =  0} },
+@@ -225,3 +225,4 @@ static Shortcut shortcuts[] = {
+ 	/* mask                 keysym          function        argument */
+ 	{ XK_ANY_MOD,           XK_Break,       sendbreak,      {.i =  0} },
+ 	{ ControlMask,          XK_Print,       toggleprinter,  {.i =  0} },
 +	{ TERMMOD,              XK_Escape,      keyboard_select,{ 0 } },
- };
- 
- /*
 diff --git a/st.c b/st.c
 index b8e6077..1ad0f22 100644
 --- a/st.c
