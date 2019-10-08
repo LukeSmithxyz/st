@@ -259,7 +259,8 @@ diff --git a/st.h b/st.h
 index 38c61c4..a76419e 100644
 --- a/st.h
 +++ b/st.h
-@@ -109,6 +109,7 @@ size_t utf8encode(Rune, char *);
+@@ -118,7 +118,8 @@ size_t utf8encode(Rune, char *);
+ 
  void *xmalloc(size_t);
  void *xrealloc(void *, size_t);
  char *xstrdup(char *);
