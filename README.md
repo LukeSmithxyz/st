@@ -28,6 +28,7 @@ The [suckless terminal (st)](https://st.suckless.org/) with some additional feat
 + Scrollback
 + font2
 + updated to latest version 0.8.2
++ [modified version](keyboard-select.patch) of [keyboard select](https://st.suckless.org/patches/keyboard_select/)
 
 ## Installation for newbs
 
