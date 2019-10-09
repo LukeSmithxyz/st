@@ -307,7 +307,17 @@ diff --git a/x.c b/x.c
 index 0422421..f5fa3e2 100644
 --- a/x.c
 +++ b/x.c
-@@ -1699,6 +1699,13 @@ kpress(XEvent *ev)
+@@ -1869,16 +1869,23 @@ kpress(XEvent *ev)
+ {
+ 	XKeyEvent *e = &ev->xkey;
+ 	KeySym ksym;
+ 	char buf[32], *customkey;
+ 	int len;
+ 	Rune c;
+ 	Status status;
+ 	Shortcut *bp;
+ 
+ 	if (IS_SET(MODE_KBDLOCK))
  		return;
  
  	len = XmbLookupString(xw.xic, e, buf, sizeof buf, &ksym, &status);
@@ -321,7 +331,15 @@ index 0422421..f5fa3e2 100644
  	/* 1. shortcuts */
  	for (bp = shortcuts; bp < shortcuts + LEN(shortcuts); bp++) {
  		if (ksym == bp->keysym && match(bp->mod, e->state)) {
-@@ -1883,6 +1890,14 @@ usage(void)
+@@ -2107,14 +2114,22 @@ usage(void)
+ {
+ 	die("usage: %s [-aiv] [-c class] [-f font] [-g geometry]"
+ 	    " [-n name] [-o file]\n"
+ 	    "          [-T title] [-t title] [-w windowid]"
+ 	    " [[-e] command [args ...]]\n"
+ 	    "       %s [-aiv] [-c class] [-f font] [-g geometry]"
+ 	    " [-n name] [-o file]\n"
+ 	    "          [-T title] [-t title] [-w windowid] -l line"
  	    " [stty_args ...]\n", argv0, argv0);
  }
  
