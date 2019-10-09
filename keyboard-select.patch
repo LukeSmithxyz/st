@@ -22,11 +22,7 @@ index b8e6077..1ad0f22 100644
  
  #include "st.h"
  #include "win.h"
-@@ -2617,10 +2619,13 @@ tresize(int col, int row)
- {
- 	int i, j;
- 	int minrow = MIN(row, term.row);
- 	int mincol = MIN(col, term.col);
+@@ -2622,6 +2624,9 @@ tresize(int col, int row)
  	int *bp;
  	TCursor c;
  
@@ -36,7 +32,7 @@ index b8e6077..1ad0f22 100644
  	if (col < 1 || row < 1) {
  		fprintf(stderr,
  		        "tresize: error resizing to %dx%d\n", col, row);
-@@ -2751,3 +2756,220 @@ redraw(void)
+@@ -2752,3 +2757,220 @@ redraw(void)
  	tfulldirt();
  	draw();
  }
