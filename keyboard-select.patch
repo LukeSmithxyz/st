@@ -2,11 +2,13 @@ diff --git a/config.h b/config.h
 index 0e01717..021bcdd 100644
 --- a/config.h
 +++ b/config.h
-@@ -225,3 +225,4 @@ static Shortcut shortcuts[] = {
+@@ -226,5 +226,6 @@ static Shortcut shortcuts[] = {
  	/* mask                 keysym          function        argument */
  	{ XK_ANY_MOD,           XK_Break,       sendbreak,      {.i =  0} },
  	{ ControlMask,          XK_Print,       toggleprinter,  {.i =  0} },
 +	{ TERMMOD,              XK_Escape,      keyboard_select,{ 0 } },
+ 	{ ShiftMask,            XK_Print,       printscreen,    {.i =  0} },
+ 	{ XK_ANY_MOD,           XK_Print,       printsel,       {.i =  0} },
 diff --git a/st.c b/st.c
 index b8e6077..1ad0f22 100644
 --- a/st.c
