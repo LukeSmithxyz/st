@@ -366,7 +366,7 @@ char
 base64dec_getc(const char **src)
 {
 	while (**src && !isprint(**src)) (*src)++;
-	return *((*src)++);
+	return **src ? *((*src)++) : '=';  /* emulate padding if string ends */
 }
 
 char *
@@ -383,6 +383,10 @@ base64dec(const char *src)
 		int b = base64_digits[(unsigned char) base64dec_getc(&src)];
 		int c = base64_digits[(unsigned char) base64dec_getc(&src)];
 		int d = base64_digits[(unsigned char) base64dec_getc(&src)];
+
+		/* invalid input. 'a' can be -1, e.g. if src is "\n" (c-str) */
+		if (a == -1 || b == -1)
+			break;
 
 		*dst++ = (a << 2) | ((b & 0x30) >> 4);
 		if (c == -1)
