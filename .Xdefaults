@@ -122,3 +122,22 @@ st.font: Monospace-11;
 /* *.color13:  #ff00ff */
 /* *.color14:  #00ffff */
 /* *.color15:  #aabac8 */
+
+/* !! one */
+/* *.color0: #353a44*/
+/* *.color1: #e88388*/
+/* *.color2: #a7cc8c*/
+/* *.color3: #ebca8d*/
+/* *.color4: #72bef2*/
+/* *.color5: #d291e4*/
+/* *.color6: #65c2cd*/
+/* *.color7: #e3e5e9*/
+/* *.color8: #353a44*/
+/* *.color9: #e88388*/
+/* *.color10: #a7cc8c*/
+/* *.color11: #ebca8d*/
+/* *.color12: #72bef2*/
+/* *.color13: #d291e4*/
+/* *.color14: #65c2cd*/
+/* *.color15: #e3e5e9*/
+
