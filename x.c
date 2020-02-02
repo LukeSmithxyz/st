@@ -97,6 +97,8 @@ typedef struct {
 	struct {
 		XIM xim;
 		XIC xic;
+		XPoint spot;
+		XVaNestedList spotlist;
 	} ime;
 	Draw draw;
 	Visual *vis;
@@ -1042,6 +1044,9 @@ ximopen(Display *dpy)
 	                   XNClientWindow, xw.win, XNFocusWindow, xw.win, NULL);
 	if (xw.xic == NULL)
 		die("XCreateIC failed. Could not obtain input method.\n");
+
+	xw.ime.spotlist = XVaCreateNestedList(0, XNSpotLocation, &xw.ime.spot,
+	                                      NULL);
 }
 
 void
@@ -1058,6 +1063,7 @@ ximdestroy(XIM xim, XPointer client, XPointer call)
 	xw.ime.xim = NULL;
 	XRegisterIMInstantiateCallback(xw.dpy, NULL, NULL, NULL,
 					ximinstantiate, NULL);
+	XFree(xw.ime.spotlist);
 }
 
 void
@@ -1603,11 +1609,13 @@ xfinishdraw(void)
 void
 xximspot(int x, int y)
 {
-	XPoint spot = { borderpx + x * win.cw, borderpx + (y + 1) * win.ch };
-	XVaNestedList attr = XVaCreateNestedList(0, XNSpotLocation, &spot, NULL);
+	if (xw.ime.xic == NULL)
+		return;
 
-	XSetICValues(xw.xic, XNPreeditAttributes, attr, NULL);
-	XFree(attr);
+	xw.ime.spot.x = borderpx + x * win.cw;
+	xw.ime.spot.y = borderpx + (y + 1) * win.ch;
+
+	XSetICValues(xw.ime.xic, XNPreeditAttributes, xw.ime.spotlist, NULL);
 }
 
 void
