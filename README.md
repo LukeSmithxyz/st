@@ -70,6 +70,10 @@ To be clear about the color settings:
 
 Note that when you run `wal`, it will negate the transparency of existing windows, but new windows will continue with the previously defined transparency.
 
+## Crashing error
+
+If st crashes when viewing emojis, install `[libxft-bgra](https://aur.archlinux.org/packages/libxft-bgra/)` from the AUR.
+
 ## Contact
 
 - Luke Smith <luke@lukesmith.xyz>
