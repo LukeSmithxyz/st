@@ -1061,6 +1061,7 @@ void
 ximdestroy(XIM xim, XPointer client, XPointer call)
 {
 	xw.ime.xim = NULL;
+	xw.ime.xic = NULL;
 	XRegisterIMInstantiateCallback(xw.dpy, NULL, NULL, NULL,
 					ximinstantiate, NULL);
 	XFree(xw.ime.spotlist);
@@ -1692,13 +1693,15 @@ focus(XEvent *ev)
 		return;
 
 	if (ev->type == FocusIn) {
-		XSetICFocus(xw.ime.xic);
+		if (xw.ime.xic)
+			XSetICFocus(xw.ime.xic);
 		win.mode |= MODE_FOCUSED;
 		xseturgency(0);
 		if (IS_SET(MODE_FOCUS))
 			ttywrite("\033[I", 3, 0);
 	} else {
-		XUnsetICFocus(xw.ime.xic);
+		if (xw.ime.xic)
+			XUnsetICFocus(xw.ime.xic);
 		win.mode &= ~MODE_FOCUSED;
 		if (IS_SET(MODE_FOCUS))
 			ttywrite("\033[O", 3, 0);
