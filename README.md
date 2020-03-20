@@ -20,7 +20,7 @@ The [suckless terminal (st)](https://st.suckless.org/) with some additional feat
 + Compatibility with `Xresources` and `pywal` for dynamic colors. The `Xdefaults` file shows a usage example.
 + Default [gruvbox](https://github.com/morhetz/gruvbox) colors otherwise.
 + Transparency/alpha, which is also adjustable from your `Xresources`.
-+ Default font is system "mono" at 16pt, meaning the font will match your system font.
++ Default font is system "mono" at 14pt, meaning the font will match your system font.
 
 ## Other st patches
 
@@ -70,9 +70,11 @@ To be clear about the color settings:
 
 Note that when you run `wal`, it will negate the transparency of existing windows, but new windows will continue with the previously defined transparency.
 
-## Crashing error
+## Notes on Emojis and Special Characters
 
-If st crashes when viewing emojis, install `[libxft-bgra](https://aur.archlinux.org/packages/libxft-bgra/)` from the AUR.
+If st crashes when viewing emojis, install [libxft-bgra](https://aur.archlinux.org/packages/libxft-bgra/) from the AUR.
+
+Note that some special characters may appear truncated if too wide. You might want to manually set your prefered emoji/special character font to a lower size in the `config.h` file to avoid this. By default, JoyPixels is used at a smaller size than the usual text.
 
 ## Contact
 
