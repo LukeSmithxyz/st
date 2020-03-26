@@ -1,5 +1,6 @@
 !! Transparency (0-1):
 st.alpha: 0.92
+st.alphaUnfocussed: 0.8
 
 !! Set a default font and font size as below:
 st.font: Monospace-11;
