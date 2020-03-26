@@ -132,5 +132,6 @@ extern unsigned int tabspaces;
 extern unsigned int defaultfg;
 extern unsigned int defaultbg;
 extern float alpha;
+extern float alphaUnfocussed;
 extern MouseKey mkeys[];
 extern int ximspot_update_interval;
