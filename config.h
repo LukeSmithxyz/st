@@ -222,11 +222,11 @@ MouseKey mkeys[] = {
 };
 
 static char *openurlcmd[] = { "/bin/sh", "-c",
-    "shopt -s lastpipe; set +m;sed 's/.*│//g' | tr -d '\n' | grep -aEo '(((http|https)://|www\\.)[a-zA-Z0-9.]*[:]?[a-zA-Z0-9./&%?$#=_-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)'| uniq | sed 's/^www./http:\\/\\/www\\./g' | read tmp && echo $tmp | grep -q . && echo $tmp | dmenu -i -p 'Follow which url?' -l 10 | xargs -r xdg-open",
+    "tmp=$(sed 's/.*│//g' | tr -d '\n' | grep -aEo '(((http|https)://|www\\.)[a-zA-Z0-9.]*[:]?[a-zA-Z0-9./&%?$#=_-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)'| uniq | sed 's/^www./http:\\/\\/www\\./g');IFS=; [[ -n $tmp ]] && echo $tmp | dmenu -i -p 'Follow which url?' -l 10 | xargs -r xdg-open",
     "externalpipe", NULL };
 
 static char *copyurlcmd[] = { "/bin/sh", "-c",
-    "shopt -s lastpipe; set +m;sed 's/.*│//g' | tr -d '\n' | grep -aEo '(((http|https)://|www\\.)[a-zA-Z0-9.]*[:]?[a-zA-Z0-9./&%?$#=_-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)' | uniq | sed 's/^www./http:\\/\\/www\\./g' | read tmp && echo $tmp | grep -q . && echo $tmp | dmenu -i -p 'Copy which url?' -l 10 | tr -d '\n' | xclip -selection clipboard",
+    "tmp=$(sed 's/.*│//g' | tr -d '\n' | grep -aEo '(((http|https)://|www\\.)[a-zA-Z0-9.]*[:]?[a-zA-Z0-9./&%?$#=_-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)' | uniq | sed 's/^www./http:\\/\\/www\\./g' ); IFS=; [[ -n $tmp ]] && echo $tmp | dmenu -i -p 'Copy which url?' -l 10 | tr -d '\n' | xclip -selection clipboard",
     "externalpipe", NULL };
 
 static char *copyoutput[] = { "/bin/sh", "-c", "st-copyout", "externalpipe", NULL };
