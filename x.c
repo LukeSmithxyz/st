@@ -171,6 +171,7 @@ static void kpress(XEvent *);
 static void cmessage(XEvent *);
 static void resize(XEvent *);
 static void focus(XEvent *);
+static uint buttonmask(uint);
 static int mouseaction(XEvent *, uint);
 static void brelease(XEvent *);
 static void bpress(XEvent *);
@@ -423,16 +424,30 @@ mousereport(XEvent *e)
 	ttywrite(buf, len, 0);
 }
 
+uint
+buttonmask(uint button)
+{
+	return button == Button1 ? Button1Mask
+	     : button == Button2 ? Button2Mask
+	     : button == Button3 ? Button3Mask
+	     : button == Button4 ? Button4Mask
+	     : button == Button5 ? Button5Mask
+	     : 0;
+}
+
 int
 mouseaction(XEvent *e, uint release)
 {
 	MouseShortcut *ms;
 
+	/* ignore Button<N>mask for Button<N> - it's set on release */
+	uint state = e->xbutton.state & ~buttonmask(e->xbutton.button);
+
 	for (ms = mshortcuts; ms < mshortcuts + LEN(mshortcuts); ms++) {
 		if (ms->release == release &&
 		    ms->button == e->xbutton.button &&
-		    (match(ms->mod, e->xbutton.state) ||  /* exact or forced */
-		     match(ms->mod, e->xbutton.state & ~forcemousemod))) {
+		    (match(ms->mod, state) ||  /* exact or forced */
+		     match(ms->mod, state & ~forcemousemod))) {
 			ms->func(&(ms->arg));
 			return 1;
 		}
