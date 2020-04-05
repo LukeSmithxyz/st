@@ -1,6 +1,6 @@
 # What, why, and how?
 
-+ **What is this fork?** This is a fork of Luke's st build that replaces the [alpha patch](st.suckless.org/patches/alpha/) with the [alphafocushighlighting patch.](st.suckless.org/patches/alpha_focus_highlight/) This build is kept up to date with lukes build and the latest releases for the alphahighlighting patch. If it's not up to date, just make a pull request and I'll merge it when I feel like it, if you're too lazy to make one, just wait for me to upate it.
++ **What is this fork?** This is a fork of Luke's st build that replaces the [alpha patch](https://st.suckless.org/patches/alpha/) with the [alphafocushighlighting patch.](https://st.suckless.org/patches/alpha_focus_highlight/) This build is kept up to date with lukes build and the latest releases for the alphahighlighting patch. If it's not up to date, just make a pull request and I'll merge it when I feel like it, if you're too lazy to make one, just wait for me to upate it.
 
 + **Why does this fork exist?** This fork exists because if you decide not to have big O'l borders and gaps and you use something like unclutter, it can be hard to tell which terminal is currently focused, this makes it easy and pretty. Functionality and looks nice? Impossible.
 
