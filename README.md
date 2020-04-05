@@ -1,3 +1,13 @@
+# What, why, and how?
+
++ **What is this fork?** This is a fork of Luke's st build that replaces the alpha patch with the alphahighlighting patch. This build is kept up to date with lukes build and the latest releases for the alphahighlighting patch. If it's not up to date, just make a pull request and I'll merge it when I feel like it, if you're too lazy to make one, just wait for me to upate it.
+
++ **Why does this fork exist?** This fork exists because if you decide not to have big O'l borders and gaps and you use something like unclutter, it can be hard to tell which terminal is currently focused, this makes it easy and pretty. Functionality and looks nice? Impossible.
+
++ **Why don't you make your own build?** Because Luke's build is almost perfect, link following, etc, etc, but it wasn't exactly what I wanted so i forked it. Another reason is people are always impoving and updating his build, so all I have to do is keep the patch up to date. EzLyfFoMi
+
++ **How do I use this?** Both of the alpha values can be set in the config.h or can be set in .Xresources, so if you do use .Xresources, (please don't use .Xresources) then theres an example in the .Xdefaults file in this repo.
+
 # Luke's build of st - the simple (suckless) terminal
 
 The [suckless terminal (st)](https://st.suckless.org/) with some additional features that make it literally the best terminal emulator ever:
@@ -53,7 +63,8 @@ For example, you can define your desired fonts, transparency or colors:
 
 ```
 *.font:	Liberation Mono:pixelsize=12:antialias=true:autohint=true;
-*.alpha: 0.9
+*.alpha: 0.92
+st.alphaUnfocussed: 0.8
 *.color0: #111
 ...
 ```
