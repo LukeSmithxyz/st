@@ -220,3 +220,13 @@ st-meta-256color| simpleterm with meta key and 256 colors,
 	smm=\E[?1034h,
 	rs2=\E[4l\E>\E[?1034h,
 	is2=\E[4l\E>\E[?1034h,
+
+st-bs| simpleterm with backspace as backspace,
+	use=st,
+	kbs=\010,
+	kdch1=\177,
+
+st-bs-256color| simpleterm with backspace as backspace and 256colors,
+	use=st-256color,
+	kbs=\010,
+	kdch1=\177,
