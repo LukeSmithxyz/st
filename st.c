@@ -830,7 +830,6 @@ ttyread(void)
 
 	switch (ret) {
 	case 0:
-		fputs("found EOF in input\n", stderr);
 		exit(0);
 	case -1:
 		die("couldn't read from shell: %s\n", strerror(errno));
