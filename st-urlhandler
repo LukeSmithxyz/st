@@ -1,0 +1,15 @@
+#!/bin/sh
+
+urlregex="(((http|https)://|www\\.)[a-zA-Z0-9.]*[:]?[a-zA-Z0-9./@&%?$#=_-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)"
+
+# First remove linebreaks and mutt sidebars:
+urls="$(sed 's/.*│//g' | tr -d '\n' |
+	grep -aEo "$urlregex" | # grep only urls as defined above.
+	uniq | # Ignore neighboring duplicates.
+	sed 's/^www./http:\/\/www\./g')"
+
+[ -z "$urls" ] && exit
+
+chosen="$(echo "$urls" | dmenu -w "$(xdotool getactivewindow)" -i -p 'Follow which url?' -l 10)"
+
+setsid xdg-open "$chosen" >/dev/null 2>&1 &
