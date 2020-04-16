@@ -10,6 +10,6 @@ urls="$(sed 's/.*│//g' | tr -d '\n' |
 
 [ -z "$urls" ] && exit
 
-chosen="$(echo "$urls" | dmenu -w "$(xdotool getactivewindow)" -i -p 'Follow which url?' -l 10)"
+chosen="$(echo "$urls" | dmenu -i -p 'Follow which url?' -l 10)"
 
 setsid xdg-open "$chosen" >/dev/null 2>&1 &
