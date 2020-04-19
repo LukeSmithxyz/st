@@ -2571,6 +2571,7 @@ void
 drawregion(int x1, int y1, int x2, int y2)
 {
 	int y;
+
 	for (y = y1; y < y2; y++) {
 		if (!term.dirty[y])
 			continue;
@@ -2583,7 +2584,7 @@ drawregion(int x1, int y1, int x2, int y2)
 void
 draw(void)
 {
-	int cx = term.c.x;
+	int cx = term.c.x, ocx = term.ocx, ocy = term.ocy;
 
 	if (!xstartdraw())
 		return;
@@ -2599,9 +2600,11 @@ draw(void)
 	drawregion(0, 0, term.col, term.row);
 	xdrawcursor(cx, term.c.y, term.line[term.c.y][cx],
 			term.ocx, term.ocy, term.line[term.ocy][term.ocx]);
-	term.ocx = cx, term.ocy = term.c.y;
+	term.ocx = cx;
+	term.ocy = term.c.y;
 	xfinishdraw();
-	xximspot(term.ocx, term.ocy);
+	if (ocx != term.ocx || ocy != term.ocy)
+		xximspot(term.ocx, term.ocy);
 }
 
 void
