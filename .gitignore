@@ -1,6 +1,5 @@
 st
-st.o
-x.o
+*.o
 pkg/
 *.pkg.tar.xz
 patches
