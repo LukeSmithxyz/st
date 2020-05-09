@@ -1528,6 +1528,7 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 		switch (win.cursor) {
 		case 7: /* st extension: snowman (U+2603) */
 			g.u = 0x2603;
+			/* FALLTHROUGH */
 		case 0: /* Blinking Block */
 		case 1: /* Blinking Block (Default) */
 		case 2: /* Steady Block */
