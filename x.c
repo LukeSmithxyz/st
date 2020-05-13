@@ -832,6 +832,13 @@ xclear(int x1, int y1, int x2, int y2)
 }
 
 void
+xclearwin(void)
+{
+	xclear(0, 0, win.w, win.h);
+}
+
+
+void
 xhints(void)
 {
 	XClassHint class = {opt_name ? opt_name : "st",
