@@ -43,7 +43,7 @@ Obviously, `make` is required to build. `fontconfig` is required for the default
 
 On OpenBSD, be sure to edit `config.mk` first and remove `-lrt` from the `$LIBS` before compiling.
 
-Be sure to have a composite manager (`xcompmgr`, `compton`, etc.) running if you want transparency.
+Be sure to have a composite manager (`xcompmgr`, `picom`, etc.) running if you want transparency.
 
 ## How to configure dynamically with Xresources
 
