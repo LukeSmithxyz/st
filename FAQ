@@ -2,11 +2,13 @@
 
 Use the excellent tool of [utmp](https://git.suckless.org/utmp/) for this task.
 
+
 ## Some _random program_ complains that st is unknown/not recognised/unsupported/whatever!
 
 It means that st doesn’t have any terminfo entry on your system. Chances are
 you did not `make install`. If you just want to test it without installing it,
 you can manually run `tic -sx st.info`.
+
 
 ## Nothing works, and nothing is said about an unknown terminal!
 
@@ -14,6 +16,7 @@ you can manually run `tic -sx st.info`.
   terminfo. What you see is the current state of the “xterm compliance”.
 * Some programs don’t complain about the lacking st description and default to
   another terminal. In that case see the question about terminfo.
+
 
 ## How do I scroll back up?
 
@@ -23,10 +26,12 @@ you can manually run `tic -sx st.info`.
 * Using the excellent tool of [scroll](https://git.suckless.org/scroll/).
 * Using the scrollback [patch](https://st.suckless.org/patches/scrollback/).
 
+
 ## I would like to have utmp and/or scroll functionality by default
 
 You can add the absolute patch of both programs in your config.h
 file. You only have to modify the value of utmp and scroll variables.
+
 
 ## Why doesn't the Del key work in some programs?
 
@@ -83,11 +88,13 @@ If you are using zsh, then read the zsh FAQ
 
 Putting these lines into your .zshrc will fix the problems.
 
+
 ## How can I use meta in 8bit mode?
 
 St supports meta in 8bit mode, but the default terminfo entry doesn't
 use this capability. If you want it, you have to use the 'st-meta' value
 in TERM.
+
 
 ## I cannot compile st in OpenBSD
 
@@ -96,6 +103,7 @@ OpenBSD lacks librt, despite it being mandatory in POSIX
 If you want to compile st for OpenBSD you have to remove -lrt from config.mk, and
 st will compile without any loss of functionality, because all the functions are
 included in libc on this platform.
+
 
 ## The Backspace Case
 
@@ -158,19 +166,60 @@ terminal users wants its backspace to be how he feels it:
 	[1] http://www.ibb.net/~anne/keyboard.html
 	[2] http://www.tldp.org/HOWTO/Keyboard-and-Console-HOWTO-5.html
 
+
 ## But I really want the old grumpy behaviour of my terminal
 
 Apply [1].
 
 [1] https://st.suckless.org/patches/delkey
 
-## Why do images not work in st (in programs such as w3m)?
 
-This is a terrible hack that overdraws an image on top of the terminal emulator
-window. It also relies on a very specific way the terminal draws it's contents.
+## Why do images not work in st using the w3m image hack?
 
-A more proper (but limited way) would be using sixels. Which st doesn't
-support.
+w3mimg uses a hack that draws an image on top of the terminal emulator Drawable
+window. The hack relies on the terminal to use a single buffer to draw its
+contents directly.
+
+st uses double-buffered drawing so the image is quickly replaced and may show a
+short flicker effect.
+
+Below is a patch example to change st double-buffering to a single Drawable
+buffer.
+
+diff --git a/x.c b/x.c
+--- a/x.c
++++ b/x.c
+@@ -561,10 +561,6 @@ xresize(int col, int row)
+ 	win.tw = MAX(1, col * win.cw);
+ 	win.th = MAX(1, row * win.ch);
+ 
+-	XFreePixmap(xw.dpy, xw.buf);
+-	xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h,
+-			DefaultDepth(xw.dpy, xw.scr));
+-	XftDrawChange(xw.draw, xw.buf);
+ 	xclear(0, 0, win.w, win.h);
+ }
+ 
+@@ -921,8 +917,7 @@ xinit(void)
+ 	gcvalues.graphics_exposures = False;
+ 	dc.gc = XCreateGC(xw.dpy, parent, GCGraphicsExposures,
+ 			&gcvalues);
+-	xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h,
+-			DefaultDepth(xw.dpy, xw.scr));
++	xw.buf = xw.win;
+ 	XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
+ 	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
+ 
+@@ -1386,8 +1381,6 @@ void
+ draw(void)
+ {
+ 	drawregion(0, 0, term.col, term.row);
+-	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, win.w,
+-			win.h, 0, 0);
+ 	XSetForeground(xw.dpy, dc.gc,
+ 			dc.col[IS_SET(MODE_REVERSE)?
+ 				defaultfg : defaultbg].pixel);
+
 
 ## BadLength X error in Xft when trying to render emoji
 
