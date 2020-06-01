@@ -189,18 +189,18 @@ buffer.
 diff --git a/x.c b/x.c
 --- a/x.c
 +++ b/x.c
-@@ -561,10 +561,6 @@ xresize(int col, int row)
- 	win.tw = MAX(1, col * win.cw);
- 	win.th = MAX(1, row * win.ch);
+@@ -732,10 +732,6 @@ xresize(int col, int row)
+ 	win.tw = col * win.cw;
+ 	win.th = row * win.ch;
  
 -	XFreePixmap(xw.dpy, xw.buf);
 -	xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h,
 -			DefaultDepth(xw.dpy, xw.scr));
 -	XftDrawChange(xw.draw, xw.buf);
  	xclear(0, 0, win.w, win.h);
- }
  
-@@ -921,8 +917,7 @@ xinit(void)
+ 	/* resize to new width */
+@@ -1148,8 +1144,7 @@ xinit(int cols, int rows)
  	gcvalues.graphics_exposures = False;
  	dc.gc = XCreateGC(xw.dpy, parent, GCGraphicsExposures,
  			&gcvalues);
@@ -210,10 +210,10 @@ diff --git a/x.c b/x.c
  	XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
  	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
  
-@@ -1386,8 +1381,6 @@ void
- draw(void)
+@@ -1632,8 +1627,6 @@ xdrawline(Line line, int x1, int y1, int x2)
+ void
+ xfinishdraw(void)
  {
- 	drawregion(0, 0, term.col, term.row);
 -	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, win.w,
 -			win.h, 0, 0);
  	XSetForeground(xw.dpy, dc.gc,
