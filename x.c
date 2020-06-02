@@ -814,6 +814,8 @@ xsetcolorname(int x, const char *name)
 
 	XftColorFree(xw.dpy, xw.vis, xw.cmap, &dc.col[x]);
 	dc.col[x] = ncolor;
+	if (x == defaultbg)
+		dc.col[defaultbg].color.alpha = (unsigned short)(0xffff * alpha);
 
 	return 0;
 }
@@ -828,6 +830,13 @@ xclear(int x1, int y1, int x2, int y2)
 			&dc.col[IS_SET(MODE_REVERSE)? defaultfg : defaultbg],
 			x1, y1, x2-x1, y2-y1);
 }
+
+void
+xclearwin(void)
+{
+	xclear(0, 0, win.w, win.h);
+}
+
 
 void
 xhints(void)
