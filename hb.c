@@ -1,13 +1,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <errno.h>
 #include <X11/Xft/Xft.h>
 #include <hb.h>
 #include <hb-ft.h>
 
 #include "st.h"
 
-void hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoints, int start, int length);
+void hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoints, int start, int length, char **userfeats, int numuserfeats);
 hb_font_t *hbfindfont(XftFont *match);
 
 typedef struct {
@@ -56,7 +57,7 @@ hbfindfont(XftFont *match)
 }
 
 void
-hbtransform(XftGlyphFontSpec *specs, const Glyph *glyphs, size_t len, int x, int y)
+hbtransform(XftGlyphFontSpec *specs, const Glyph *glyphs, size_t len, int x, int y, char **userfeats, int numuserfeats)
 {
 	int start = 0, length = 1, gstart = 0;
 	hb_codepoint_t *codepoints = calloc(len, sizeof(hb_codepoint_t));
@@ -68,7 +69,7 @@ hbtransform(XftGlyphFontSpec *specs, const Glyph *glyphs, size_t len, int x, int
 		}
 
 		if (specs[specidx].font != specs[start].font || ATTRCMP(glyphs[gstart], glyphs[idx]) || selected(x + idx, y) != selected(x + gstart, y)) {
-			hbtransformsegment(specs[start].font, glyphs, codepoints, gstart, length);
+			hbtransformsegment(specs[start].font, glyphs, codepoints, gstart, length, userfeats, numuserfeats);
 
 			/* Reset the sequence. */
 			length = 1;
@@ -82,7 +83,7 @@ hbtransform(XftGlyphFontSpec *specs, const Glyph *glyphs, size_t len, int x, int
 	}
 
 	/* EOL. */
-	hbtransformsegment(specs[start].font, glyphs, codepoints, gstart, length);
+	hbtransformsegment(specs[start].font, glyphs, codepoints, gstart, length, userfeats, numuserfeats);
 
 	/* Apply the transformation to glyph specs. */
 	for (int i = 0, specidx = 0; i < len; i++) {
@@ -103,7 +104,7 @@ hbtransform(XftGlyphFontSpec *specs, const Glyph *glyphs, size_t len, int x, int
 }
 
 void
-hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoints, int start, int length)
+hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoints, int start, int length, char **userfeats, int numuserfeats)
 {
 	hb_font_t *font = hbfindfont(xfont);
 	if (font == NULL)
@@ -123,8 +124,23 @@ hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoin
 		hb_buffer_add_codepoints(buffer, &rune, 1, 0, 1);
 	}
 
-	/* Shape the segment. */
-	hb_shape(font, buffer, NULL, 0);
+	/* Prep user features for OpenType tags. */
+	hb_feature_t *ufeats = calloc(numuserfeats, sizeof(hb_feature_t));
+	if (errno == ENOMEM)
+		ufeats = NULL;
+
+	if (ufeats) {
+		for (int i = 0; i < numuserfeats; i++) {
+			ufeats[i].tag = HB_TAG(userfeats[i][0], userfeats[i][1], userfeats[i][2], userfeats[i][3]);
+			ufeats[i].value = 1;
+			ufeats[i].start = HB_FEATURE_GLOBAL_START;
+			ufeats[i].end = HB_FEATURE_GLOBAL_END;
+		}
+	}
+
+	/* Shape the segment and free the calloc'd feature array. */
+	hb_shape(font, buffer, ufeats, ufeats ? numuserfeats : 0);
+	free(ufeats);
 
 	/* Get new glyph info. */
 	hb_glyph_info_t *info = hb_buffer_get_glyph_infos(buffer, NULL);

@@ -10,6 +10,16 @@ static char *font2[] = { "JoyPixels:pixelsize=10:antialias=true:autohint=true" }
 static int borderpx = 2;
 
 /*
+ * Extra font features; generally used for stylistic sets
+ * Ensure numuserfeats is equal to the length of the userfeats array
+ * Note: value will always be set to 1; should be fine for stylistic sets
+ *
+ * Example array for numuserfeats = 3: {"ss02", "ss08", "onum"}
+ */
+static int numuserfeats = 0;
+static char *userfeats[] = {};
+
+/*
  * What program is execed by st depends of these precedence rules:
  * 1: program passed with -e
  * 2: utmp option
