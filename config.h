@@ -16,7 +16,7 @@ static int borderpx = 2;
  *
  * Example array for numuserfeats = 3: {"ss02", "ss08", "onum"}
  */
-static int numuserfeats = 0;
+static size_t numuserfeats = 0;
 static char *userfeats[] = {};
 
 /*
