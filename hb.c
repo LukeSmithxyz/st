@@ -125,6 +125,7 @@ hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoin
 	}
 
 	/* Prep user features for OpenType tags. */
+	errno = 0;
 	hb_feature_t *ufeats = calloc(numuserfeats, sizeof(hb_feature_t));
 	if (errno == ENOMEM)
 		ufeats = NULL;
