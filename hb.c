@@ -8,7 +8,7 @@
 
 #include "st.h"
 
-void hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoints, int start, int length, char **userfeats, int numuserfeats);
+void hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoints, int start, int length, char **userfeats, size_t numuserfeats);
 hb_font_t *hbfindfont(XftFont *match);
 
 typedef struct {
@@ -57,7 +57,7 @@ hbfindfont(XftFont *match)
 }
 
 void
-hbtransform(XftGlyphFontSpec *specs, const Glyph *glyphs, size_t len, int x, int y, char **userfeats, int numuserfeats)
+hbtransform(XftGlyphFontSpec *specs, const Glyph *glyphs, size_t len, int x, int y, char **userfeats, size_t numuserfeats)
 {
 	int start = 0, length = 1, gstart = 0;
 	hb_codepoint_t *codepoints = calloc(len, sizeof(hb_codepoint_t));
@@ -104,7 +104,7 @@ hbtransform(XftGlyphFontSpec *specs, const Glyph *glyphs, size_t len, int x, int
 }
 
 void
-hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoints, int start, int length, char **userfeats, int numuserfeats)
+hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoints, int start, int length, char **userfeats, size_t numuserfeats)
 {
 	hb_font_t *font = hbfindfont(xfont);
 	if (font == NULL)

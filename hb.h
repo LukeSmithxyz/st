@@ -3,4 +3,4 @@
 #include <hb-ft.h>
 
 void hbunloadfonts();
-void hbtransform(XftGlyphFontSpec *, const Glyph *, size_t, int, int, char **, int);
+void hbtransform(XftGlyphFontSpec *, const Glyph *, size_t, int, int, char **, size_t);
