@@ -1565,7 +1565,12 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 			drawboxes(winx, winy, width / len, win.ch, fg, bg, specs, len);
 		} else {
 			/* Render the glyphs. */
-			XftDrawGlyphFontSpec(xw.draw, fg, specs, len);
+			FcBool b = FcFalse;
+			FcPatternGetBool(specs->font->pattern, FC_COLOR, 0, &b);
+			if (!b) {
+				    XftDrawGlyphFontSpec(xw.draw, fg, specs, len);
+			}
+
 		}
 
 		/* Render underline and strikethrough. */
