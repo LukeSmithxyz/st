@@ -1,7 +1,6 @@
 #!/bin/sh
 
-urlregex="(((http|https)://|www\\.)[a-zA-Z0-9.]*[:]?[a-zA-Z0-9./@$&%?$\#=_~-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)"
-
+geturl() {
 # First remove linebreaks and mutt sidebars:
 urls="$(sed 's/.*│//g' | tr -d '\n' |
 	grep -aEo "$urlregex" | # grep only urls as defined above.
@@ -9,7 +8,24 @@ urls="$(sed 's/.*│//g' | tr -d '\n' |
 	sed 's/^www./http:\/\/www\./g')"
 
 [ -z "$urls" ] && exit
+}
 
-chosen="$(echo "$urls" | dmenu -i -p 'Follow which url?' -l 10)"
+openurl() {
+	urlregex="(((http|https)://|www\\.)[a-zA-Z0-9.]*[:]?[a-zA-Z0-9./@$&%?$\#=_~-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)"
+	geturl
+	chosen="$(echo "$urls" | dmenu -i -p 'Follow which url?' -l 10)"
+	setsid xdg-open "$chosen" >/dev/null 2>&1 &
+}
 
-setsid xdg-open "$chosen" >/dev/null 2>&1 &
+copyurl() {
+	urlregex="(((http|https|gopher|gemini|ftp|ftps|git)://|www\\.)[a-zA-Z0-9.]*[:]?[a-zA-Z0-9./@$&%?$\#=_~-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)"
+	geturl
+	echo $urls | dmenu -i -p 'Copy which url?' -l 10 | tr -d '\n' | xclip -selection clipboard
+}
+
+while getopts "hoc" o; do case "${o}" in
+	h) printf "Optional arguments for custom use:\\n  -c: copy\\n  -o: xdg-open\\n  -h: Show this message\\n" && exit 1 ;;
+	o) openurl ;;
+	c) copyurl ;;
+	*) printf "Invalid option: -%s\\n" "$OPTARG" && exit 1 ;;
+esac done
