@@ -5,8 +5,8 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
-static char *font = "mono:pixelsize=14:antialias=true:autohint=true";
-static char *font2[] = { "JoyPixels:pixelsize=10:antialias=true:autohint=true" };
+static char *font = "Fira Code:style=Bold:pixelsize=30:antialias=true:autohint=true";
+static char *font2[] = { "思源黑体 CN HEAVY:STYLE=Heavy:pixelsize=28:antialias=true:autohint=true" };
 static int borderpx = 2;
 
 /*
@@ -111,29 +111,30 @@ unsigned int tabspaces = 8;
 float alpha = 0.8;
 
 /* Terminal colors (16 first used in escape sequence) */
-static const char *colorname[] = {
-	"#282828", /* hard contrast: #1d2021 / soft contrast: #32302f */
-	"#cc241d",
-	"#98971a",
-	"#d79921",
-	"#458588",
-	"#b16286",
-	"#689d6a",
-	"#a89984",
-	"#928374",
-	"#fb4934",
-	"#b8bb26",
-	"#fabd2f",
-	"#83a598",
-	"#d3869b",
-	"#8ec07c",
-	"#ebdbb2",
+static const char *colorname[] ={
+	"#000000", /* black   */
+	"#ff5555", /* red     */
+	"#50fa7b", /* green   */
+	"#f1fa8c", /* yellow  */
+	"#bd93f9", /* blue    */
+	"#ff79c6", /* magenta */
+	"#8be9fd", /* cyan    */
+	"#bbbbbb", /* white   */
+	/* 8 bright colors */
+	"#44475a", /* black   */
+	"#ff5555", /* red     */
+	"#50fa7b", /* green   */
+	"#f1fa8c", /* yellow  */
+	"#bd93f9", /* blue    */
+	"#ff79c6", /* magenta */
+	"#8be9fd", /* cyan    */
+	"#ffffff", /* white   */
 	[255] = 0,
 	/* more colors can be added after 255 to use with DefaultXX */
 	"#add8e6", /* 256 -> cursor */
 	"#555555", /* 257 -> rev cursor*/
-	"#282828", /* 258 -> bg */
-	"#ebdbb2", /* 259 -> fg */
+	"#282a36", /* 258 -> bg */
+	"#f8f8f2", /* 259 -> fg */
 };
 
 
