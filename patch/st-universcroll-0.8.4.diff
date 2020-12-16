@@ -1,0 +1,90 @@
+From 9726b1e58352126252412e101432e64d46fc51ca Mon Sep 17 00:00:00 2001
+From: Dennis Lee <dennis@dennislee.xyz>
+Date: Sun, 28 Jun 2020 23:01:03 -0700
+Subject: [PATCH] universcroll: mouse wheel only scroll in all modes
+
+Scroll normally via scroll(1), without Shift, when outside of
+`MODE_ALTSCREEN`. Inside an alt screen, continue to scroll normally
+without Shift; in this mode, your scrolling is automatically translated
+into ^Y and ^E. It just werks!
+
+Based on the existing mouse-altscreen patch
+https://st.suckless.org/patches/scrollback/
+adapted for st(1) 0.8.4 and scroll(1).
+---
+ config.def.h | 10 +++++-----
+ st.c         |  5 +++++
+ st.h         |  1 +
+ x.c          |  2 ++
+ 4 files changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/config.def.h b/config.def.h
+index 6f05dce..62e87da 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -173,11 +173,11 @@ static uint forcemousemod = ShiftMask;
+  * Beware that overloading Button1 will disable the selection.
+  */
+ static MouseShortcut mshortcuts[] = {
+-	/* mask                 button   function        argument       release */
+-	{ XK_ANY_MOD,           Button2, selpaste,       {.i = 0},      1 },
+-	{ ShiftMask,            Button4, ttysend,        {.s = "\033[5;2~"} },
++	/* mask                 button   function        argument      release alt */
++	{ XK_ANY_MOD,           Button2, selpaste,       {.i = 0},           1 },
++	{ XK_ANY_MOD,           Button4, ttysend,        {.s = "\033[5;2~"}, 0, -1 },
+ 	{ XK_ANY_MOD,           Button4, ttysend,        {.s = "\031"} },
+-	{ ShiftMask,            Button5, ttysend,        {.s = "\033[6;2~"} },
++	{ XK_ANY_MOD,           Button5, ttysend,        {.s = "\033[6;2~"}, 0, -1 },
+ 	{ XK_ANY_MOD,           Button5, ttysend,        {.s = "\005"} },
+ };
+
+diff --git a/st.c b/st.c
+index 76b7e0d..1f65453 100644
+--- a/st.c
++++ b/st.c
+@@ -1047,6 +1047,11 @@ tnew(int col, int row)
+ 	treset();
+ }
+
++int tisaltscr(void)
++{
++	return IS_SET(MODE_ALTSCREEN);
++}
++
+ void
+ tswapscreen(void)
+ {
+diff --git a/st.h b/st.h
+index 3d351b6..39cc054 100644
+--- a/st.h
++++ b/st.h
+@@ -87,6 +87,7 @@ void sendbreak(const Arg *);
+ void toggleprinter(const Arg *);
+
+ int tattrset(int);
++int tisaltscr(void);
+ void tnew(int, int);
+ void tresize(int, int);
+ void tsetdirtattr(int);
+diff --git a/x.c b/x.c
+index 210f184..210dde9 100644
+--- a/x.c
++++ b/x.c
+@@ -34,6 +34,7 @@ typedef struct {
+ 	void (*func)(const Arg *);
+ 	const Arg arg;
+ 	uint  release;
++	int  altscrn;  /* 0: don't care, -1: not alt screen, 1: alt screen */
+ } MouseShortcut;
+
+ typedef struct {
+@@ -446,6 +447,7 @@ mouseaction(XEvent *e, uint release)
+ 	for (ms = mshortcuts; ms < mshortcuts + LEN(mshortcuts); ms++) {
+ 		if (ms->release == release &&
+ 		    ms->button == e->xbutton.button &&
++		    (!ms->altscrn || (ms->altscrn == (tisaltscr() ? 1 : -1))) &&
+ 		    (match(ms->mod, state) ||  /* exact or forced */
+ 		     match(ms->mod, state & ~forcemousemod))) {
+ 			ms->func(&(ms->arg));
+--
+2.27.0
