@@ -31,6 +31,8 @@ The [suckless terminal (st)](https://st.suckless.org/) with some additional feat
 
 ## Installation for newbs
 
+You should have xlib header files and libharfbuzz build files installed.
+
 ```
 git clone https://github.com/LukeSmithxyz/st
 cd st
