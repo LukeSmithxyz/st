@@ -1,6 +1,6 @@
 .TH ST 1 st\-VERSION
 .SH NAME
-st \- simple terminal (Luke Smith (https://lukesmith.xyz)'s build)
+st \- simple terminal
 .SH SYNOPSIS
 .B st
 .RB [ \-aiv ]
@@ -176,10 +176,6 @@ Print the full screen to the
 .B Print Screen
 Print the selection to the
 .I iofile.
-.TP
-.B Alt-Ctrl
-Launch dmenu to enter a unicode codepoint and send the corresponding glyph
-to st.
 .SH CUSTOMIZATION
 .B st
 can be customized by creating a custom config.h and (re)compiling the source
@@ -191,7 +187,7 @@ See the LICENSE file for the terms of redistribution.
 .SH SEE ALSO
 .BR tabbed (1),
 .BR utmp (1),
-.BR stty (1)
+.BR stty (1),
+.BR scroll (1)
 .SH BUGS
 See the TODO file in the distribution.
-

@@ -1,5 +1,4 @@
-st
+patches/
+.gitignore
 *.o
-pkg/
-*.pkg.tar.xz
-patches
+st
