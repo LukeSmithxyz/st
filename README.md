@@ -76,7 +76,8 @@ For example, you can define your desired fonts, transparency or colors:
 ...
 ```
 
-The `alpha` value (for transparency) goes from `0` (transparent) to `1` (opaque).
+The `alpha` value (for transparency) goes from `0` (transparent) to `1`
+(opaque). There is an example `Xdefaults` file in this respository.
 
 ### Colors
 
