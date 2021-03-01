@@ -84,6 +84,7 @@ void die(const char *, ...);
 void redraw(void);
 void draw(void);
 
+void newterm(const Arg *);
 void externalpipe(const Arg *);
 void printscreen(const Arg *);
 void printsel(const Arg *);
@@ -137,3 +138,4 @@ extern unsigned int defaultfg;
 extern unsigned int defaultbg;
 extern float alpha;
 extern const int boxdraw, boxdraw_bold, boxdraw_braille;
+
