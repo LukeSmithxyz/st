@@ -240,6 +240,16 @@ static char *openurlcmd[] = { "/bin/sh", "-c", "st-urlhandler -o", "externalpipe
 static char *copyurlcmd[] = { "/bin/sh", "-c", "st-urlhandler -c", "externalpipe", NULL };
 static char *copyoutput[] = { "/bin/sh", "-c", "st-copyout", "externalpipe", NULL };
 
+const char * visualselectfmt =
+	"win=`xdotool getactivewindow`;"
+	"geom=%u\"x\"%u;"
+	"tmp=`mktemp`;"
+	"cat > $tmp;"
+	"st -w $win -g $geom -e "
+	"vim + +\"set nonumber norelativenumber laststatus=0 buftype=nowrite\" $tmp;"
+	"rm $tmp"
+;
+extern void visualselect();
 
 static Shortcut shortcuts[] = {
 	/* mask                 keysym          function        argument */
@@ -268,6 +278,7 @@ static Shortcut shortcuts[] = {
 	{ MODKEY,               XK_l,           externalpipe,   {.v = openurlcmd } },
 	{ MODKEY,               XK_y,           externalpipe,   {.v = copyurlcmd } },
 	{ MODKEY,               XK_o,           externalpipe,   {.v = copyoutput } },
+	{ Mod1Mask,             XK_Escape,      visualselect,   {0} },
 };
 
 /*

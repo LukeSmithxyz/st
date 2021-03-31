@@ -1991,6 +1991,16 @@ externalpipe(const Arg *arg)
 }
 
 void
+visualselect (void)
+{
+	extern const char * visualselectfmt;
+	char visualselectcmd [200];
+	snprintf (visualselectcmd, 200, visualselectfmt, (term.col + 2) % 10000, (term.row + 1) % 10000);
+
+	externalpipe (& (Arg) {.v = (char * []) { "/bin/sh", "-c", visualselectcmd, NULL }});
+}
+
+void
 strdump(void)
 {
 	size_t i;
