@@ -57,6 +57,7 @@ install: st
 	@echo Please see the README file regarding the terminfo entry of st.
 
 uninstall:
+	$(MAKE) uninstall -C scroll
 	rm -f $(DESTDIR)$(PREFIX)/bin/st
 	rm -f $(DESTDIR)$(PREFIX)/bin/st-copyout
 	rm -f $(DESTDIR)$(PREFIX)/bin/st-urlhandler
