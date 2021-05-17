@@ -9,6 +9,11 @@ features that make it literally the best terminal emulator ever:
 + **copy urls** in the same way with `alt-y`
 + **copy the output of commands** with `alt-o`
 
+Note that in order to have abovementioned features, you need to have dmenu installed.
+Addition to that, if you have already add the `fuzzymatch` patch to your
+dmenu, you should remove all instances of `-i` flag in any `dmenu` command in the
+scripts `st-copyout` and `st-urlhandler`. Otherwise script fails to work.
+
 ## Bindings for
 
 + scroll with `alt-↑/↓` or `alt-pageup/down` or `shift` while scrolling the
