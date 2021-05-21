@@ -47,9 +47,6 @@ sudo make install
 Note that [scroll](https://github.com/lukesmithxyz/scroll) is automatically
 pulled and installed when you make this build of st.
 
-Users of Arch-based distros can also install it from the AUR as
-[st-luke-git](https://aur.archlinux.org/packages/st-luke-git/).
-
 Obviously, `make` is required to build. `fontconfig` is required for the
 default build, since it asks `fontconfig` for your system monospace font.  It
 might be obvious, but `libX11` and `libXft` are required as well. Chances are,
