@@ -5,8 +5,21 @@
  *
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
+<<<<<<< HEAD
 static char *font = "mono:pixelsize=12:antialias=true:autohint=true";
 static char *font2[] = { "JoyPixels:pixelsize=10:antialias=true:autohint=true" };
+=======
+static char *font = "Droid Sans Mono Dotted for Powerline:pixelsize=18:antialias=true:autohint=true";
+/* Spare fonts */
+static char *font2[] = {
+    "Droid Sans Mono Dotted for Powerline:pixelsize=18:antialias=true:autohint=true", // default
+    "Ubuntu Mono derivative Powerline:pixelsize=18:antialias=true:autohint=true", // just a test
+    "Hack Nerd Font:pixelsize=18:antialias=true:autohint=true", // Powerline
+    "IPAGothic:pixelsize=18:antialias=true:autohint=true", // Japanese
+    "Symbola:pixelsize=18:antialias=true:autohint=true" // Unicode
+};
+
+>>>>>>> ccfd2ad (update config)
 static int borderpx = 2;
 
 /*
@@ -88,6 +101,7 @@ static int bellvolume = 0;
 
 /* default TERM value */
 char *termname = "st-256color";
+//char *termname = "xterm-256color";
 
 /*
  * spaces per tab
@@ -107,34 +121,46 @@ char *termname = "st-256color";
 unsigned int tabspaces = 8;
 
 /* bg opacity */
+<<<<<<< HEAD
 float alpha = 0.8;
 float alphaOffset = 0.0;
 float alphaUnfocus;
+=======
+float alpha = 0.88;
+>>>>>>> ccfd2ad (update config)
 
 /* Terminal colors (16 first used in escape sequence) */
 static const char *colorname[] = {
-	"#282828", /* hard contrast: #1d2021 / soft contrast: #32302f */
-	"#cc241d",
-	"#98971a",
-	"#d79921",
-	"#458588",
-	"#b16286",
-	"#689d6a",
-	"#a89984",
-	"#928374",
-	"#fb4934",
-	"#b8bb26",
-	"#fabd2f",
-	"#83a598",
-	"#d3869b",
-	"#8ec07c",
-	"#ebdbb2",
-	[255] = 0,
-	/* more colors can be added after 255 to use with DefaultXX */
+/* hard contrast: #000000 / soft contrast: #32302f */
+
+/* 8 normal colors */
+
+  "#000000", /* black   */
+  "#FF5555", /* red     */
+  "#50FA7B", /* green   */
+  "#f4bf75", /* yellow  */
+  "#bd93f9", /* blue    */
+  "#FF79C6", /* magenta */
+  "#8BE9FD", /* cyan    */
+  "#BFBFBF", /* white   */
+
+/* 8 bright colors */
+
+  "#4D4D4D", /* black   */
+  "#FF6E67", /* red     */
+  "#5AF78E", /* green   */
+  "#F4F99D", /* yellow  */
+  "#CAA9FA", /* blue    */
+  "#FF92D9", /* magenta */
+  "#9AEDFE", /* cyan    */
+  "#E6E6E6", /* white   */
+
+   [255] = 0,
+/* more colors can be added after 255 to use with DefaultXX */
 	"#add8e6", /* 256 -> cursor */
 	"#555555", /* 257 -> rev cursor*/
-	"#282828", /* 258 -> bg */
-	"#ebdbb2", /* 259 -> fg */
+	"#000000", /* 258 -> bg */
+	"#F8F8F2", /* 259 -> fg */
 };
 
 
