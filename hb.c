@@ -18,8 +18,8 @@
  * latter to enable the (selected) font features.
  */
 
-//hb_feature_t features[] = { 0 };
-hb_feature_t features[] = { FEATURE('s','s','0','1'), FEATURE('s','s','0','2'), FEATURE('s','s','0','3'), FEATURE('s','s','0','5'), FEATURE('s','s','0','6'), FEATURE('s','s','0','7'), FEATURE('s','s','0','8'), FEATURE('z','e','r','o') };
+hb_feature_t features[] = { 0 };
+//hb_feature_t features[] = { FEATURE('s','s','0','1'), FEATURE('s','s','0','2'), FEATURE('s','s','0','3'), FEATURE('s','s','0','5'), FEATURE('s','s','0','6'), FEATURE('s','s','0','7'), FEATURE('s','s','0','8'), FEATURE('z','e','r','o') };
 
 void hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoints, int start, int length);
 hb_font_t *hbfindfont(XftFont *match);
@@ -73,7 +73,6 @@ void
 hbtransform(XftGlyphFontSpec *specs, const Glyph *glyphs, size_t len, int x, int y)
 {
 	int start = 0, length = 1, gstart = 0;
-	//hb_codepoint_t *codepoints = calloc(len, sizeof(hb_codepoint_t));
 	hb_codepoint_t *codepoints = calloc((unsigned int)len, sizeof(hb_codepoint_t));
 
 	for (int idx = 1, specidx = 1; idx < len; idx++) {
@@ -139,7 +138,6 @@ hbtransformsegment(XftFont *xfont, const Glyph *string, hb_codepoint_t *codepoin
 	}
 
 	/* Shape the segment. */
-	//hb_shape(font, buffer, NULL, 0);
 	hb_shape(font, buffer, features, sizeof(features));
 
 	/* Get new glyph info. */
