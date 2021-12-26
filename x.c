@@ -800,6 +800,19 @@ xloadcols(void)
 }
 
 int
+xgetcolor(int x, unsigned char *r, unsigned char *g, unsigned char *b)
+{
+	if (!BETWEEN(x, 0, dc.collen))
+		return 1;
+
+	*r = dc.col[x].color.red >> 8;
+	*g = dc.col[x].color.green >> 8;
+	*b = dc.col[x].color.blue >> 8;
+
+	return 0;
+}
+
+int
 xsetcolorname(int x, const char *name)
 {
 	Color ncolor;
