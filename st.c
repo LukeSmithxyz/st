@@ -1960,10 +1960,10 @@ strhandle(void)
 				break;
 			p = strescseq.args[2];
 			/* FALLTHROUGH */
-		case 104: /* color reset, here p = NULL */
+		case 104: /* color reset */
 			j = (narg > 1) ? atoi(strescseq.args[1]) : -1;
 
-			if (!strcmp(p, "?"))
+			if (p && !strcmp(p, "?"))
 				osc4_color_response(j);
 			else if (xsetcolorname(j, p)) {
 				if (par == 104 && narg <= 1)
