@@ -415,7 +415,7 @@ mousereport(XEvent *e)
 
 	if (!IS_SET(MODE_MOUSEX10)) {
 		code += ((state & ShiftMask  ) ?  4 : 0)
-		      + ((state & Mod4Mask   ) ?  8 : 0)
+		      + ((state & Mod1Mask   ) ?  8 : 0) /* meta key: alt */
 		      + ((state & ControlMask) ? 16 : 0);
 	}
 
