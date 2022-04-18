@@ -2,3 +2,4 @@ patches/
 .gitignore
 *.o
 st
+*.orig
