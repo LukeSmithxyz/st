@@ -30,6 +30,7 @@ STLDFLAGS = $(LIBS) $(LDFLAGS)
 #LIBS = -L$(X11LIB) -lm -lX11 -lutil -lXft \
 #       `$(PKG_CONFIG) --libs fontconfig` \
 #       `$(PKG_CONFIG) --libs freetype2`
+#MANPREFIX = ${PREFIX}/man
 
 # compiler and linker
 # CC = c99
