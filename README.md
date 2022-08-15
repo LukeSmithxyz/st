@@ -32,7 +32,7 @@ features that make it literally the best terminal emulator ever:
 + Boxdraw
 + Ligatures
 + font2
-+ updated to latest version 0.8.4
++ updated to latest version 0.8.5
 
 ## Installation for newbs
 
