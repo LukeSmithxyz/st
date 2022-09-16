@@ -248,3 +248,6 @@ fonts:
 
 Please don't bother reporting this bug to st, but notify the upstream Xft
 developers about fixing this bug.
+
+As of 2022-09-05 this now seems to be finally fixed in libXft 2.3.5:
+https://gitlab.freedesktop.org/xorg/lib/libxft/-/blob/libXft-2.3.5/NEWS
