@@ -410,7 +410,6 @@ mousesel(XEvent *e, int done)
 void
 mousereport(XEvent *e)
 {
-    int code;
 	int len, x = evcol(e), y = evrow(e),
 	    button = e->xbutton.button, state = e->xbutton.state;
 	char buf[40];
@@ -459,11 +458,11 @@ mousereport(XEvent *e)
 
 	if (IS_SET(MODE_MOUSESGR)) {
 		len = snprintf(buf, sizeof(buf), "\033[<%d;%d;%d%c",
-				code, x+1, y+1,
+				button, x+1, y+1,
 				e->type == ButtonRelease ? 'm' : 'M');
 	} else if (x < 223 && y < 223) {
 		len = snprintf(buf, sizeof(buf), "\033[M%c%c%c",
-				32+code, 32+x+1, 32+y+1);
+				32+button, 32+x+1, 32+y+1);
 	} else {
 		return;
 	}
