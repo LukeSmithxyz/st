@@ -8,4 +8,4 @@ Categories=System;TerminalEmulator;
 Name=st
 GenericName=Terminal
 Comment=st is a simple terminal implementation for X
-StartupWMClass=xterm-256color
+StartupWMClass=st-256color
