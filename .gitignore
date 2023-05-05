@@ -3,3 +3,4 @@ patches/
 *.o
 st
 *.orig
+Makefile.rej

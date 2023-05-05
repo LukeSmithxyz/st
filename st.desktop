@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Exec=st
+TryExec=st
+Icon=utilities-terminal
+Terminal=false
+Categories=System;TerminalEmulator;
+Name=st
+GenericName=Terminal
+Comment=st is a simple terminal implementation for X
+StartupWMClass=st-256color
