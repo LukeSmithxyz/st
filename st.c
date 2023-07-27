@@ -2100,8 +2100,8 @@ externalpipe(const Arg *arg)
 		lastpos = MIN(tlinehistlen(n) + 1, term.col) - 1;
 		if (lastpos < 0)
 			break;
-        if (lastpos == 0)
-            continue;
+		if (lastpos == 0)
+			continue;
 		end = &bp[lastpos + 1];
 		for (; bp < end; ++bp)
 			if (xwrite(to[1], buf, utf8encode(bp->u, buf)) < 0)
