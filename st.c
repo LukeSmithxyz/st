@@ -280,8 +280,6 @@ xrealloc(void *p, size_t len)
 char *
 xstrdup(const char *s)
 {
-	if ((s = strdup(s)) == NULL)
-		die("strdup: %s\n", strerror(errno));
 	char *p;
 
 	if ((p = strdup(s)) == NULL)
