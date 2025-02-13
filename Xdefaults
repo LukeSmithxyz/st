@@ -126,3 +126,24 @@ st.font: Monospace-11;
 /* *.color13:  #ff00ff */
 /* *.color14:  #00ffff */
 /* *.color15:  #aabac8 */
+
+/* !! solid colors */
+/* *.color0:   #000000 */
+/* *.color1:   #7f0000 */
+/* *.color2:   #007f00 */
+/* *.color3:   #7f7f00 */
+/* *.color4:   #00007f */
+/* *.color5:   #7f007f */
+/* *.color6:   #007f7f */
+/* *.color7:   #7f7f7f */
+/* *.color8:   #7f7f7f */
+/* *.color9:   #ff0000 */
+/* *.color10:  #00ff00 */
+/* *.color11:  #ffff00 */
+/* *.color12:  #0000ff */
+/* *.color13:  #ff00ff */
+/* *.color14:  #00ffff */
+/* *.color15:  #ffffff */
+/* *.background: black */
+/* *.foreground: white */
+/* *.cursorColor: white */
