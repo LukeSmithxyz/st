@@ -1,12 +1,13 @@
 #!/bin/sh
 
-urlregex="(((http|https|gopher|gemini|ftp|ftps|git)://|www\\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@$&%?$\#=_~-]*)|((magnet:\\?xt=urn:btih:)[a-zA-Z0-9]*)"
+urlregex='(((http|https|gopher|gemini|ftp|ftps|git)://|www\.)[a-zA-Z0-9.]*[:;a-zA-Z0-9./+@$&%?$\#=_~-]*)'
+magnetregex='(magnet:\\?xt=urn:btih:[a-zA-Z0-9]*)'
 
-urls="$(sed 's/.*│//g' | tr -d '\n' | # First remove linebreaks and mutt sidebars:
-	grep -aEo "$urlregex" | # grep only urls as defined above.
-	uniq | # Ignore neighboring duplicates.
-	sed "s/\(\.\|,\|;\|\!\\|\?\)$//;
-	s/^www./http:\/\/www\./")" # xdg-open will not detect url without http
+urls="$(sed 's/.*│//g' |                         # remove mutt sidebars
+	awk 'NF{printf "%s", $0; next} {print ""}' | # remove linebreaks on non-empty lines
+	grep -aEo "$urlregex|$magnetregex" |         # grep only urls as defined above
+	uniq | sed -E 's/(\.|,|;|!|\?)$//g' |        # ignore neighboring duplicates and remove trailing punctuation
+	sed 's|^www\.|https://www\.|g')"             # xdg-open will not detect url without https://
 
 [ -z "$urls" ] && exit 1
 
