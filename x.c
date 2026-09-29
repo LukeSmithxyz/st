@@ -277,6 +277,8 @@ static int focused = 0;
 
 static int oldbutton = 3; /* button event on startup: 3 = release */
 static uint buttons; /* bit field of pressed buttons */
+static int selecting = 0; /* a Button1 selection is in progress */
+static XEvent lastselev;  /* last event that moved it, to finish a lost release */
 
 void
 clipcopy(const Arg *dummy)
@@ -537,6 +539,8 @@ bpress(XEvent *e)
 		xsel.tclick1 = now;
 
 		selstart(evcol(e), evrow(e), snap);
+		selecting = 1;
+		lastselev = *e;
 	}
 }
 
@@ -739,6 +743,17 @@ brelease(XEvent *e)
 	if (1 <= btn && btn <= 11)
 		buttons &= ~(1 << (btn-1));
 
+	/*
+	 * A selection started with forcemousemod must end here even if the
+	 * modifier was let go first, or it stays half-open and follows the
+	 * pointer.
+	 */
+	if (selecting && btn == Button1) {
+		selecting = 0;
+		mousesel(e, 1);
+		return;
+	}
+
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
 		return;
@@ -753,6 +768,18 @@ brelease(XEvent *e)
 void
 bmotion(XEvent *e)
 {
+	if (selecting) {
+		if (!(e->xmotion.state & Button1Mask)) {
+			/* the release never reached us: finish where it was */
+			selecting = 0;
+			mousesel(&lastselev, 1);
+			return;
+		}
+		lastselev = *e;
+		mousesel(e, 0);
+		return;
+	}
+
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
 		return;
